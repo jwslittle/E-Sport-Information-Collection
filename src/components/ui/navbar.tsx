@@ -23,6 +23,8 @@ const routes = [
     { href: '/my-team', label: '나만의 팀', icon: User },
     { href: '/shop', label: '상점', icon: ShoppingBag },
     { href: '/collection', label: '보관함', icon: Package },
+    { href: '/ranking', label: '랭킹', icon: Trophy },
+    { href: '/simulation', label: '시뮬레이션', icon: Play },
     { href: '/analyst', label: 'AI 분석가', icon: Bot },
 ]
 

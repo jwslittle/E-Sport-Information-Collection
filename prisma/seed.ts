@@ -56,12 +56,22 @@ async function main() {
                 position: p.position,
                 cost: p.cost,
                 seasonStats: JSON.stringify({
-                    kda: (Math.random() * 5 + 2).toFixed(2),
-                    dpm: Math.floor(Math.random() * 500 + 300),
-                    gpm: Math.floor(Math.random() * 300 + 300),
-                    winRate: (Math.random() * 40 + 40).toFixed(1),
+                    games: 0,
+                    kills: 0,
+                    deaths: 0,
+                    assists: 0,
+                    cs: 0,
+                    baron: 0,
+                    dragon: 0,
+                    fantasyPoints: 0
                 }),
                 careerStats: JSON.stringify({
+                    season2023: {
+                        kda: (Math.random() * 5 + 2).toFixed(2),
+                        dpm: Math.floor(Math.random() * 500 + 300),
+                        gpm: Math.floor(Math.random() * 300 + 300),
+                        winRate: (Math.random() * 40 + 40).toFixed(1),
+                    },
                     totalGames: Math.floor(Math.random() * 500 + 100),
                     totalWins: Math.floor(Math.random() * 300 + 50),
                 }),
