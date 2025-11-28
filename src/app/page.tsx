@@ -1,65 +1,59 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Trophy, Users, Sparkles } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="flex flex-col items-center justify-center space-y-12 py-12 text-center">
+      <div className="space-y-4">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-6xl bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+          E-Sport-SuperTeam
+        </h1>
+        <p className="mx-auto max-w-[700px] text-zinc-400 md:text-xl">
+          나만의 드림팀을 구성하고, 선수 카드를 수집하여 최고의 구단주가 되어보세요.
+          실시간 데이터와 AI 분석으로 승리를 쟁취하세요.
+        </p>
+      </div>
+
+      <div className="flex gap-4">
+        <Button asChild size="lg" className="bg-yellow-500 text-black hover:bg-yellow-400">
+          <Link href="/my-team">팀 만들기</Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="border-zinc-700 text-white hover:bg-zinc-800">
+          <Link href="/shop">카드 뽑기</Link>
+        </Button>
+      </div>
+
+      <div className="grid gap-8 md:grid-cols-3 w-full max-w-5xl">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <Users className="h-10 w-10 text-blue-500 mb-2" />
+            <CardTitle className="text-white">드림팀</CardTitle>
+          </CardHeader>
+          <CardContent className="text-zinc-400">
+            LCK 선수들로 나만의 팀을 구성하고 포인트 경쟁에 참여하세요.
+          </CardContent>
+        </Card>
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <Trophy className="h-10 w-10 text-yellow-500 mb-2" />
+            <CardTitle className="text-white">카드 수집</CardTitle>
+          </CardHeader>
+          <CardContent className="text-zinc-400">
+            Bronze부터 Challenger까지, 다양한 등급의 선수 카드를 수집하고 진화시키세요.
+          </CardContent>
+        </Card>
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader>
+            <Sparkles className="h-10 w-10 text-purple-500 mb-2" />
+            <CardTitle className="text-white">AI 분석가</CardTitle>
+          </CardHeader>
+          <CardContent className="text-zinc-400">
+            AI 에이전트와 함께 데이터를 분석하고 최적의 전략을 수립하세요.
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }

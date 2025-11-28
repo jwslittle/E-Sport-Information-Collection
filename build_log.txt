@@ -1,0 +1,18 @@
+
+> e_sport_fantasy@0.1.0 build
+> next build
+
+   ▲ Next.js 16.0.5 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 2 errors:
+./src/app
+Font file not found: Can't resolve './fonts/GeistMonoVF.woff'
+
+./src/app
+Font file not found: Can't resolve './fonts/GeistVF.woff'
+
+    at ignore-listed frames
