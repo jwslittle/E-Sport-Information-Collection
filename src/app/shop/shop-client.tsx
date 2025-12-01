@@ -8,9 +8,23 @@ import { Package, Sparkles } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 
+interface PackResult {
+    card: {
+        grade: string
+    }
+    player: {
+        name: string
+        team: string
+        position: string
+    }
+    user: {
+        gachaLevel: number
+    }
+}
+
 export function ShopClient() {
     const [isOpening, setIsOpening] = useState(false)
-    const [result, setResult] = useState<any>(null)
+    const [result, setResult] = useState<PackResult | null>(null)
     const [isOpen, setIsOpen] = useState(false)
 
     const buyPack = async () => {

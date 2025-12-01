@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Plus, X, Save, AlertCircle, Lock } from 'lucide-react'
+import { Plus, X, Save, Lock } from 'lucide-react'
 import {
     Dialog,
     DialogContent,
@@ -17,15 +17,24 @@ import {
 } from '@/components/ui/dialog'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useDebounce } from '@/hooks/use-debounce' // Debounce 훅 필요 (없으면 생성)
+import { useDebounce } from '@/hooks/use-debounce'
+
+interface InitialTeam {
+    name: string
+    players: {
+        position: string
+        player: Player
+    }[]
+    isFinalized: boolean
+}
 
 interface TeamBuilderProps {
     allPlayers: Player[]
-    initialTeam?: any // 초기 팀 데이터 (서버에서 전달)
+    initialTeam?: InitialTeam | null
 }
 
-const POSITIONS = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']
-const SALARY_CAP = 100
+const POSITIONS = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT', 'SUB']
+const SALARY_CAP = 100 // Adjusted for better balance (Avg ~16 * 6 = 96)
 
 export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
     const router = useRouter()
@@ -33,11 +42,12 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
 
     const [teamName, setTeamName] = useState(initialTeam?.name || '')
     const [selectedPlayers, setSelectedPlayers] = useState<Record<string, Player | null>>({
-        TOP: initialTeam?.players?.find((p: any) => p.position === 'TOP')?.player || null,
-        JUNGLE: initialTeam?.players?.find((p: any) => p.position === 'JUNGLE')?.player || null,
-        MID: initialTeam?.players?.find((p: any) => p.position === 'MID')?.player || null,
-        ADC: initialTeam?.players?.find((p: any) => p.position === 'ADC')?.player || null,
-        SUPPORT: initialTeam?.players?.find((p: any) => p.position === 'SUPPORT')?.player || null,
+        TOP: initialTeam?.players?.find((p) => p.position === 'TOP')?.player || null,
+        JUNGLE: initialTeam?.players?.find((p) => p.position === 'JUNGLE')?.player || null,
+        MID: initialTeam?.players?.find((p) => p.position === 'MID')?.player || null,
+        ADC: initialTeam?.players?.find((p) => p.position === 'ADC')?.player || null,
+        SUPPORT: initialTeam?.players?.find((p) => p.position === 'SUPPORT')?.player || null,
+        SUB: initialTeam?.players?.find((p) => p.position === 'SUB')?.player || null,
     })
     const [isFinalized, setIsFinalized] = useState(initialTeam?.isFinalized || false)
 
@@ -47,7 +57,6 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
     const [isSaving, setIsSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
-    // 자동 저장을 위한 Debounce
     const debouncedTeamName = useDebounce(teamName, 1000)
     const debouncedPlayers = useDebounce(selectedPlayers, 1000)
 
@@ -56,19 +65,16 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
         0
     )
 
-    // 로그인 체크
     useEffect(() => {
         if (status === 'unauthenticated') {
             router.push('/auth/signin')
         }
     }, [status, router])
 
-    // 자동 저장 로직
     const saveTeam = useCallback(async (finalize = false) => {
         if (!session?.user) return
-        if (isFinalized) return // 이미 확정된 경우 저장 불가
+        if (isFinalized) return
 
-        // 팀 이름이 없거나 선수가 하나도 없으면 자동 저장 스킵 (수동 저장 시에는 알림)
         if (!teamName.trim() && !finalize) return
 
         setIsSaving(true)
@@ -85,6 +91,8 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
                         .map(([position, player]) => ({
                             playerId: player!.id,
                             position,
+                            // Default starters: everyone except SUB
+                            isStarter: position !== 'SUB'
                         })),
                     totalCost: currentCost,
                     isFinalized: finalize
@@ -97,20 +105,17 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
             if (finalize) {
                 setIsFinalized(true)
                 alert('팀이 성공적으로 확정되었습니다! 더 이상 변경할 수 없습니다.')
+                router.refresh()
             }
         } catch (error) {
             console.error(error)
-            // 자동 저장 실패는 조용히 처리하거나 토스트 메시지
         } finally {
             setIsSaving(false)
         }
-    }, [teamName, selectedPlayers, currentCost, session, isFinalized])
+    }, [teamName, selectedPlayers, currentCost, session, isFinalized, router])
 
-    // 변경 사항 감지하여 자동 저장 실행
     useEffect(() => {
         if (initialTeam && !isFinalized) {
-            // 초기 로딩 후 변경이 있을 때만 저장 (여기서는 단순화를 위해 값 변경 시 무조건 시도)
-            // 실제로는 dirty check가 필요할 수 있음
             saveTeam()
         }
     }, [debouncedTeamName, debouncedPlayers, saveTeam, isFinalized, initialTeam])
@@ -131,6 +136,12 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
         )
         if (isAlreadySelected) {
             alert('이미 팀에 포함된 선수입니다.')
+            return
+        }
+
+        // Validate Position for Main Roles (SUB can be anyone)
+        if (currentPosition !== 'SUB' && player.position !== currentPosition) {
+            alert(`이 슬롯에는 ${currentPosition} 포지션의 선수만 배치할 수 있습니다.`)
             return
         }
 
@@ -161,19 +172,22 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
             return
         }
         if (Object.values(selectedPlayers).some((p) => p === null)) {
-            alert('팀 확정 전 모든 포지션을 채워주세요.')
+            alert('팀 확정 전 6명의 선수를 모두 채워주세요.')
             return
         }
-        if (confirm('팀을 확정하시겠습니까? 확정 후에는 수정할 수 없습니다.')) {
+        if (confirm('팀을 확정하시겠습니까? 확정 후에는 멤버를 교체할 수 없으며, 주전/벤치 설정만 가능합니다.')) {
             saveTeam(true)
         }
     }
 
     const filteredPlayers = allPlayers.filter(
-        (p) =>
-            currentPosition &&
-            p.position === currentPosition &&
-            p.name.toLowerCase().includes(search.toLowerCase())
+        (p) => {
+            if (!currentPosition) return false
+            // SUB slot allows any position, Main slots enforce position
+            const positionMatch = currentPosition === 'SUB' ? true : p.position === currentPosition
+            const nameMatch = p.name.toLowerCase().includes(search.toLowerCase())
+            return positionMatch && nameMatch
+        }
     )
 
     if (status === 'loading') return <div className="text-white">로딩 중...</div>
@@ -182,8 +196,8 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
         <div className="space-y-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">나만의 팀 빌더</h1>
-                    <p className="text-zinc-400">샐러리 캡 내에서 최고의 팀을 구성하세요.</p>
+                    <h1 className="text-3xl font-bold text-white">나만의 팀 빌더 (6인 로스터)</h1>
+                    <p className="text-zinc-400">5명의 주전과 1명의 서브 멤버를 구성하세요. (Salary Cap: {SALARY_CAP})</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="text-right">
@@ -224,13 +238,15 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {POSITIONS.map((position) => {
                     const player = selectedPlayers[position]
                     return (
                         <Card key={position} className={`bg-zinc-900 border-zinc-800 ${!player ? 'border-dashed' : ''} ${isFinalized ? 'opacity-80' : ''}`}>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-zinc-500 text-center">{position}</CardTitle>
+                                <CardTitle className="text-sm font-medium text-zinc-500 text-center">
+                                    {position === 'SUB' ? 'SUB (Any)' : position}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="flex flex-col items-center gap-4">
                                 {player ? (
@@ -254,6 +270,7 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
                                         <div className="text-center">
                                             <p className="font-bold text-white">{player.name}</p>
                                             <p className="text-xs text-zinc-400">{player.team}</p>
+                                            <p className="text-xs text-zinc-500">{player.position}</p>
                                             <Badge variant="outline" className="mt-2 border-zinc-700 text-yellow-500">
                                                 Cost: {player.cost}
                                             </Badge>
@@ -300,7 +317,7 @@ export function TeamBuilder({ allPlayers, initialTeam }: TeamBuilderProps) {
                                     </Avatar>
                                     <div>
                                         <p className="font-medium">{player.name}</p>
-                                        <p className="text-xs text-zinc-400">{player.team}</p>
+                                        <p className="text-xs text-zinc-400">{player.team} • {player.position}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">

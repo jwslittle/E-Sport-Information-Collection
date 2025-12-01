@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 
 export async function POST(request: Request) {
     try {
@@ -13,22 +13,26 @@ export async function POST(request: Request) {
         const body = await request.json()
         const { name, players, totalCost, isFinalized } = body
 
-        // 기존 팀 확인
+        // Check Game State for Locking
+        const gameState = await (prisma as any).gameState.findFirst()
+        const currentRound = gameState ? gameState.currentRound : 0
+
+        if (gameState && gameState.isRoundActive) {
+            return NextResponse.json({ error: 'Roster is locked: Match is in progress' }, { status: 400 })
+        }
+
         const existingTeam = await prisma.myTeam.findFirst({
-            where: { userId: session.user.id }
+            where: { userId: (session.user as any).id }
         })
 
-        // 타입 단언을 사용하여 빌드 에러 방지
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (existingTeam && (existingTeam as any).isFinalized) {
-            return NextResponse.json({ error: 'Team is already finalized' }, { status: 400 })
+        if (existingTeam && (existingTeam as any).lastFinalizedRound === currentRound) {
+            return NextResponse.json({ error: 'Roster is finalized for this round' }, { status: 400 })
         }
 
         let team;
 
         if (existingTeam) {
-            // 업데이트
-            // 기존 선수 연결 삭제 후 다시 생성 (단순화)
+            // Update
             await prisma.teamPlayer.deleteMany({
                 where: { teamId: existingTeam.id }
             })
@@ -40,32 +44,30 @@ export async function POST(request: Request) {
                     totalCost,
                     isFinalized: isFinalized || false,
                     players: {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         create: players.map((p: any) => ({
                             playerId: p.playerId,
-                            position: p.position
+                            position: p.position,
+                            isStarter: p.isStarter ?? true
                         }))
                     }
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any // 타입 단언 추가
+                }
             })
         } else {
-            // 생성
+            // Create
             team = await prisma.myTeam.create({
                 data: {
-                    userId: session.user.id,
+                    userId: (session.user as any).id,
                     name,
                     totalCost,
                     isFinalized: isFinalized || false,
                     players: {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         create: players.map((p: any) => ({
                             playerId: p.playerId,
-                            position: p.position
+                            position: p.position,
+                            isStarter: p.isStarter ?? true
                         }))
                     }
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any // 타입 단언 추가
+                }
             })
         }
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Trophy, Users, ShoppingBag, Bot, User, Package, LogOut } from 'lucide-react'
+import { Menu, Trophy, Users, ShoppingBag, Bot, User, Package, LogOut, Play, Gavel, BarChart2, Gift } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,9 @@ const routes = [
     { href: '/shop', label: '상점', icon: ShoppingBag },
     { href: '/collection', label: '보관함', icon: Package },
     { href: '/ranking', label: '랭킹', icon: Trophy },
+    { href: '/quests', label: '퀘스트', icon: Gift },
+    { href: '/auction', label: '경매', icon: Gavel },
+    { href: '/dashboard', label: '대시보드', icon: BarChart2 },
     { href: '/simulation', label: '시뮬레이션', icon: Play },
     { href: '/analyst', label: 'AI 분석가', icon: Bot },
 ]
@@ -43,7 +46,24 @@ export function Navbar() {
                         </span>
                     </Link>
                     <nav className="flex items-center space-x-6 text-sm font-medium">
-                        {routes.map((route) => (
+                        {routes.slice(0, 6).map((route) => (
+                            <Link
+                                key={route.href}
+                                href={route.href}
+                                className={cn(
+                                    "transition-colors hover:text-white/80",
+                                    pathname === route.href ? "text-white" : "text-white/60"
+                                )}
+                            >
+                                {route.label}
+                            </Link>
+                        ))}
+                        {/* More Menu for extra items if needed, but for now listing important ones or all if space permits. 
+                            Given the number of links, let's keep it simple or maybe hide some on smaller desktop screens.
+                            For now, I'll render all but maybe consider a 'More' dropdown later.
+                            Actually, let's just render them all for now, assuming wide screen.
+                        */}
+                        {routes.slice(6).map((route) => (
                             <Link
                                 key={route.href}
                                 href={route.href}

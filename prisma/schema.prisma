@@ -58,6 +58,13 @@ model User {
 
   followedBy    Follows[] @relation("following")
   following     Follows[] @relation("follower")
+
+  quests        UserQuest[]
+  achievements  UserAchievement[]
+  
+  auctions      Auction[] @relation("Seller")
+  bids          Bid[]
+  winningBids   Auction[] @relation("Bidder")
 }
 
 model Follows {
@@ -99,7 +106,9 @@ model MyTeam {
   players       TeamPlayer[]
   totalCost     Int
   totalPoints   Int       @default(0)
-  isFinalized   Boolean   @default(false)
+  isFinalized   Boolean   @default(false) // Legacy, use lastFinalizedRound
+  lastFinalizedRound Int  @default(-1)
+  roundScores   MyTeamRoundScore[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -111,6 +120,7 @@ model TeamPlayer {
   playerId      String
   player        Player    @relation(fields: [playerId], references: [id])
   position      String
+  isStarter     Boolean   @default(true)
 }
 
 model Card {
@@ -131,4 +141,121 @@ model UserCard {
   card          Card      @relation(fields: [cardId], references: [id])
   acquiredAt    DateTime  @default(now())
   isLocked      Boolean   @default(false)
+  auction       Auction?
 }
+
+// Quest & Achievement Models
+model Quest {
+  id           String      @id @default(uuid())
+  title        String
+  description  String
+  type         String      // DAILY, WEEKLY
+  actionType   String      // SIMULATION_PLAY, CARD_COLLECT, etc.
+  targetCount  Int
+  rewardPoints Int
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  userQuests   UserQuest[]
+}
+
+model UserQuest {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questId     String
+  quest       Quest     @relation(fields: [questId], references: [id])
+  progress    Int       @default(0)
+  isCompleted Boolean   @default(false)
+  isClaimed   Boolean   @default(false)
+  resetAt     DateTime? // 다음 리셋 시간
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, questId])
+}
+
+model Achievement {
+  id               String            @id @default(uuid())
+  title            String
+  description      String
+  actionType       String
+  targetCount      Int
+  rewardPoints     Int
+  icon             String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  userAchievements UserAchievement[]
+}
+
+model Auction {
+  id              String    @id @default(uuid())
+  sellerId        String
+  seller          User      @relation("Seller", fields: [sellerId], references: [id])
+  cardId          String    @unique // 한 카드는 하나의 경매만 가능
+  card            UserCard  @relation(fields: [cardId], references: [id])
+  minPrice        Int
+  currentPrice    Int
+  highestBidderId String?
+  highestBidder   User?     @relation("Bidder", fields: [highestBidderId], references: [id])
+  endTime         DateTime
+  status          String    @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED, EXPIRED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bids            Bid[]
+}
+
+model Bid {
+  id        String   @id @default(uuid())
+  auctionId String
+  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  bidderId  String
+  bidder    User     @relation(fields: [bidderId], references: [id])
+  amount    Int
+  createdAt DateTime @default(now())
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  progress      Int         @default(0)
+  isCompleted   Boolean     @default(false)
+  isClaimed     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, achievementId])
+}
+
+model GameState {
+  id            String   @id @default(uuid())
+  currentRound  Int      @default(0)
+  seasonYear    Int      @default(2024)
+  isRoundActive Boolean  @default(false) // If true, roster changes are locked
+  nextMatchDate DateTime @default(now())
+  upcomingMatches String? // JSON string: [{team1: string, team2: string}]
+  updatedAt     DateTime @updatedAt
+}
+
+model MatchLog {
+  id        String   @id @default(uuid())
+  round     Int
+  team1     String
+  team2     String
+  winner    String
+  details   String   // JSON string of player stats
+  createdAt DateTime @default(now())
+}
+
+model MyTeamRoundScore {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      MyTeam   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round     Int
+  points    Int
+  details   String   // JSON: { playerId: points, ... }
+  createdAt DateTime @default(now())
+}
+
