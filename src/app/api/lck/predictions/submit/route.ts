@@ -25,11 +25,16 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } })
     if (!user) return NextResponse.json({ error: '유저 없음' }, { status: 404 })
 
-    // 경기 존재 + SCHEDULED 확인
+    // 경기 존재 + 상태 확인
     const match = await prisma.lckRealMatch.findUnique({ where: { id: matchId } })
     if (!match) return NextResponse.json({ error: '경기를 찾을 수 없습니다.' }, { status: 404 })
+
+    // COMPLETED 또는 LIVE 상태 예측 차단 (진행 중인 경기 포함)
     if (match.status === 'COMPLETED') {
         return NextResponse.json({ error: '이미 종료된 경기입니다.' }, { status: 400 })
+    }
+    if (match.status === 'LIVE' || match.status === 'INPROGRESS') {
+        return NextResponse.json({ error: '경기가 이미 진행 중입니다. 예측은 경기 시작 전에만 가능합니다.' }, { status: 400 })
     }
 
     // 경기 시작 시간 체크 (시작 5분 전까지만 예측 가능)
@@ -38,6 +43,9 @@ export async function POST(req: NextRequest) {
         if (new Date() > cutoff) {
             return NextResponse.json({ error: '예측 마감 시간이 지났습니다. (경기 시작 5분 전까지)' }, { status: 400 })
         }
+    } else {
+        // scheduledAt이 없으면 예측 불가 — TBD 경기 차단
+        return NextResponse.json({ error: '경기 일정이 확정되지 않았습니다. 일정 확정 후 예측 가능합니다.' }, { status: 400 })
     }
 
     // 팀 코드 유효성

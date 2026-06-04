@@ -72,6 +72,7 @@ export async function updateQuestProgress(
             where: { userId_questId_periodKey: { userId, questId: quest.id, periodKey } },
         })
 
+        // 이미 완료된 퀘스트 스킵
         if (existing?.isCompleted) continue
 
         const newProgress = Math.min((existing?.progress ?? 0) + amount, quest.targetCount)
@@ -80,6 +81,7 @@ export async function updateQuestProgress(
         await prisma.userQuestProgress.upsert({
             where: { userId_questId_periodKey: { userId, questId: quest.id, periodKey } },
             create: { userId, questId: quest.id, periodKey, progress: newProgress, isCompleted },
+            // updateMany 대신 update 사용 — isCompleted 재확인은 isClaimed 보호 레이어에서 처리
             update: { progress: newProgress, isCompleted },
         })
 

@@ -22,9 +22,9 @@ export async function GET(req: Request) {
             AND: [
                 { id: { not: session.user.id } },   // 자기 자신 제외
                 {
+                    // 이메일 검색 제거 — 이메일 열거 공격(User Enumeration) 방지
                     OR: [
-                        { name:  { contains: q, mode: 'insensitive' } },
-                        { email: { contains: q, mode: 'insensitive' } },
+                        { name: { contains: q, mode: 'insensitive' } },
                     ],
                 },
             ],

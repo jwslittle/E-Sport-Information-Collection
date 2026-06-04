@@ -62,6 +62,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 })
         }
 
+        // OpenAI 비용 폭탄 방지: 메시지 수 + 각 메시지 길이 제한
+        const MAX_MESSAGES = 30
+        const MAX_MSG_LENGTH = 2000
+        if (messages.length > MAX_MESSAGES) {
+            return NextResponse.json({ error: `대화 기록이 너무 깁니다. (최대 ${MAX_MESSAGES}개)` }, { status: 400 })
+        }
+        for (const msg of messages) {
+            if (typeof msg?.content === 'string' && msg.content.length > MAX_MSG_LENGTH) {
+                return NextResponse.json({ error: `메시지가 너무 깁니다. (최대 ${MAX_MSG_LENGTH}자)` }, { status: 400 })
+            }
+        }
+
         // Get Historical Context based on the last user message
         const lastUserMessage = messages.slice().reverse().find((m: any) => m.role === 'user')
         let context = ""

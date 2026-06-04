@@ -615,19 +615,25 @@ function RealMatchCard({ match }: { match: LckMatch }) {
                                     {/* 팀 1 */}
                                     <div className={`flex-1 flex items-center justify-end gap-2
                                         ${isCompleted && match.winner === match.team1 ? 'opacity-100' : isCompleted ? 'opacity-50' : ''}`}>
-                                        <Link href={`/teams/${match.team1}`} onClick={e => e.stopPropagation()} className="hidden md:flex flex-col items-end hover:opacity-80 transition-opacity">
-                                            <span className={`text-base font-bold ${t1Color}`}>
-                                                {match.team1}
-                                            </span>
-                                            {match.team1Name && (
-                                                <span className="text-[10px] text-zinc-500 max-w-[100px] truncate text-right">
-                                                    {match.team1Name}
-                                                </span>
-                                            )}
-                                        </Link>
-                                        <Link href={`/teams/${match.team1}`} onClick={e => e.stopPropagation()}>
-                                            <TeamLogo code={match.team1} logoUrl={match.team1Logo} name={match.team1Name} />
-                                        </Link>
+                                        {match.team1 && match.team1 !== 'TBD' ? (
+                                            <Link href={`/teams/${match.team1}`} onClick={e => e.stopPropagation()} className="hidden md:flex flex-col items-end hover:opacity-80 transition-opacity">
+                                                <span className={`text-base font-bold ${t1Color}`}>{match.team1}</span>
+                                                {match.team1Name && (
+                                                    <span className="text-[10px] text-zinc-500 max-w-[100px] truncate text-right">{match.team1Name}</span>
+                                                )}
+                                            </Link>
+                                        ) : (
+                                            <div className="hidden md:flex flex-col items-end">
+                                                <span className={`text-base font-bold ${t1Color}`}>{match.team1 || 'TBD'}</span>
+                                            </div>
+                                        )}
+                                        {match.team1 && match.team1 !== 'TBD' ? (
+                                            <Link href={`/teams/${match.team1}`} onClick={e => e.stopPropagation()}>
+                                                <TeamLogo code={match.team1} logoUrl={match.team1Logo} name={match.team1Name} />
+                                            </Link>
+                                        ) : (
+                                            <TeamLogo code={match.team1 || 'TBD'} logoUrl={match.team1Logo} name={match.team1Name} />
+                                        )}
                                     </div>
 
                                     {/* 스코어 */}
@@ -657,19 +663,25 @@ function RealMatchCard({ match }: { match: LckMatch }) {
                                     {/* 팀 2 */}
                                     <div className={`flex-1 flex items-center justify-start gap-2
                                         ${isCompleted && match.winner === match.team2 ? 'opacity-100' : isCompleted ? 'opacity-50' : ''}`}>
-                                        <Link href={`/teams/${match.team2}`} onClick={e => e.stopPropagation()}>
-                                            <TeamLogo code={match.team2} logoUrl={match.team2Logo} name={match.team2Name} />
-                                        </Link>
-                                        <Link href={`/teams/${match.team2}`} onClick={e => e.stopPropagation()} className="hidden md:flex flex-col hover:opacity-80 transition-opacity">
-                                            <span className={`text-base font-bold ${t2Color}`}>
-                                                {match.team2}
-                                            </span>
-                                            {match.team2Name && (
-                                                <span className="text-[10px] text-zinc-500 max-w-[100px] truncate">
-                                                    {match.team2Name}
-                                                </span>
-                                            )}
-                                        </Link>
+                                        {match.team2 && match.team2 !== 'TBD' ? (
+                                            <Link href={`/teams/${match.team2}`} onClick={e => e.stopPropagation()}>
+                                                <TeamLogo code={match.team2} logoUrl={match.team2Logo} name={match.team2Name} />
+                                            </Link>
+                                        ) : (
+                                            <TeamLogo code={match.team2 || 'TBD'} logoUrl={match.team2Logo} name={match.team2Name} />
+                                        )}
+                                        {match.team2 && match.team2 !== 'TBD' ? (
+                                            <Link href={`/teams/${match.team2}`} onClick={e => e.stopPropagation()} className="hidden md:flex flex-col hover:opacity-80 transition-opacity">
+                                                <span className={`text-base font-bold ${t2Color}`}>{match.team2}</span>
+                                                {match.team2Name && (
+                                                    <span className="text-[10px] text-zinc-500 max-w-[100px] truncate">{match.team2Name}</span>
+                                                )}
+                                            </Link>
+                                        ) : (
+                                            <div className="hidden md:flex flex-col">
+                                                <span className={`text-base font-bold ${t2Color}`}>{match.team2 || 'TBD'}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
