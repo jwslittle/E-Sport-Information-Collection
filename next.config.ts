@@ -62,6 +62,8 @@ const nextConfig: NextConfig = {
             { protocol: 'https', hostname: 'lolstatic-a.akamaihd.net' },
             { protocol: 'https', hostname: '*.riot.com' },
             { protocol: 'https', hostname: 'am-a.akamaihd.net' },
+            // ✅ Cloudinary 프로필 이미지 CDN
+            { protocol: 'https', hostname: 'res.cloudinary.com' },
         ],
     },
 }
