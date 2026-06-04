@@ -53,3 +53,40 @@ $RECYCLE.BIN/
 .idea/
 *.swp
 *.swo
+
+# 개발 중 생성된 임시 로그/디버그 파일
+build_log*.txt
+dev_log*.txt
+tsc_log*.txt
+tsc_full_log.txt
+lint_errors.json
+lint_report*.txt
+debug_output*.txt
+logs/
+important.txt
+userid.txt
+teams_list*.txt
+player_teams_dump.txt
+tournaments_dump.txt
+
+# SQLite 로컬 개발 DB (프로덕션은 Neon PostgreSQL)
+prisma/dev.db
+prisma/dev.db-journal
+
+# 임시 스크립트
+inspect-player-cost.ts
+inspect_*.js
+verify-*.ts
+verify-*.js
+test-prisma.ts
+reset-my-team.ts
+check_db.sql
+reset_sync.sql
+prisma/reset_users.ts
+
+# 업로드된 파일 (유저 콘텐츠)
+public/uploads/
+
+# 과거 데이터 폴더
+과거데이터/
+_DEACTIVATED/

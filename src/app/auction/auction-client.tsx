@@ -14,7 +14,7 @@ interface Auction {
         player: {
             name: string
             position: string
-            team: string
+            teamName: string | null
         }
         grade: string
         season: string
@@ -47,11 +47,42 @@ export function AuctionClient() {
         }
     }
 
-    // Polling for real-time updates (every 2 seconds)
+    // Real-time updates with Pusher + Polling fallback
     useEffect(() => {
         fetchAuctions()
-        const interval = setInterval(fetchAuctions, 2000)
-        return () => clearInterval(interval)
+
+        // Polling fallback (every 5 seconds)
+        const interval = setInterval(fetchAuctions, 5000)
+
+        // Pusher Subscription
+        let channel: any;
+        try {
+            const { pusherClient } = require('@/lib/pusher-client')
+            channel = pusherClient.subscribe('auction-channel')
+
+            channel.bind('auction-update', (data: any) => {
+                setAuctions(prev => prev.map(auction => {
+                    if (auction.id === data.auctionId) {
+                        return {
+                            ...auction,
+                            currentPrice: data.currentPrice,
+                            highestBidder: { name: 'New Bidder' } // We might need to fetch the name or just show 'New Bidder' temporarily
+                        }
+                    }
+                    return auction
+                }))
+                // Optionally refresh full data to get bidder name
+                fetchAuctions()
+            })
+        } catch (e) {
+            console.warn('Pusher subscription failed:', e)
+        }
+
+        return () => {
+            clearInterval(interval)
+            if (channel) channel.unbind_all()
+            if (channel) channel.unsubscribe()
+        }
     }, [])
 
     const handleBid = async (auctionId: string, currentPrice: number) => {
@@ -112,7 +143,7 @@ export function AuctionClient() {
                             <div>
                                 <Badge variant="outline" className="mb-2">{auction.card.season}</Badge>
                                 <CardTitle className="text-xl">{auction.card.player.name}</CardTitle>
-                                <p className="text-sm text-zinc-400">{auction.card.player.team} • {auction.card.player.position}</p>
+                                <p className="text-sm text-zinc-400">{auction.card.player.teamName} • {auction.card.player.position}</p>
                             </div>
                             <Badge className={
                                 auction.card.grade === 'CHALLENGER' ? 'bg-blue-500' :

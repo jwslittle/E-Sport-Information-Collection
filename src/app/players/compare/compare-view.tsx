@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Player } from '@prisma/client'
+import type { Player as PrismaPlayer } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -26,13 +26,21 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 
+// ComparePlayer extends PrismaPlayer with optional legacy fields
+// (seasonStats, teamName, cost existed in an older schema)
+type ComparePlayer = PrismaPlayer & {
+    seasonStats?: string | null
+    teamName?: string | null
+    cost?: number
+}
+
 interface CompareViewProps {
-    initialPlayers: Player[]
-    allPlayers: Player[] // 검색용 전체 선수 목록 (최적화 필요 시 API 호출로 변경)
+    initialPlayers: ComparePlayer[]
+    allPlayers: ComparePlayer[] // 검색용 전체 선수 목록
 }
 
 export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
-    const [selectedPlayers, setSelectedPlayers] = useState<Player[]>(initialPlayers)
+    const [selectedPlayers, setSelectedPlayers] = useState<ComparePlayer[]>(initialPlayers)
     const [search, setSearch] = useState('')
     const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -40,7 +48,7 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
         setSelectedPlayers(selectedPlayers.filter((p) => p.id !== id))
     }
 
-    const addPlayer = (player: Player) => {
+    const addPlayer = (player: ComparePlayer) => {
         if (selectedPlayers.length >= 3) {
             alert('You can compare up to 3 players.')
             return
@@ -59,25 +67,27 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
             !selectedPlayers.find((selected) => selected.id === p.id)
     )
 
-    // 차트 데이터 생성
+    // 차트 데이터 생성 (stats JSON 또는 legacy seasonStats 사용)
     const subjects = ['KDA', 'Win Rate', 'DPM', 'GPM', 'Cost']
     const chartData = subjects.map((subject) => {
-        const data: any = { subject, fullMark: 100 }
+        const data: Record<string, unknown> = { subject, fullMark: 100 }
         selectedPlayers.forEach((player) => {
-            const stats = JSON.parse(player.seasonStats)
+            // stats는 Json? 타입 (Prisma), seasonStats는 레거시 string
+            const rawStats = player.seasonStats
+                ? JSON.parse(player.seasonStats || '{}')
+                : (player.stats as Record<string, number> | null ?? {})
             let value = 0
-            if (subject === 'KDA') value = parseFloat(stats.kda || '0') * 10
-            if (subject === 'Win Rate') value = parseFloat(stats.winRate || '0')
-            if (subject === 'DPM') value = (stats.dpm || 0) / 10
-            if (subject === 'GPM') value = (stats.gpm || 0) / 10
-            if (subject === 'Cost') value = player.cost * 5
-
+            if (subject === 'KDA') value = parseFloat(String(rawStats.kda ?? 0)) * 10
+            if (subject === 'Win Rate') value = parseFloat(String(rawStats.winRate ?? 0))
+            if (subject === 'DPM') value = (Number(rawStats.dpm) || 0) / 10
+            if (subject === 'GPM') value = (Number(rawStats.gpm) || 0) / 10
+            if (subject === 'Cost') value = (player.cost ?? player.basePrice) * 5
             data[player.name] = value
         })
         return data
     })
 
-    const colors = ['#eab308', '#3b82f6', '#ef4444'] // Yellow, Blue, Red
+    const colors = ['#eab308', '#3b82f6', '#ef4444']
 
     return (
         <div className="space-y-8">
@@ -113,7 +123,7 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
                                         </Avatar>
                                         <div>
                                             <p className="font-medium">{player.name}</p>
-                                            <p className="text-xs text-zinc-400">{player.team} • {player.position}</p>
+                                            <p className="text-xs text-zinc-400">{player.teamName ?? player.teamId?.slice(0, 3) ?? 'FA'} • {player.position}</p>
                                         </div>
                                     </div>
                                     <Button size="sm" variant="ghost">Select</Button>
@@ -145,13 +155,13 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
                                 <CardTitle className="text-white" style={{ color: colors[index % colors.length] }}>
                                     {player.name}
                                 </CardTitle>
-                                <p className="text-zinc-400">{player.team} • {player.position}</p>
+                                <p className="text-zinc-400">{player.teamName ?? player.teamId?.slice(0, 3) ?? 'FA'} • {player.position}</p>
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-2">
                                 <Badge variant="outline" className="border-zinc-700 text-zinc-300">
-                                    Cost: {player.cost}
+                                    Cost: {player.cost ?? player.basePrice}
                                 </Badge>
                             </div>
                         </CardContent>
@@ -159,35 +169,43 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
                 ))}
             </div>
 
-            {/* 비교 차트 */}
-            {selectedPlayers.length > 0 && (
+            {/* 레이더 차트 */}
+            {selectedPlayers.length >= 2 && (
                 <Card className="bg-zinc-900 border-zinc-800">
                     <CardHeader>
-                        <CardTitle className="text-white">Stats Comparison</CardTitle>
+                        <CardTitle className="text-white">능력치 비교</CardTitle>
                     </CardHeader>
-                    <CardContent className="h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={400}>
+                            <RadarChart data={chartData}>
                                 <PolarGrid stroke="#3f3f46" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa' }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
+                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#71717a', fontSize: 10 }} />
                                 {selectedPlayers.map((player, index) => (
                                     <Radar
                                         key={player.id}
                                         name={player.name}
                                         dataKey={player.name}
                                         stroke={colors[index % colors.length]}
-                                        strokeWidth={3}
                                         fill={colors[index % colors.length]}
-                                        fillOpacity={0.1}
+                                        fillOpacity={0.15}
+                                        strokeWidth={2}
                                     />
                                 ))}
+                                <Tooltip
+                                    contentStyle={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 8 }}
+                                />
                                 <Legend />
-                                <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', color: '#fff' }} />
                             </RadarChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
+            )}
+
+            {selectedPlayers.length < 2 && (
+                <div className="text-center py-12 text-zinc-500">
+                    <p>비교할 선수를 2명 이상 선택하세요.</p>
+                </div>
             )}
         </div>
     )

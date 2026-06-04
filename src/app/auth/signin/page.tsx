@@ -15,7 +15,7 @@ export default function SignInPage() {
                     </div>
                     <CardTitle className="text-2xl font-bold text-white">환영합니다</CardTitle>
                     <CardDescription className="text-zinc-400">
-                        팀과 컬렉션을 관리하려면 로그인하세요
+                        LCK 경기 예측, 퀴즈, 퀘스트에 참여하세요
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -25,12 +25,6 @@ export default function SignInPage() {
                         onClick={() => signIn('google', { callbackUrl: '/' })}
                     >
                         Google로 로그인
-                    </Button>
-                    <Button
-                        className="w-full bg-[#03C75A] hover:bg-[#02b351] text-white"
-                        onClick={() => signIn('naver', { callbackUrl: '/' })}
-                    >
-                        네이버로 로그인
                     </Button>
                 </CardContent>
             </Card>

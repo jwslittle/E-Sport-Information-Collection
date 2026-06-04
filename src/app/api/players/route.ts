@@ -5,8 +5,9 @@ export async function GET() {
     try {
         const players = await prisma.player.findMany({
             include: {
-                cards: true,
+                team: { select: { code: true, name: true, primaryColor: true } },
             },
+            orderBy: [{ position: 'asc' }, { basePrice: 'desc' }],
         })
         return NextResponse.json(players)
     } catch (error) {

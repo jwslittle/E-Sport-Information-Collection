@@ -1,26 +1,9 @@
-import prisma from '@/lib/prisma'
-import { CollectionClient } from './collection-client'
+/**
+ * /collection — 카드 컬렉션 시스템 제거됨
+ * 상점(/shop)으로 리다이렉트
+ */
+import { redirect } from 'next/navigation'
 
-export const dynamic = 'force-dynamic'
-
-export default async function CollectionPage() {
-    // 임시 사용자 조회
-    const user = await prisma.user.findFirst()
-
-    if (!user) {
-        return <div className="text-white text-center py-12">먼저 사용자를 생성해주세요 (상점이나 나만의 팀을 방문하세요).</div>
-    }
-
-    const userCards = await prisma.userCard.findMany({
-        where: { userId: user.id },
-        include: {
-            card: {
-                include: {
-                    player: true
-                }
-            }
-        }
-    })
-
-    return <CollectionClient userCards={userCards} />
+export default function CollectionPage() {
+    redirect('/shop')
 }

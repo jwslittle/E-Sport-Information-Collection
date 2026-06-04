@@ -6,19 +6,19 @@ export const dynamic = 'force-dynamic'
 export default async function PlayersPage() {
     const players = await prisma.player.findMany({
         include: {
-            cards: true,
+            team: true,
         },
         orderBy: {
-            cost: 'desc',
+            basePrice: 'desc',
         },
     })
 
     return (
         <div className="space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-white">선수 목록</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-white">판타지 선수 목록</h1>
                 <p className="text-zinc-400">
-                    LCK 선수들의 상세 정보와 스탯을 확인하세요.
+                    가상 판타지 리그의 선수 50명 — 예산에 맞게 팀을 구성하세요.
                 </p>
             </div>
             <PlayerList initialPlayers={players} />

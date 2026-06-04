@@ -54,40 +54,46 @@ export const DATA_SOURCES = [
     },
 ];
 
-export const PRO_PLAYER_STATS_SAMPLE_2024 = [
+/** 판타지 리그 가상 선수 샘플 스탯 (AI 분석 참고용) */
+export const VIRTUAL_PLAYER_STATS_SAMPLE = [
     {
-        name: "Chovy",
-        team: "Gen.G",
+        name: "Blaze",
+        team: "Nexus Guardians (NGD)",
         position: "MID",
-        stats: { KDA: 6.2, CSPM: 10.1, DPM: 750, KP: "68%" },
-        signatureChampions: ["Azir", "Yone", "Corki"],
+        price: 14,
+        stats: { KDA: 5.8, CSPM: 9.9, DPM: 770, KP: "67%" },
+        note: "최고가 미드라이너. 딜량과 KDA 모두 리그 최상위권.",
     },
     {
-        name: "Faker",
-        team: "T1",
+        name: "Echo",
+        team: "Aurora Knights (AKT)",
         position: "MID",
-        stats: { KDA: 4.5, CSPM: 9.2, DPM: 620, KP: "72%" },
-        signatureChampions: ["Orianna", "Azir", "Ahri"],
+        price: 14,
+        stats: { KDA: 6.0, CSPM: 9.9, DPM: 775, KP: "68%" },
+        note: "리그 최고 KDA 미드. 팀 기여도가 매우 높음.",
+    },
+    {
+        name: "Sniper",
+        team: "Neon Wolves (NWV)",
+        position: "ADC",
+        price: 14,
+        stats: { KDA: 6.0, CSPM: 10.3, DPM: 748, KP: "64%" },
+        note: "CS 1위 원딜. 안정적인 딜링과 높은 생존력.",
+    },
+    {
+        name: "Phantom",
+        team: "Shadow Foxes (SFX)",
+        position: "JUNGLE",
+        price: 14,
+        stats: { KDA: 5.1, CSPM: 6.2, DPM: 420, KP: "71%" },
+        note: "킬관여율 최상위 정글러. 시야 확보 능력 탁월.",
     },
     {
         name: "Viper",
-        team: "HLE",
-        position: "ADC",
-        stats: { KDA: 5.8, CSPM: 10.5, DPM: 780, KP: "70%" },
-        signatureChampions: ["Zeri", "Xayah", "Lucian"],
-    },
-    {
-        name: "Canyon",
-        team: "Gen.G",
+        team: "Vortex Raiders (VTX)",
         position: "JUNGLE",
-        stats: { KDA: 4.8, CSPM: 6.5, DPM: 450, KP: "75%" },
-        signatureChampions: ["Nidalee", "Lee Sin", "Viego"],
-    },
-    {
-        name: "Keria",
-        team: "T1",
-        position: "SUPPORT",
-        stats: { KDA: 4.2, VSPM: 2.8, KP: "78%" },
-        signatureChampions: ["Bard", "Renata Glasc", "Pyke"],
+        price: 13,
+        stats: { KDA: 4.9, CSPM: 6.1, DPM: 415, KP: "70%" },
+        note: "공격적인 스타일의 정글러. 킬 가담률 높음.",
     },
 ];

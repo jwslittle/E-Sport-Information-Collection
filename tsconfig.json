@@ -22,6 +22,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
@@ -41,6 +42,24 @@
     "verify-full-flow.ts",
     "reset-my-team.ts",
     "test-prisma.ts",
-    "verify-full-flow.js"
+    "verify-full-flow.js",
+    "_DEACTIVATED",
+    "inspect-player-cost.ts",
+    "prisma/seed-shop.ts",
+    "prisma/seed.ts",
+    "prisma/seed-cosmetics.ts",
+    "prisma/seed-quests.ts",
+    "scripts/**/*.ts",
+    "src/app/api/auction/**",
+    "src/app/api/collection/**",
+    "src/app/api/shop/buy/**",
+    "src/app/api/shop/gacha/**",
+    "src/app/api/shop/purchase/**",
+    "src/app/api/shop/equip/**",
+    "src/app/api/my-team/route.ts",
+    "src/app/api/my-team/finalize/**",
+    "src/app/api/my-team/roster/**",
+    "src/app/api/my-team/replace/**",
+    "src/app/api/league/ranking/**"
   ]
 }

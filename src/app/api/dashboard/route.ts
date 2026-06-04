@@ -3,11 +3,22 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        // 1. Top Picked Players (Most owned cards)
-        const topPicked = await prisma.card.groupBy({
+        const { searchParams } = new URL(request.url)
+        const type = searchParams.get('type') || 'REAL'
+
+        // 1. Top Picked Players (Usage in UserTeams of specific type)
+        // Note: Prisma groupBy doesn't support deep filtering easily in all versions, 
+        // but we can filter where userTeam matches type.
+        // Actually, for groupBy, we can use `where`.
+        const topPicked = await prisma.userTeamPlayer.groupBy({
             by: ['playerId'],
+            where: {
+                userTeam: {
+                    type: type
+                }
+            },
             _count: {
                 _all: true
             },
@@ -27,41 +38,117 @@ export async function GET() {
                 })
                 return {
                     name: player?.name || 'Unknown',
-                    team: player?.team || 'Unknown',
+                    team: (player as any)?.team?.name || 'Unknown', // Join might be needed if teamName not on player, check schema. 
+                    // Schema said `teamName` isn't on Player, it has `team` relation. 
+                    // But previous code used `player.teamName`. Let's check schema again. 
+                    // Schema: `teamId String?`, `team Team?`. No `teamName` field.
+                    // Previous code was accessing `player.teamName` (Line 30 original). 
+                    // Wait, maybe Schema view was truncated or I missed it? 
+                    // Original code: `team: player?.teamName || 'Unknown'`
+                    // Schema: `name String`, `realName String`. No teamName.
+                    // I will fetch include team to be safe.
+                    count: item._count._all
+                }
+            })
+        )
+        // Fix: fetch player with team include
+        const topPickedWithTeam = await Promise.all(
+            topPicked.map(async (item) => {
+                const player = await prisma.player.findUnique({
+                    where: { id: item.playerId },
+                    include: { team: true }
+                })
+                return {
+                    name: player?.name || 'Unknown',
+                    team: player?.team?.shortName || player?.team?.name || 'Unknown',
                     count: item._count._all
                 }
             })
         )
 
-        // 2. Highest Win Rate Players (Based on Season Stats)
-        const allPlayers = await prisma.player.findMany()
-        const winRateStats = allPlayers
-            .map(p => {
-                const stats = p.seasonStats ? JSON.parse(p.seasonStats) : {}
-                const games = stats.games || 0
-                const wins = stats.wins || 0
-                return {
-                    name: p.name,
-                    team: p.team,
-                    winRate: games > 0 ? Math.round((wins / games) * 100) : 0,
-                    games
+
+        // 2 & 3. Stats (Points & Position Meta)
+        let playerStatsMap: Record<string, number> = {}
+
+        if (type === 'REAL') {
+            // Use stored JSON stats
+            const allPlayers = await prisma.player.findMany({ include: { team: true } })
+            allPlayers.forEach(p => {
+                const stats = p.stats ? (typeof p.stats === 'string' ? JSON.parse(p.stats) : p.stats) : {}
+                // Schema says `stats Json?`. It might be object.
+                // Safely handle json.
+                const points = (stats as any)?.fantasyPoints || 0
+                playerStatsMap[p.id] = points
+            })
+        } else {
+            // SIMULATION: Aggregate from PlayerPerformance
+            const performances = await prisma.playerPerformance.groupBy({
+                by: ['playerId'],
+                where: {
+                    match: {
+                        leagueType: 'SIMULATION'
+                    }
+                },
+                _sum: {
+                    fantasyPoints: true
                 }
             })
-            .filter(p => p.games >= 5) // Minimum 5 games
-            .sort((a, b) => b.winRate - a.winRate)
+            performances.forEach(p => {
+                playerStatsMap[p.playerId] = p._sum.fantasyPoints || 0
+            })
+        }
+
+        const allPlayers = await prisma.player.findMany({ include: { team: true } })
+
+        const processedStats = allPlayers.map(p => ({
+            name: p.name,
+            team: p.team?.shortName || p.team?.name || 'Unknown',
+            points: playerStatsMap[p.id] || 0,
+            position: p.position
+        }))
+
+        // Chart 1: Top Points
+        const topPoints = processedStats
+            .sort((a, b) => b.points - a.points)
             .slice(0, 5)
 
-        // 3. Position Meta (Average Points by Position)
+
+        // Chart 2: Top Wildcard (Effective)
+        const wildcardUsages = await prisma.userTeamPlayer.groupBy({
+            by: ['playerId'],
+            where: {
+                position: 'WILDCARD',
+                userTeam: { type: type }
+            },
+            _count: { playerId: true }
+        })
+
+        const topWildcardPoints = wildcardUsages.map(usage => {
+            const player = processedStats.find(p => p.name === allPlayers.find(ap => ap.id === usage.playerId)?.name)
+            if (!player) return null
+
+            const wildcardPointsPerUser = player.points * 0.33
+            const totalContribution = wildcardPointsPerUser * usage._count.playerId
+
+            return {
+                name: player.name,
+                team: player.team,
+                points: Math.round(totalContribution),
+                count: usage._count.playerId
+            }
+        })
+            .filter(p => p !== null)
+            .sort((a, b) => (b?.points || 0) - (a?.points || 0))
+            .slice(0, 5)
+
+
+        // 3. Position Meta
         const positionStats: Record<string, { totalPoints: number, count: number }> = {}
-
-        allPlayers.forEach(p => {
-            const stats = p.seasonStats ? JSON.parse(p.seasonStats) : {}
-            const points = stats.fantasyPoints || 0
-
+        processedStats.forEach(p => {
             if (!positionStats[p.position]) {
                 positionStats[p.position] = { totalPoints: 0, count: 0 }
             }
-            positionStats[p.position].totalPoints += points
+            positionStats[p.position].totalPoints += p.points
             positionStats[p.position].count += 1
         })
 
@@ -70,9 +157,11 @@ export async function GET() {
             avgPoints: Math.round(data.totalPoints / Math.max(1, data.count))
         })).sort((a, b) => b.avgPoints - a.avgPoints)
 
+
         return NextResponse.json({
-            topPicked: topPickedDetails,
-            winRates: winRateStats,
+            topPicked: topPickedWithTeam,
+            topPoints,
+            topWildcardPoints,
             positionMeta
         })
 

@@ -1,26 +1,27 @@
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// NextAuth Models
+// --- Auth Models ---
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -28,7 +29,7 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -36,226 +37,629 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String    @id @default(uuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  role          String    @default("USER") // USER, ADMIN
+
+  // Game Data
+  gp            Int       @default(100) // Game Points
+
   accounts      Account[]
   sessions      Session[]
-  
-  // Custom Fields
-  username      String?   // 기존 username 필드 유지 (선택적)
-  points        Int       @default(0)
-  gachaLevel    Int       @default(1)
-  gachaExp      Int       @default(0)
-  
-  collection    UserCard[]
-  myTeam        MyTeam?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  userTeams     UserTeam[]
+  inventory     UserInventory[]
+  predictions   MatchPrediction[]
+  lckPredictions LckPrediction[]
+  cosmeticItems UserCosmeticItem[]
+  userStickers  UserSticker[]
+  profile       UserProfile?
+  questProgress UserQuestProgress[]
+  quizAnswers   UserDailyQuizAnswer[]
+  following     Follows[] @relation("Follower")
+  followedBy    Follows[] @relation("Following")
+  posts         Post[]
+  comments      Comment[]
+  postLikes     PostLike[]
 
-  followedBy    Follows[] @relation("following")
-  following     Follows[] @relation("follower")
-
-  quests        UserQuest[]
-  achievements  UserAchievement[]
-  
-  auctions      Auction[] @relation("Seller")
-  bids          Bid[]
-  winningBids   Auction[] @relation("Bidder")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Follows {
-  follower    User   @relation("follower", fields: [followerId], references: [id])
   followerId  String
-  following   User   @relation("following", fields: [followingId], references: [id])
+  follower    User   @relation("Follower",  fields: [followerId],  references: [id], onDelete: Cascade)
   followingId String
+  following   User   @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
 
   @@id([followerId, followingId])
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+// --- Core Game Data Models ---
 
-  @@unique([identifier, token])
+model Team {
+  id           String   @id @default(uuid())
+  code         String   @unique // T1, GEN, HLE, etc. (Source of Truth)
+  name         String   // T1, Gen.G
+  shortName    String?  // T1, GEN
+  logoUrl      String?
+  primaryColor String?
+  
+  players      Player[]
+  
+  homeMatches  Match[] @relation("HomeTeam")
+  awayMatches  Match[] @relation("AwayTeam")
+  wonMatches   Match[] @relation("WinnerTeam")
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
-// Game Models
 model Player {
-  id            String    @id @default(uuid())
-  name          String
-  realName      String?
-  team          String
-  position      String
-  seasonStats   String    // JSON string
-  careerStats   String    // JSON string
-  cost          Int       @default(10)
-  cards         Card[]
-  teamPlayers   TeamPlayer[]
+  id          String   @id @default(uuid())
+  teamId      String?
+  team        Team?    @relation(fields: [teamId], references: [id])
+  
+  name        String   // Faker
+  realName    String?  // Lee Sang-hyeok
+  position    String   // TOP, JUG, MID, ADC, SUP
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  
+  basePrice   Int      @default(10)
+  
+  // Aggregated Stats (from CSV)
+  stats       Json?    // { kda: 3.5, dpm: 500, ... }
+  
+  performances PlayerPerformance[]
+  userTeamPlayers UserTeamPlayer[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model MyTeam {
-  id            String    @id @default(uuid())
-  userId        String    @unique // 1:1 관계
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String
-  players       TeamPlayer[]
-  totalCost     Int
-  totalPoints   Int       @default(0)
-  isFinalized   Boolean   @default(false) // Legacy, use lastFinalizedRound
-  lastFinalizedRound Int  @default(-1)
-  roundScores   MyTeamRoundScore[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model Match {
+  id          String   @id @default(uuid())
+  season      String   // 2026-SPRING
+  round       Int      // 1, 2, 3...
+  matchDate   DateTime // Scheduled Time (UTC)
+  
+  status      String   @default("SCHEDULED") // SCHEDULED, COMPLETED
+  leagueType  String   @default("REAL") // REAL, SIMULATION
+  
+  winnerId    String?
+  winner      Team?    @relation("WinnerTeam", fields: [winnerId], references: [id])
+  
+  team1Id     String
+  team1       Team     @relation("HomeTeam", fields: [team1Id], references: [id])
+  team1Score  Int      @default(0)
+  
+  team2Id     String
+  team2       Team     @relation("AwayTeam", fields: [team2Id], references: [id])
+  team2Score  Int      @default(0)
+  
+    // Removed duplicate winnerId
+  
+  // Detailed Results (JSON for flexibility: bans, towers, dragons)
+  details     Json?
+  
+  playerPerformances PlayerPerformance[]
+  predictions        MatchPrediction[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model TeamPlayer {
-  id            String    @id @default(uuid())
-  teamId        String
-  team          MyTeam    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  playerId      String
-  player        Player    @relation(fields: [playerId], references: [id])
-  position      String
-  isStarter     Boolean   @default(true)
+model PlayerPerformance {
+  id          String   @id @default(uuid())
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id])
+  
+  // Game Stats
+  kills       Int      @default(0)
+  deaths      Int      @default(0)
+  assists     Int      @default(0)
+  cs          Int      @default(0)
+  visionScore Int      @default(0)
+  damage      Int      @default(0)
+  
+  fantasyPoints Float  @default(0)
+  
+  createdAt   DateTime @default(now())
 }
 
-model Card {
-  id            String    @id @default(uuid())
-  playerId      String
-  player        Player    @relation(fields: [playerId], references: [id])
-  season        String
-  grade         String
-  imageUrl      String?
-  owners        UserCard[]
+// --- User Gameplay Models ---
+
+model UserTeam {
+  id          String   @id @default(uuid())
+  userId      String   
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String   @default("REAL") // REAL, SIMULATION
+  
+  name        String
+  totalPoints Float    @default(0)
+  budget      Int      @default(100) // Salary Cap
+  isFinalized Boolean  @default(false)
+  
+  roster      UserTeamPlayer[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, type])
 }
 
-model UserCard {
-  id            String    @id @default(uuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardId        String
-  card          Card      @relation(fields: [cardId], references: [id])
-  acquiredAt    DateTime  @default(now())
-  isLocked      Boolean   @default(false)
-  auction       Auction?
+model UserTeamPlayer {
+  id          String   @id @default(uuid())
+  userTeamId  String
+  userTeam    UserTeam @relation(fields: [userTeamId], references: [id], onDelete: Cascade)
+  
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id])
+  position    String // Slot position
+  isCaptain   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
 }
 
-// Quest & Achievement Models
-model Quest {
-  id           String      @id @default(uuid())
-  title        String
-  description  String
-  type         String      // DAILY, WEEKLY
-  actionType   String      // SIMULATION_PLAY, CARD_COLLECT, etc.
-  targetCount  Int
-  rewardPoints Int
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  userQuests   UserQuest[]
+// --- Shop Models ---
+
+model ShopItem {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  price       Int
+  type        String   // CARD_PACK, ITEM
+  imageUrl    String?
+  
+  createdAt   DateTime @default(now())
 }
 
-model UserQuest {
-  id          String    @id @default(uuid())
+model UserInventory {
+  id          String   @id @default(uuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  itemId      String?
+  itemType    String   // CARD, ITEM
+  
+  // If Card
+  playerId    String?
+  grade       String?  // NORMAL, RARE, EPIC, LEGEND
+  
+  createdAt   DateTime @default(now())
+}
+
+// --- Historical Stats Models (For Info Tab) ---
+
+model HistoricalTeamStat {
+  id          String   @id @default(uuid())
+  teamName    String
+  year        Int
+  tournament  String
+  
+  games       Int      @default(0)
+  wins        Int      @default(0)
+  losses      Int      @default(0)
+  
+  totalKills  Int      @default(0)
+  totalDeaths Int      @default(0)
+  totalAssists Int     @default(0)
+  totalDamage BigInt   @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([teamName, year, tournament])
+}
+
+model HistoricalPlayerStat {
+  id          String   @id @default(uuid())
+  playerName  String
+  teamName    String
+  position    String
+  year        Int
+  tournament  String
+  
+  games       Int      @default(0)
+  wins        Int      @default(0)
+  losses      Int      @default(0)
+  
+  totalKills  Int      @default(0)
+  totalDeaths Int      @default(0)
+  totalAssists Int     @default(0)
+  
+  averageKDA  Float    @default(0)
+  averageDPM  Float    @default(0)
+  averageVisionScore Float @default(0)
+  
+  totalDamage BigInt   @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+
+  @@unique([playerName, year, tournament])
+}
+
+model MatchPrediction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  type        String   // WINNER
+  target      String   // TeamCode
+  
+  isProcessed Boolean  @default(false)
+  isCorrect   Boolean?
+  pointsEarned Int     @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, matchId, type])
+}
+
+// ─────────────────────────────────────────────
+// QUEST & ACHIEVEMENT SYSTEM
+// ─────────────────────────────────────────────
+
+model Quest {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // DAILY, WEEKLY, ACHIEVEMENT
+  category    String   // PREDICTION, FANTASY, COLLECTION, SOCIAL, GENERAL
+  icon        String?
+  targetCount Int      @default(1)
+  rewardGp    Int      @default(50)
+  isActive    Boolean  @default(true)
+
+  userProgress UserQuestProgress[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 유저별 퀘스트 진행 상태 (daily/weekly는 periodKey로 구분)
+model UserQuestProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   questId     String
-  quest       Quest     @relation(fields: [questId], references: [id])
-  progress    Int       @default(0)
-  isCompleted Boolean   @default(false)
-  isClaimed   Boolean   @default(false)
-  resetAt     DateTime? // 다음 리셋 시간
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  quest       Quest    @relation(fields: [questId], references: [id])
 
-  @@unique([userId, questId])
+  progress    Int      @default(0)
+  isCompleted Boolean  @default(false)
+  isClaimed   Boolean  @default(false)
+  // "2026-05-31" for DAILY, "2026-W22" for WEEKLY, "LIFETIME" for ACHIEVEMENT
+  periodKey   String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, questId, periodKey])
 }
 
-model Achievement {
-  id               String            @id @default(uuid())
-  title            String
-  description      String
-  actionType       String
-  targetCount      Int
-  rewardPoints     Int
-  icon             String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  userAchievements UserAchievement[]
-}
-
-model Auction {
-  id              String    @id @default(uuid())
-  sellerId        String
-  seller          User      @relation("Seller", fields: [sellerId], references: [id])
-  cardId          String    @unique // 한 카드는 하나의 경매만 가능
-  card            UserCard  @relation(fields: [cardId], references: [id])
-  minPrice        Int
-  currentPrice    Int
-  highestBidderId String?
-  highestBidder   User?     @relation("Bidder", fields: [highestBidderId], references: [id])
-  endTime         DateTime
-  status          String    @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED, EXPIRED
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  bids            Bid[]
-}
-
-model Bid {
+model SystemLog {
   id        String   @id @default(uuid())
-  auctionId String
-  auction   Auction  @relation(fields: [auctionId], references: [id], onDelete: Cascade)
-  bidderId  String
-  bidder    User     @relation(fields: [bidderId], references: [id])
-  amount    Int
+  userId    String?
+  action    String
+  details   Json?
+  ip        String?
+  userAgent String?
   createdAt DateTime @default(now())
 }
 
-model UserAchievement {
-  id            String      @id @default(uuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievementId String
-  achievement   Achievement @relation(fields: [achievementId], references: [id])
-  progress      Int         @default(0)
-  isCompleted   Boolean     @default(false)
-  isClaimed     Boolean     @default(false)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+// ─────────────────────────────────────────────
+// REAL LCK DATA (from Leaguepedia)
+// ─────────────────────────────────────────────
 
-  @@unique([userId, achievementId])
-}
-
-model GameState {
+// Series (BO3/BO5) level - one row per match
+model LckRealMatch {
   id            String   @id @default(uuid())
-  currentRound  Int      @default(0)
-  seasonYear    Int      @default(2024)
-  isRoundActive Boolean  @default(false) // If true, roster changes are locked
-  nextMatchDate DateTime @default(now())
-  upcomingMatches String? // JSON string: [{team1: string, team2: string}]
+  externalId    String   @unique // Leaguepedia MatchId (UniqueMatch)
+  tournament    String   // "LCK/2026 Season/Spring Season"
+  displayName   String?  // "LCK 2026 Spring"
+  season        String   // "2026-SPRING"
+  patch         String?
+
+  team1         String   // team code, e.g. "T1"
+  team2         String
+  team1Name     String?  // full team name, e.g. "T1"
+  team2Name     String?
+  team1Logo     String?  // logo URL
+  team2Logo     String?
+  team1Score    Int      @default(0)
+  team2Score    Int      @default(0)
+  winner        String?  // team code of winner, null if not yet played
+
+  bestOf        Int      @default(3)
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  status        String   @default("SCHEDULED") // SCHEDULED, LIVE, COMPLETED
+
+  games         LckGameStat[]
+  lckPredictions LckPrediction[]
+
+  syncedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  // 자주 쓰는 필터 조합에 인덱스 추가
+  @@index([season, status])       // 시즌별 진행 중/완료 경기 조회
+  @@index([season, scheduledAt])  // 시즌별 날짜 정렬
+  @@index([scheduledAt])          // 전체 날짜 범위 조회
 }
 
-model MatchLog {
+// Individual game within a series (Game 1, Game 2, ...)
+model LckGameStat {
+  id          String       @id @default(uuid())
+  matchId     String
+  match       LckRealMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  gameNumber  Int          // 1, 2, 3…
+  winner      String?      // team code
+  duration    String?      // "32:15"
+  patch       String?
+
+  playerStats LckPlayerGameStat[]
+
+  createdAt   DateTime @default(now())
+
+  @@unique([matchId, gameNumber])
+}
+
+// Per-player stat within a single game
+model LckPlayerGameStat {
+  id          String      @id @default(uuid())
+  gameId      String
+  game        LckGameStat @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  playerName  String
+  team        String
+  position    String?
+  champion    String?
+
+  kills       Int      @default(0)
+  deaths      Int      @default(0)
+  assists     Int      @default(0)
+  cs          Int      @default(0)
+  gold        Int      @default(0)
+  damage      Int      @default(0)
+  visionScore Int      @default(0)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([gameId, playerName])
+}
+
+// ─────────────────────────────────────────────
+// LCK 실제 경기 예측
+// ─────────────────────────────────────────────
+
+model LckPrediction {
+  id              String       @id @default(uuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchId         String       // LckRealMatch.id
+  match           LckRealMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  predictedWinner String       // team code e.g. "T1"
+  predictedScore  String?      // "2:0" or "2:1" (null = 승팀만 예측)
+
+  isProcessed     Boolean      @default(false)
+  winnerCorrect   Boolean?     // 승팀 맞힘
+  scoreCorrect    Boolean?     // 스코어도 맞힘
+  isCorrect       Boolean?     // 전체 정답 여부 (= winnerCorrect)
+  gpEarned        Int          @default(0)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([userId, matchId])
+  @@index([isProcessed])  // 크론 정산: 미처리 예측 필터링
+  @@index([matchId])      // 경기별 예측 집계
+}
+
+// ─────────────────────────────────────────────
+// DAILY QUIZ SYSTEM
+// ─────────────────────────────────────────────
+
+model DailyQuiz {
+  id          String   @id @default(uuid())
+  question    String
+  optionA     String
+  optionB     String
+  optionC     String?
+  optionD     String?
+  answer      String   // "A", "B", "C", or "D"
+  explanation String?  // 정답 해설 (정답 공개 후 표시)
+  category    String   @default("TRIVIA") // TRIVIA, HISTORY, RULES, TEAMS
+  difficulty  String   @default("NORMAL") // EASY, NORMAL, HARD
+  gpReward    Int      @default(20)
+  isActive    Boolean  @default(true)
+  orderIndex  Int      @default(0) // 날짜별 순환 순서
+
+  userAnswers UserDailyQuizAnswer[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 유저별 일별 퀴즈 응답 (하루 1회 제한)
+model UserDailyQuizAnswer {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId         String
+  quiz           DailyQuiz @relation(fields: [quizId], references: [id])
+  dateKey        String    // "2026-05-31" - 하루 1번 제한 키
+
+  selectedAnswer String    // "A", "B", "C", or "D"
+  isCorrect      Boolean
+  gpEarned       Int       @default(0)
+
+  createdAt      DateTime  @default(now())
+
+  @@unique([userId, dateKey]) // 하루에 한 번만
+}
+
+// Tracks the last time we synced from Leaguepedia
+model DataSyncLog {
+  id          String   @id @default(uuid())
+  dataType    String   @unique // "LCK_MATCHES", "LCK_SCHEDULE", etc.
+  lastSyncAt  DateTime @default(now())
+  status      String   @default("OK") // OK, ERROR
+  details     String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// COSMETICS SYSTEM
+// ─────────────────────────────────────────────
+
+// Catalogue of all cosmetic items
+model CosmeticItem {
+  id          String   @id @default(uuid())
+  type        String   // TITLE, AVATAR, STICKER, PLAYER_CARD, PROFILE_FRAME, BACKGROUND
+  name        String
+  description String?
+  rarity      String   @default("COMMON") // COMMON, UNCOMMON, RARE, EPIC, LEGENDARY
+  imageUrl    String?
+  gpCost      Int      @default(0) // 0 = not directly purchasable
+  titleText   String?  // for TITLE type: the text shown on profile
+  condition   String?  // how to unlock without shop: "TOP_100_RANK", "WIN_10_PREDICTIONS"
+  isActive    Boolean  @default(true)
+
+  userItems   UserCosmeticItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Items owned by a user
+model UserCosmeticItem {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        CosmeticItem @relation(fields: [itemId], references: [id])
+
+  obtainedBy  String   @default("SHOP") // SHOP, QUEST, FANTASY, ACHIEVEMENT, GACHA, EVENT
+  isEquipped  Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, itemId])
+}
+
+// User's public profile / equipped cosmetics
+model UserProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  displayTitle    String?  // equipped title text (denormalized for speed)
+  equippedTitleId String?  // CosmeticItem id
+  equippedAvatarId    String?
+  equippedFrameId     String?
+  equippedBackgroundId String?
+
+  bio             String?
+  favoriteTeam    String?  // team code
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// STICKERS (collection mini-feature)
+// ─────────────────────────────────────────────
+
+model Sticker {
+  id          String   @id @default(uuid())
+  name        String
+  emoji       String?  // fallback emoji if no image
+  imageUrl    String?
+  rarity      String   @default("COMMON")
+  relatedTeam String?  // team code
+  relatedPlayer String?
+
+  userStickers UserSticker[]
+
+  createdAt   DateTime @default(now())
+}
+
+model UserSticker {
   id        String   @id @default(uuid())
-  round     Int
-  team1     String
-  team2     String
-  winner    String
-  details   String   // JSON string of player stats
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stickerId String
+  sticker   Sticker  @relation(fields: [stickerId], references: [id])
+  count     Int      @default(1) // duplicates stack
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, stickerId])
 }
 
-model MyTeamRoundScore {
+// ─────────────────────────────────────────────
+// COMMUNITY (게시판)
+// ─────────────────────────────────────────────
+
+model Post {
   id        String   @id @default(uuid())
-  teamId    String
-  team      MyTeam   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  round     Int
-  points    Int
-  details   String   // JSON: { playerId: points, ... }
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  title     String
+  content   String   // 본문 (최대 5000자)
+  category  String   @default("FREE") // FREE, ANALYSIS, PREDICTION, INFO
+
+  viewCount Int      @default(0)
+  isPinned  Boolean  @default(false)
+  isDeleted Boolean  @default(false)
+
+  comments  Comment[]
+  likes     PostLike[]
+
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  content   String
+  isDeleted Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PostLike {
+  postId    String
+  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([postId, userId])
+}

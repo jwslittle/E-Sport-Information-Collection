@@ -1,0 +1,69 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import prisma from '@/lib/prisma'
+import { updateQuestProgress } from '@/lib/quest-utils'
+
+export async function POST(req: NextRequest) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+        return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const { matchId, predictedWinner, predictedScore } = body
+
+    if (!matchId || !predictedWinner) {
+        return NextResponse.json({ error: 'matchId, predictedWinner는 필수입니다.' }, { status: 400 })
+    }
+
+    // 스코어 유효성 검사
+    if (predictedScore && !['2:0', '2:1'].includes(predictedScore)) {
+        return NextResponse.json({ error: '유효한 스코어: 2:0 또는 2:1' }, { status: 400 })
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+    if (!user) return NextResponse.json({ error: '유저 없음' }, { status: 404 })
+
+    // 경기 존재 + SCHEDULED 확인
+    const match = await prisma.lckRealMatch.findUnique({ where: { id: matchId } })
+    if (!match) return NextResponse.json({ error: '경기를 찾을 수 없습니다.' }, { status: 404 })
+    if (match.status === 'COMPLETED') {
+        return NextResponse.json({ error: '이미 종료된 경기입니다.' }, { status: 400 })
+    }
+
+    // 경기 시작 시간 체크 (시작 5분 전까지만 예측 가능)
+    if (match.scheduledAt) {
+        const cutoff = new Date(match.scheduledAt.getTime() - 5 * 60 * 1000)
+        if (new Date() > cutoff) {
+            return NextResponse.json({ error: '예측 마감 시간이 지났습니다. (경기 시작 5분 전까지)' }, { status: 400 })
+        }
+    }
+
+    // 팀 코드 유효성
+    if (predictedWinner !== match.team1 && predictedWinner !== match.team2) {
+        return NextResponse.json({ error: '올바른 팀 코드를 입력하세요.' }, { status: 400 })
+    }
+
+    // 중복 예측 방지
+    const existing = await prisma.lckPrediction.findUnique({
+        where: { userId_matchId: { userId: user.id, matchId } }
+    })
+    if (existing) {
+        return NextResponse.json({ error: '이미 예측했습니다.' }, { status: 400 })
+    }
+
+    const prediction = await prisma.lckPrediction.create({
+        data: {
+            userId: user.id,
+            matchId,
+            predictedWinner,
+            predictedScore: predictedScore || null,
+        }
+    })
+
+    // 퀘스트 진행도 업데이트 (fire-and-forget, 오류 무시)
+    updateQuestProgress(user.id, 'PREDICT').catch(() => {})
+
+    return NextResponse.json({ ok: true, prediction })
+}

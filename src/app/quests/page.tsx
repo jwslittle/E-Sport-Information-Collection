@@ -1,4 +1,7 @@
 import { Metadata } from "next"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import { QuestClient } from "./quest-client"
 
 export const metadata: Metadata = {
@@ -6,10 +9,12 @@ export const metadata: Metadata = {
     description: "일일 퀘스트와 업적을 달성하고 보상을 획득하세요.",
 }
 
-export default function QuestPage() {
+export default async function QuestPage() {
+    const session = await getServerSession(authOptions)
+    if (!session) redirect('/auth/signin')
+
     return (
         <div className="container mx-auto py-8">
-            <h1 className="text-3xl font-bold mb-6">퀘스트 & 업적</h1>
             <QuestClient />
         </div>
     )

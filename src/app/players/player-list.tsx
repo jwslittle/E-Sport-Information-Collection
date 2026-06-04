@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Player, Card as PlayerCard } from '@prisma/client'
+import { Player } from '@prisma/client'
 import { Input } from '@/components/ui/input'
 import {
     Select,
@@ -16,12 +16,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Search, Filter } from 'lucide-react'
 import Link from 'next/link'
 
-interface PlayerWithCards extends Player {
-    cards: PlayerCard[]
+interface PlayerWithTeam extends Player {
+    team: {
+        name: string
+    } | null
 }
 
 interface PlayerListProps {
-    initialPlayers: PlayerWithCards[]
+    initialPlayers: PlayerWithTeam[]
 }
 
 export function PlayerList({ initialPlayers }: PlayerListProps) {
@@ -32,7 +34,7 @@ export function PlayerList({ initialPlayers }: PlayerListProps) {
         const matchesSearch =
             player.name.toLowerCase().includes(search.toLowerCase()) ||
             (player.realName && player.realName.toLowerCase().includes(search.toLowerCase())) ||
-            player.team.toLowerCase().includes(search.toLowerCase())
+            (player.team?.name && player.team.name.toLowerCase().includes(search.toLowerCase()))
 
         const matchesPosition = position === 'ALL' || player.position === position
 
@@ -90,13 +92,13 @@ export function PlayerList({ initialPlayers }: PlayerListProps) {
                             <CardContent>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     <Badge variant="outline" className="border-zinc-700 text-zinc-300">
-                                        {player.team}
+                                        {player.team?.name || 'FA'}
                                     </Badge>
                                     <Badge variant="secondary" className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700">
                                         {player.position}
                                     </Badge>
                                     <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-0">
-                                        {player.cost} Cost
+                                        {player.basePrice} Cost
                                     </Badge>
                                 </div>
                                 {/* 간단한 스탯 미리보기 (추후 구현) */}

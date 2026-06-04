@@ -1,103 +1,98 @@
+/**
+ * GET  /api/friends  — 팔로잉/팔로워 목록
+ * POST /api/friends  — 팔로우 { targetUserId }
+ * DELETE /api/friends — 팔로우 취소 { targetUserId }
+ */
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { NextResponse } from 'next/server'
+import { updateQuestProgress } from '@/lib/quest-utils'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const userId = session.user.id
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        include: {
-            following: {
-                include: {
-                    following: true
-                }
+    const [following, followers] = await Promise.all([
+        // 내가 팔로우하는 유저
+        prisma.follows.findMany({
+            where: { followerId: userId },
+            include: {
+                following: {
+                    select: {
+                        id: true, name: true, image: true, gp: true,
+                        userTeams: { select: { name: true, totalPoints: true, type: true } },
+                        profile: { select: { displayTitle: true } },
+                    },
+                },
             },
-            followedBy: {
-                include: {
-                    follower: true
-                }
-            }
-        }
-    })
-
-    if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+        }),
+        // 나를 팔로우하는 유저
+        prisma.follows.findMany({
+            where: { followingId: userId },
+            include: {
+                follower: {
+                    select: {
+                        id: true, name: true, image: true, gp: true,
+                        userTeams: { select: { name: true, totalPoints: true, type: true } },
+                        profile: { select: { displayTitle: true } },
+                    },
+                },
+            },
+        }),
+    ])
 
     return NextResponse.json({
-        following: user.following.map(f => f.following),
-        followers: user.followedBy.map(f => f.follower)
+        following: following.map(f => ({
+            ...f.following,
+            fantasyPoints: f.following.userTeams.reduce((s, t) => s + t.totalPoints, 0),
+        })),
+        followers: followers.map(f => ({
+            ...f.follower,
+            fantasyPoints: f.follower.userTeams.reduce((s, t) => s + t.totalPoints, 0),
+        })),
     })
 }
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const userId = session.user.id
 
     const { targetUserId } = await req.json()
-    if (!targetUserId) {
-        return NextResponse.json({ error: 'Target user ID required' }, { status: 400 })
-    }
+    if (!targetUserId) return NextResponse.json({ error: 'targetUserId 필요' }, { status: 400 })
+    if (userId === targetUserId) return NextResponse.json({ error: '자기 자신을 팔로우할 수 없습니다.' }, { status: 400 })
 
-    const currentUser = await prisma.user.findUnique({
-        where: { email: session.user.email }
-    })
-
-    if (!currentUser) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    if (currentUser.id === targetUserId) {
-        return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
-    }
+    const target = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } })
+    if (!target) return NextResponse.json({ error: '사용자를 찾을 수 없습니다.' }, { status: 404 })
 
     try {
-        await prisma.follows.create({
-            data: {
-                followerId: currentUser.id,
-                followingId: targetUserId
-            }
-        })
+        await prisma.follows.create({ data: { followerId: userId, followingId: targetUserId } })
+        // 팔로우 퀘스트 트리거
+        updateQuestProgress(userId, 'FOLLOW_USER').catch(() => {})
         return NextResponse.json({ success: true })
-    } catch (error) {
-        return NextResponse.json({ error: 'Already following or invalid user' }, { status: 400 })
+    } catch {
+        return NextResponse.json({ error: '이미 팔로우 중입니다.' }, { status: 400 })
     }
 }
 
 export async function DELETE(req: Request) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const userId = session.user.id
 
     const { targetUserId } = await req.json()
-
-    const currentUser = await prisma.user.findUnique({
-        where: { email: session.user.email }
-    })
-
-    if (!currentUser) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    if (!targetUserId) return NextResponse.json({ error: 'targetUserId 필요' }, { status: 400 })
 
     try {
         await prisma.follows.delete({
-            where: {
-                followerId_followingId: {
-                    followerId: currentUser.id,
-                    followingId: targetUserId
-                }
-            }
+            where: { followerId_followingId: { followerId: userId, followingId: targetUserId } },
         })
         return NextResponse.json({ success: true })
-    } catch (error) {
-        return NextResponse.json({ error: 'Not following' }, { status: 400 })
+    } catch {
+        return NextResponse.json({ error: '팔로우 상태가 아닙니다.' }, { status: 400 })
     }
 }

@@ -1,83 +1,120 @@
-import { NextResponse } from 'next/server'
 import { ChatOpenAI } from '@langchain/openai'
-import { PromptTemplate } from '@langchain/core/prompts'
+import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages'
 import { StringOutputParser } from '@langchain/core/output_parsers'
-import { RunnableSequence } from '@langchain/core/runnables'
+import { SYSTEM_PROMPT } from '@/lib/ai/prompt'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { LOL_METRICS, DATA_SOURCES, PRO_PLAYER_STATS_SAMPLE_2024 } from '@/lib/ai/knowledge-base'
+import { getHistoricalContext } from '@/lib/ai/context'
+import { updateQuestProgress } from '@/lib/quest-utils'
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const { message } = await request.json()
-
-        // OpenAI API Key 확인
-        if (!process.env.OPENAI_API_KEY) {
-            return NextResponse.json({
-                reply: "I'm sorry, but the OpenAI API key is not configured. I cannot process your request at the moment. (This is a demo response)"
-            })
+        const session = await getServerSession(authOptions)
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        // 선수 데이터 조회 (컨텍스트용)
-        const players = await prisma.player.findMany()
-        const playersContext = players.map(p =>
-            `Name: ${p.name}, Team: ${p.team}, Position: ${p.position}, Cost: ${p.cost}, Stats: ${JSON.stringify(p.seasonStats)}`
-        ).join('\n')
+        if (!process.env.OPENAI_API_KEY) {
+            return NextResponse.json({
+                error: 'OpenAI API 키가 설정되지 않았습니다. 관리자에게 문의하세요.'
+            }, { status: 503 })
+        }
 
-        // 지식 베이스 포맷팅
-        const metricsContext = LOL_METRICS.map(m => `- ${m.name}: ${m.description}`).join('\n')
-        const dataSourcesContext = DATA_SOURCES.map(d => `- ${d.name} (${d.type}): ${d.url} - ${d.description}`).join('\n')
-        const referenceContext = PRO_PLAYER_STATS_SAMPLE_2024.map(p =>
-            `${p.name} (${p.team} ${p.position}): ${JSON.stringify(p.stats)}`
-        ).join('\n')
+        // Check and consume ticket
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            include: { inventory: true }
+        })
 
-        // LangChain 설정
+        if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+        let consumedTicketId: string | null = null
+
+        // Check ticket or Admin role (Disabled for Beta)
+        /*
+        if (user.role !== 'ADMIN') {
+            const ticket = user.inventory.find(i => i.item.category === 'TICKET' && i.quantity > 0)
+
+            if (!ticket) {
+                return NextResponse.json({ error: 'AI 분석가 질문권이 필요합니다.' }, { status: 403 })
+            }
+
+            // Consume Ticket
+            if (ticket.quantity > 1) {
+                await prisma.userInventory.update({
+                    where: { id: ticket.id },
+                    data: { quantity: { decrement: 1 } }
+                })
+            } else {
+                await prisma.userInventory.delete({
+                    where: { id: ticket.id }
+                })
+            }
+            consumedTicketId = ticket.id
+        }
+        */
+
+        const { messages } = await req.json()
+
+        if (!messages || !Array.isArray(messages)) {
+            return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 })
+        }
+
+        // Get Historical Context based on the last user message
+        const lastUserMessage = messages.slice().reverse().find((m: any) => m.role === 'user')
+        let context = ""
+        if (lastUserMessage) {
+            context = await getHistoricalContext(lastUserMessage.content)
+        }
+
+        const history = messages.map((m: any) => {
+            if (m.role === 'user') return new HumanMessage(m.content)
+            if (m.role === 'assistant') return new AIMessage(m.content)
+            return new SystemMessage(m.content)
+        })
+
+        // Prepend System Prompt with Context
+        const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${context}`
+        const fullHistory = [new SystemMessage(fullSystemPrompt), ...history]
+
         const model = new ChatOpenAI({
-            modelName: 'gpt-3.5-turbo',
+            modelName: 'gpt-4.1-nano',
             temperature: 0.7,
+            streaming: true,
         })
 
-        const template = `You are an expert LCK (League of Legends Champions Korea) analyst.
-    Use the following knowledge base and player data to answer the user's question.
-    
-    [Knowledge Base - Metrics]
-    {metrics}
+        const parser = new StringOutputParser()
+        const stream = await model.pipe(parser).stream(fullHistory)
 
-    [Knowledge Base - Data Sources]
-    {sources}
+        // Create a ReadableStream for the response
+        let fullResponse = ""
+        const readableStream = new ReadableStream({
+            async start(controller) {
+                for await (const chunk of stream) {
+                    fullResponse += chunk
+                    controller.enqueue(new TextEncoder().encode(chunk))
+                }
+                controller.close()
 
-    [Reference Data - 2024 Pro Samples]
-    {reference}
-
-    [Current Database Players]
-    {context}
-    
-    If the answer is not in the data, say you don't have that information but try to be helpful based on general LoL knowledge.
-    
-    User Question: {question}
-    
-    Answer:`
-
-        const prompt = PromptTemplate.fromTemplate(template)
-        const outputParser = new StringOutputParser()
-
-        const chain = RunnableSequence.from([
-            prompt,
-            model,
-            outputParser,
-        ])
-
-        const response = await chain.invoke({
-            metrics: metricsContext,
-            sources: dataSourcesContext,
-            reference: referenceContext,
-            context: playersContext,
-            question: message,
+                // 퀘스트 업데이트 (AI 채팅 완료)
+                if (user?.id) {
+                    updateQuestProgress(user.id, 'AI_CHAT').catch(() => {})
+                }
+            },
         })
 
-        return NextResponse.json({ reply: response })
+        return new NextResponse(readableStream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
+        })
 
     } catch (error) {
-        console.error('AI Error:', error)
-        return NextResponse.json({ reply: "I encountered an error processing your request." }, { status: 500 })
+        console.error('Chat API Error:', error)
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }
