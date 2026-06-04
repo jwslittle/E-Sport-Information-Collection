@@ -17,7 +17,7 @@ interface Message {
 export function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Hello! I am your LCK Fantasy Assistant. Ask me anything about players, stats, or rules!' }
+        { role: 'assistant', content: '안녕하세요! LCK 분석가 AI입니다 🎮\n선수 정보, 팀 성적, 경기 예측 등 LCK에 관한 무엇이든 물어보세요!' }
     ])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
