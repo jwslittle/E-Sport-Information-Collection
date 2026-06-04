@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import type { Player as PrismaPlayer, Team } from '@prisma/client'
 // team 릴레이션을 포함한 확장 타입 (비공개 필드, 런타임 쿼리에 include 필요)
 type Player = PrismaPlayer & { team?: Team | null }
@@ -135,12 +136,12 @@ export function TeamBuilder({ allPlayers, initialTeam, teamType = 'REAL', label,
             if (finalize) {
                 setIsFinalized(true)
                 setIsCaptainDialogOpen(false)
-                alert('팀이 성공적으로 확정되었습니다! 더 이상 변경할 수 없습니다.')
+                toast.success('팀이 확정되었습니다! 더 이상 변경할 수 없습니다.')
                 router.refresh()
             }
         } catch (error: any) {
             console.error(error)
-            alert(error.message || '팀 저장에 실패했습니다.')
+            toast.error(error.message || '팀 저장에 실패했습니다.')
         } finally {
             setIsSaving(false)
         }
@@ -167,19 +168,19 @@ export function TeamBuilder({ allPlayers, initialTeam, teamType = 'REAL', label,
             (p) => p?.id === player.id
         )
         if (isAlreadySelected) {
-            alert('이미 팀에 포함된 선수입니다.')
+            toast.error('이미 팀에 포함된 선수입니다.')
             return
         }
 
         // Validate position match (Handling ADC/BOTTOM mismatch)
         if (currentPosition !== 'WILDCARD' && player.position !== currentPosition) {
-            alert(`이 슬롯에는 ${currentPosition} 포지션의 선수만 배치할 수 있습니다.`)
+            toast.error(`이 슬롯에는 ${currentPosition} 포지션의 선수만 배치할 수 있습니다.`)
             return
         }
 
         const newCost = currentCost - (selectedPlayers[currentPosition]?.basePrice || 0) + (player.basePrice || 0)
         if (newCost > SALARY_CAP) {
-            alert('샐러리 캡을 초과했습니다!')
+            toast.error('샐러리 캡을 초과했습니다!')
             return
         }
 
@@ -200,7 +201,7 @@ export function TeamBuilder({ allPlayers, initialTeam, teamType = 'REAL', label,
 
     const handleFinalize = () => {
         if (!teamName.trim()) {
-            alert('팀 이름을 입력해주세요.')
+            toast.error('팀 이름을 입력해주세요.')
             return
         }
 
@@ -209,7 +210,7 @@ export function TeamBuilder({ allPlayers, initialTeam, teamType = 'REAL', label,
 
         if (missingPositions.length > 0) {
             const missingText = missingPositions.map(p => p === 'BOTTOM' ? 'ADC' : p).join(', ')
-            alert(`다음 포지션이 비어있습니다: ${missingText}.\n주전 5명은 모두 선택해야 합니다.`)
+            toast.error(`다음 포지션이 비어있습니다: ${missingText}. 주전 5명은 모두 선택해야 합니다.`)
             return
         }
 
@@ -218,7 +219,7 @@ export function TeamBuilder({ allPlayers, initialTeam, teamType = 'REAL', label,
         const filled = requiredPositions.every(pos => selectedPlayers[pos] !== null)
 
         if (!filled) {
-            alert('모든 주전 포지션을 채워야 합니다.')
+            toast.error('모든 주전 포지션을 채워야 합니다.')
             return
         }
 
@@ -228,7 +229,7 @@ export function TeamBuilder({ allPlayers, initialTeam, teamType = 'REAL', label,
 
     const confirmCaptainAndFinalize = () => {
         if (!selectedCaptainId) {
-            alert('주장을 선택해주세요.')
+            toast.error('주장을 선택해주세요.')
             return
         }
         if (confirm('팀을 확정하시겠습니까? 확정 후에는 멤버를 교체할 수 없습니다.')) {

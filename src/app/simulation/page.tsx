@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -73,11 +74,11 @@ export default function SimulationPage() {
         try {
             const res = await fetch('/api/simulation/reset', { method: 'POST' })
             if (res.ok) {
-                alert('시즌이 초기화되었습니다.')
+                toast.success('시즌이 초기화되었습니다.')
                 fetchMatches()
             } else {
                 const data = await res.json()
-                alert('초기화 실패: ' + data.error)
+                toast.error('초기화 실패: ' + data.error)
             }
         } catch (error) {
             console.error(error)
@@ -93,10 +94,10 @@ export default function SimulationPage() {
             const res = await fetch('/api/admin/reset', { method: 'POST' })
             const data = await res.json()
             if (res.ok) {
-                alert(data.message)
+                toast.success(data.message)
                 fetchMatches()
             } else {
-                alert('유저 초기화 실패: ' + data.error)
+                toast.error('유저 초기화 실패: ' + data.error)
             }
         } catch (error) {
             console.error(error)
@@ -112,7 +113,7 @@ export default function SimulationPage() {
             const data = await res.json()
             if (res.ok) {
                 if (data.message === 'Season Completed') {
-                    alert('시즌이 종료되었습니다!')
+                    toast.success('시즌이 종료되었습니다!')
                 } else {
                     fetchMatches()
                 }

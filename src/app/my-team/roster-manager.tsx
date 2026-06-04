@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -100,7 +101,7 @@ export function RosterManager({ teamId, players: initialPlayers, totalPoints, ro
             router.refresh()
         } catch (error) {
             console.error(error)
-            alert('이미지 업로드에 실패했습니다.')
+            toast.error('이미지 업로드에 실패했습니다.')
         } finally {
             setIsUpdatingImage(false)
         }
@@ -108,7 +109,7 @@ export function RosterManager({ teamId, players: initialPlayers, totalPoints, ro
 
     const handleSwap = async (starterId: string, benchId: string) => {
         if (!hasSwapTicket && teamType === 'REAL') {
-            alert('선수 교체권이 필요합니다.')
+            toast.error('선수 교체권이 필요합니다.')
             return
         }
 
@@ -143,7 +144,7 @@ export function RosterManager({ teamId, players: initialPlayers, totalPoints, ro
             router.refresh()
         } catch (error) {
             console.error(error)
-            alert('선수 교체에 실패했습니다.')
+            toast.error('선수 교체에 실패했습니다.')
         } finally {
             setIsSwapping(false)
         }
@@ -325,7 +326,7 @@ export function RosterManager({ teamId, players: initialPlayers, totalPoints, ro
                                                             if (starter) {
                                                                 handleSwap(starter.id, tp.id)
                                                             } else {
-                                                                alert('교체할 선발 선수가 없습니다.')
+                                                                toast.error('교체할 선발 선수가 없습니다.')
                                                             }
                                                         }}
                                                         disabled={isSwapping}

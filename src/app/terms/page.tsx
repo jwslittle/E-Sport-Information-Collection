@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function TermsPage() {
-    const lastUpdated = '2026년 6월 2일'
+    const lastUpdated = '2026년 6월 4일'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -76,6 +76,18 @@ export default function TermsPage() {
                         >
                             Riot Games Fan Content Policy 확인 →
                         </a>
+                    </p>
+                </section>
+
+                <section>
+                    <h2 className="text-base font-bold text-white mb-3">7. 준거법 및 관할법원</h2>
+                    <p>
+                        본 약관은 대한민국 법률에 따라 해석·적용됩니다.
+                        서비스 이용과 관련하여 분쟁이 발생한 경우, 관할 법원은 민사소송법에 따른 법원으로 합니다.
+                    </p>
+                    <p className="mt-2 text-zinc-500 text-xs">
+                        단, 본 서비스가 비상업적 팬 프로젝트임을 감안하여, 분쟁 발생 시 먼저
+                        이메일(jworks6365@gmail.com)로 연락 주시면 원만히 해결하겠습니다.
                     </p>
                 </section>
 

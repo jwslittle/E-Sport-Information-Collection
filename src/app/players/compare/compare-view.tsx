@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import type { Player as PrismaPlayer } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,11 +51,11 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
 
     const addPlayer = (player: ComparePlayer) => {
         if (selectedPlayers.length >= 3) {
-            alert('You can compare up to 3 players.')
+            toast.error('선수는 최대 3명까지 비교할 수 있습니다.')
             return
         }
         if (selectedPlayers.find((p) => p.id === player.id)) {
-            alert('Player already selected.')
+            toast.error('이미 선택된 선수입니다.')
             return
         }
         setSelectedPlayers([...selectedPlayers, player])

@@ -21,15 +21,45 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "E-Sport Information Collection",
+  metadataBase: new URL('https://e-sport-information-collection.vercel.app'),
+  title: {
+    default: "E-Sport Information Collection",
+    template: "%s | E-Sport IC",
+  },
   description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서. 비상업적 팬 프로젝트.",
+  keywords: ["LCK", "리그 오브 레전드", "e스포츠", "판타지", "경기 예측", "팬"],
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "https://e-sport-information-collection.vercel.app",
+    siteName: "E-Sport Information Collection",
+    title: "E-Sport Information Collection",
+    description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서. 비상업적 팬 프로젝트.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "E-Sport Information Collection",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "E-Sport Information Collection",
+    description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // userScalable: false 제거 — 접근성(WCAG 1.4.4): 저시력 사용자의 확대 기능 보장
 };
 
 export default function RootLayout({

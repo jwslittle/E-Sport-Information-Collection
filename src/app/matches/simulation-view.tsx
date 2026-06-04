@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,11 +29,11 @@ export default function SimulationView() {
                 method: 'POST',
                 body: JSON.stringify({ action })
             })
-            alert('Action completed!')
+            toast.success('완료되었습니다!')
             fetchMatches()
         } catch (e) {
             console.error(e)
-            alert('Failed')
+            toast.error('요청에 실패했습니다.')
         } finally {
             setLoading(false)
         }

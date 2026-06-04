@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -117,11 +118,11 @@ export default function QuizPage() {
                     explanation: data.result.explanation,
                 } : prev)
             } else {
-                alert(data.error ?? '오류가 발생했습니다.')
+                toast.error(data.error ?? '오류가 발생했습니다.')
             }
         } catch (e) {
             console.error(e)
-            alert('제출 중 오류가 발생했습니다.')
+            toast.error('제출 중 오류가 발생했습니다.')
         } finally {
             setSubmitting(false)
         }

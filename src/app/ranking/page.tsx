@@ -1,16 +1,9 @@
 import { RankingClient } from './ranking-client'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default async function RankingPage() {
-    const session = await getServerSession(authOptions)
-
-    if (!session) {
-        redirect('/auth/signin')
-    }
-
+// 랭킹 페이지는 공개 정보 — 비로그인도 볼 수 있도록 리다이렉트 제거
+// 개인화(내 순위 강조 등)는 RankingClient 내부 useSession()으로 처리됨
+export default function RankingPage() {
     return <RankingClient />
 }
