@@ -30,6 +30,9 @@ export async function POST(req: Request) {
     if (match.status === 'COMPLETED') {
         return NextResponse.json({ error: '이미 종료된 경기입니다.' }, { status: 400 })
     }
+    if (match.status === 'LIVE' || match.status === 'INPROGRESS') {
+        return NextResponse.json({ error: '경기가 이미 진행 중입니다. 예측은 경기 시작 전에만 가능합니다.' }, { status: 400 })
+    }
 
     // 중복 예측 방지
     const existing = await prisma.matchPrediction.findFirst({ where: { userId, matchId, type } })

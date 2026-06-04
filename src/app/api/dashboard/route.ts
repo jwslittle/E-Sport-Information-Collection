@@ -36,28 +36,7 @@ export async function GET(request: Request) {
             take: 5
         })
 
-        // Fetch player details for top picked
-        const topPickedDetails = await Promise.all(
-            topPicked.map(async (item) => {
-                const player = await prisma.player.findUnique({
-                    where: { id: item.playerId }
-                })
-                return {
-                    name: player?.name || 'Unknown',
-                    team: (player as any)?.team?.name || 'Unknown', // Join might be needed if teamName not on player, check schema. 
-                    // Schema said `teamName` isn't on Player, it has `team` relation. 
-                    // But previous code used `player.teamName`. Let's check schema again. 
-                    // Schema: `teamId String?`, `team Team?`. No `teamName` field.
-                    // Previous code was accessing `player.teamName` (Line 30 original). 
-                    // Wait, maybe Schema view was truncated or I missed it? 
-                    // Original code: `team: player?.teamName || 'Unknown'`
-                    // Schema: `name String`, `realName String`. No teamName.
-                    // I will fetch include team to be safe.
-                    count: item._count._all
-                }
-            })
-        )
-        // Fix: fetch player with team include
+        // ✅ N+1 제거: topPickedDetails 중복 루프 제거, 단일 Promise.all만 사용
         const topPickedWithTeam = await Promise.all(
             topPicked.map(async (item) => {
                 const player = await prisma.player.findUnique({

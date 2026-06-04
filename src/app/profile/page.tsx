@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Loader2, Crown, Tag, Star, Palette, User, Image, Smile, ShoppingBag, Trophy, Pencil, Check, X, LogIn } from 'lucide-react'
+import { Loader2, Crown, Tag, Star, Palette, User, Image, Smile, ShoppingBag, Trophy, Pencil, Check, X, LogIn, Trash2, AlertTriangle } from 'lucide-react'
 import { TEAM_COLORS, LCK_TEAMS } from '@/lib/config/teams'
 
 interface UserProfile {
@@ -39,6 +39,9 @@ export default function ProfilePage() {
     const [editTeam, setEditTeam] = useState('')
     const [editBio, setEditBio] = useState('')
     const [saving, setSaving] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [deleteConfirmText, setDeleteConfirmText] = useState('')
+    const [deleting, setDeleting] = useState(false)
 
     useEffect(() => {
         if (!session) { setLoading(false); return }
@@ -52,6 +55,25 @@ export default function ProfilePage() {
             .catch(console.error)
             .finally(() => setLoading(false))
     }, [session])
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== '탈퇴합니다') return
+        setDeleting(true)
+        try {
+            const res = await fetch('/api/users/me', { method: 'DELETE' })
+            if (res.ok) {
+                toast.success('계정이 삭제되었습니다. 이용해주셔서 감사합니다.')
+                // 세션 종료 후 홈으로
+                const { signOut } = await import('next-auth/react')
+                await signOut({ callbackUrl: '/' })
+            } else {
+                const d = await res.json()
+                toast.error(d.error ?? '계정 삭제 실패. 잠시 후 다시 시도해주세요.')
+            }
+        } finally {
+            setDeleting(false)
+        }
+    }
 
     const handleSave = async () => {
         setSaving(true)
@@ -319,6 +341,71 @@ export default function ProfilePage() {
                     <Link href="/quests">퀘스트</Link>
                 </Button>
             </div>
+
+            {/* ─── 계정 탈퇴 (PIPA 제36조 — 정보주체의 삭제 권리) ────── */}
+            <Card className="bg-zinc-950 border-red-900/40">
+                <CardHeader>
+                    <CardTitle className="text-red-400 text-base flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" /> 계정 탈퇴
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {!showDeleteConfirm ? (
+                        <>
+                            <p className="text-xs text-zinc-500 leading-relaxed">
+                                탈퇴 시 회원님의 모든 데이터(GP, 코스메틱, 예측 기록, 게시글 등)가
+                                <strong className="text-zinc-400"> 영구적으로 삭제</strong>되며 복구할 수 없습니다.
+                            </p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-red-800 text-red-400 hover:bg-red-900/20 hover:border-red-700"
+                                onClick={() => setShowDeleteConfirm(true)}
+                            >
+                                <Trash2 className="w-3.5 h-3.5 mr-1" /> 탈퇴하기
+                            </Button>
+                        </>
+                    ) : (
+                        <div className="space-y-3 border border-red-900/50 rounded-lg p-4">
+                            <p className="text-sm text-red-300 font-semibold flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 shrink-0" />
+                                정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                                확인을 위해 아래 입력창에 <strong className="text-zinc-300">탈퇴합니다</strong>를 정확히 입력해주세요.
+                            </p>
+                            <Input
+                                value={deleteConfirmText}
+                                onChange={e => setDeleteConfirmText(e.target.value)}
+                                placeholder="탈퇴합니다"
+                                className="bg-zinc-900 border-red-800 text-sm text-white placeholder:text-zinc-600"
+                            />
+                            <div className="flex gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                                    className="text-zinc-400"
+                                    disabled={deleting}
+                                >
+                                    취소
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleteConfirmText !== '탈퇴합니다' || deleting}
+                                    className="bg-red-700 hover:bg-red-600 text-white font-bold"
+                                >
+                                    {deleting
+                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        : <><Trash2 className="w-3.5 h-3.5 mr-1" />영구 탈퇴</>
+                                    }
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     )
 }

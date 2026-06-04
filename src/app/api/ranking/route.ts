@@ -35,17 +35,23 @@ export async function GET(req: Request) {
             orderBy: { gp: 'desc' },
         })
 
-        return NextResponse.json(users.map((u, i) => ({
-            rank: i + 1,
-            userId: u.id,
-            userName: u.name,
-            image: u.image,
-            gp: u.gp,
-            title: u.profile?.displayTitle ?? null,
-            teamName: u.userTeams[0]?.name ?? '-',
-            fantasyPoints: u.userTeams.reduce((s, t) => s + t.totalPoints, 0),
-            isMe: u.id === session.user.id,
-        })))
+        // ✅ 동점 처리: 같은 GP면 같은 랭크 부여
+        let rank = 0
+        let prevGp: number | null = null
+        return NextResponse.json(users.map((u, i) => {
+            if (u.gp !== prevGp) { rank = i + 1; prevGp = u.gp }
+            return {
+                rank,
+                userId: u.id,
+                userName: u.name,
+                image: u.image,
+                gp: u.gp,
+                title: u.profile?.displayTitle ?? null,
+                teamName: u.userTeams[0]?.name ?? '-',
+                fantasyPoints: u.userTeams.reduce((s, t) => s + t.totalPoints, 0),
+                isMe: u.id === session.user.id,
+            }
+        }))
     }
 
     if (type === 'points') {
@@ -64,15 +70,22 @@ export async function GET(req: Request) {
         })
         const userMap = new Map(users.map(u => [u.id, u]))
 
-        return NextResponse.json(teams.map((t, i) => ({
-            rank: i + 1,
-            userId: t.userId,
-            userName: userMap.get(t.userId)?.name ?? '-',
-            image: userMap.get(t.userId)?.image ?? null,
-            title: userMap.get(t.userId)?.profile?.displayTitle ?? null,
-            fantasyPoints: t._sum.totalPoints ?? 0,
-            isMe: t.userId === session?.user?.id,
-        })))
+        // ✅ 동점 처리
+        let rank = 0
+        let prevPts: number | null = null
+        return NextResponse.json(teams.map((t, i) => {
+            const pts = t._sum.totalPoints ?? 0
+            if (pts !== prevPts) { rank = i + 1; prevPts = pts }
+            return {
+                rank,
+                userId: t.userId,
+                userName: userMap.get(t.userId)?.name ?? '-',
+                image: userMap.get(t.userId)?.image ?? null,
+                title: userMap.get(t.userId)?.profile?.displayTitle ?? null,
+                fantasyPoints: pts,
+                isMe: t.userId === session?.user?.id,
+            }
+        }))
     }
 
     // 기본: GP 기준 글로벌 랭킹
@@ -86,15 +99,21 @@ export async function GET(req: Request) {
         take: 100,
     })
 
-    return NextResponse.json(users.map((u, i) => ({
-        rank: i + 1,
-        userId: u.id,
-        userName: u.name,
-        image: u.image,
-        gp: u.gp,
-        title: u.profile?.displayTitle ?? null,
-        teamName: u.userTeams[0]?.name ?? '-',
-        fantasyPoints: u.userTeams.reduce((s, t) => s + t.totalPoints, 0),
-        isMe: u.id === session?.user?.id,
-    })))
+    // ✅ 동점 처리: 같은 GP면 같은 랭크 부여
+    let rank = 0
+    let prevGp: number | null = null
+    return NextResponse.json(users.map((u, i) => {
+        if (u.gp !== prevGp) { rank = i + 1; prevGp = u.gp }
+        return {
+            rank,
+            userId: u.id,
+            userName: u.name,
+            image: u.image,
+            gp: u.gp,
+            title: u.profile?.displayTitle ?? null,
+            teamName: u.userTeams[0]?.name ?? '-',
+            fantasyPoints: u.userTeams.reduce((s, t) => s + t.totalPoints, 0),
+            isMe: u.id === session?.user?.id,
+        }
+    }))
 }

@@ -107,24 +107,40 @@ export async function POST(req: Request) {
     if (!quest) return NextResponse.json({ error: 'Quest not found' }, { status: 404 })
 
     const periodKey = getPeriodKey(quest.type)
-    const progress = await prisma.userQuestProgress.findUnique({
-        where: { userId_questId_periodKey: { userId, questId, periodKey } },
-    })
 
-    if (!progress?.isCompleted) return NextResponse.json({ error: '퀘스트가 완료되지 않았습니다.' }, { status: 400 })
-    if (progress.isClaimed)     return NextResponse.json({ error: '이미 수령한 보상입니다.' },         { status: 400 })
+    // ✅ 인터랙티브 트랜잭션으로 race condition 방지
+    // findUnique + isClaimed 체크를 트랜잭션 내부에서 재확인하여 이중 지급 불가
+    try {
+        const updatedUser = await prisma.$transaction(async (tx) => {
+            // 트랜잭션 안에서 진행 상황 재조회 (동시 요청 차단)
+            const prog = await tx.userQuestProgress.findUnique({
+                where: { userId_questId_periodKey: { userId, questId, periodKey } },
+            })
 
-    // 트랜잭션: 수령 처리 + GP 지급
-    const [, updatedUser] = await prisma.$transaction([
-        prisma.userQuestProgress.update({
-            where: { id: progress.id },
-            data: { isClaimed: true },
-        }),
-        prisma.user.update({
-            where: { id: userId },
-            data: { gp: { increment: quest.rewardGp } },
-        }),
-    ])
+            if (!prog?.isCompleted) throw new Error('NOT_COMPLETED')
+            if (prog.isClaimed)     throw new Error('ALREADY_CLAIMED')
 
-    return NextResponse.json({ success: true, rewardGp: quest.rewardGp, newGp: updatedUser.gp })
+            await tx.userQuestProgress.update({
+                where: { id: prog.id },
+                data: { isClaimed: true },
+            })
+
+            return tx.user.update({
+                where: { id: userId },
+                data: { gp: { increment: quest.rewardGp } },
+            })
+        })
+
+        return NextResponse.json({ success: true, rewardGp: quest.rewardGp, newGp: updatedUser.gp })
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            if (err.message === 'NOT_COMPLETED') {
+                return NextResponse.json({ error: '퀘스트가 완료되지 않았습니다.' }, { status: 400 })
+            }
+            if (err.message === 'ALREADY_CLAIMED') {
+                return NextResponse.json({ error: '이미 수령한 보상입니다.' }, { status: 400 })
+            }
+        }
+        throw err
+    }
 }

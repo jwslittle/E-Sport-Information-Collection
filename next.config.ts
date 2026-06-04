@@ -19,6 +19,18 @@ const nextConfig: NextConfig = {
             },
         ]
     },
+    images: {
+        remotePatterns: [
+            // Google OAuth 프로필 사진
+            { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+            { protocol: 'https', hostname: '*.googleusercontent.com' },
+            // LoL Esports 팀 로고 / 선수 사진
+            { protocol: 'https', hostname: 'static.lolesports.com' },
+            { protocol: 'https', hostname: 'lolstatic-a.akamaihd.net' },
+            { protocol: 'https', hostname: '*.riot.com' },
+            { protocol: 'https', hostname: 'am-a.akamaihd.net' },
+        ],
+    },
 }
 
 export default withSentryConfig(nextConfig, {
@@ -33,6 +45,6 @@ export default withSentryConfig(nextConfig, {
     disableLogger: true,
     widenClientFileUpload: true,
 
-    // 자동 계측 비활성화 (필요 시 활성화)
-    autoInstrumentServerFunctions: false,
+    // 서버 함수 자동 계측 활성화 — 에러 자동 캡처 (Sentry 핵심 기능)
+    autoInstrumentServerFunctions: true,
 })

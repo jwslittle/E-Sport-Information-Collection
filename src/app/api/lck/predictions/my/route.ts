@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma'
 
 /**
  * 완료된 경기의 예측을 자동 정산하고 GP 지급
- * 해당 유저의 예측만 처리 (보안상 본인 것만)
+ * ✅ 각 예측을 트랜잭션으로 처리하여 이중 지급 방지
  */
 async function autoProcess(userId: string) {
     const unprocessed = await prisma.lckPrediction.findMany({
@@ -40,27 +40,40 @@ async function autoProcess(userId: string) {
             scoreCorrect = actualWinScore === winPredicted && actualLoseScore === losePredicted
         }
 
-        let gpEarned = 0
-        if (winnerCorrect) gpEarned += 10
-        if (scoreCorrect) gpEarned += 20
+        const gpEarned = (winnerCorrect ? 10 : 0) + (scoreCorrect ? 20 : 0)
 
-        await prisma.lckPrediction.update({
-            where: { id: pred.id },
-            data: {
-                isProcessed: true,
-                winnerCorrect,
-                scoreCorrect,
-                isCorrect: winnerCorrect,
-                gpEarned,
-            }
-        })
+        try {
+            // ✅ 인터랙티브 트랜잭션: isProcessed 재확인 후 업데이트 (이중 정산 방지)
+            await prisma.$transaction(async (tx) => {
+                const current = await tx.lckPrediction.findUnique({
+                    where: { id: pred.id },
+                    select: { isProcessed: true }
+                })
+                // 이미 처리된 예측은 건너뜀 (동시 요청 경쟁 방지)
+                if (current?.isProcessed) return
 
-        if (gpEarned > 0) {
-            await prisma.user.update({
-                where: { id: userId },
-                data: { gp: { increment: gpEarned } }
+                await tx.lckPrediction.update({
+                    where: { id: pred.id },
+                    data: {
+                        isProcessed: true,
+                        winnerCorrect,
+                        scoreCorrect,
+                        isCorrect: winnerCorrect,
+                        gpEarned,
+                    }
+                })
+
+                if (gpEarned > 0) {
+                    await tx.user.update({
+                        where: { id: userId },
+                        data: { gp: { increment: gpEarned } }
+                    })
+                }
             })
+
             gpTotal += gpEarned
+        } catch (err) {
+            console.error(`[autoProcess] 예측 정산 오류 (predId: ${pred.id}):`, err)
         }
     }
 
@@ -69,18 +82,22 @@ async function autoProcess(userId: string) {
 
 export async function GET() {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    // ✅ session.user.id 사용 (email 기반 조회 제거)
+    if (!session?.user?.id) {
         return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+    const userId = session.user.id
+
+    // DB에서 user 존재 확인 (id 기반)
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
     if (!user) return NextResponse.json({ error: '유저 없음' }, { status: 404 })
 
-    // 완료된 경기 자동 정산
-    await autoProcess(user.id)
+    // 완료된 경기 자동 정산 (원자적 트랜잭션)
+    await autoProcess(userId)
 
     const predictions = await prisma.lckPrediction.findMany({
-        where: { userId: user.id },
+        where: { userId },
         include: {
             match: {
                 select: {
@@ -110,7 +127,7 @@ export async function GET() {
     const accuracy = processed.length > 0 ? Math.round((correct / processed.length) * 100) : 0
     const totalGp = predictions.reduce((sum, p) => sum + p.gpEarned, 0)
 
-    // 연속 적중 스트릭 계산
+    // 연속 적중 스트릭 계산 (최근 예측부터 순서대로)
     let streak = 0
     const sortedProcessed = [...processed].sort(
         (a, b) => new Date(b.match.scheduledAt ?? 0).getTime() - new Date(a.match.scheduledAt ?? 0).getTime()

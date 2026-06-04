@@ -1,6 +1,7 @@
 /**
- * GET /api/users/me
- * 현재 로그인한 유저 기본 정보 + 프로필 + 장착 코스메틱
+ * GET    /api/users/me  — 내 프로필 조회
+ * PATCH  /api/users/me  — 프로필 업데이트 { favoriteTeam?, bio? }
+ * DELETE /api/users/me  — 계정 영구 탈퇴 (PIPA 제36조 준수)
  */
 
 import { NextResponse } from 'next/server'
@@ -47,6 +48,27 @@ export async function PATCH(req: Request) {
     })
 
     return NextResponse.json({ success: true })
+}
+
+/**
+ * DELETE /api/users/me — 계정 영구 탈퇴
+ * onDelete: Cascade 설정으로 User 삭제 시 모든 관련 데이터 함께 삭제됨
+ * (Account, Session, LckPrediction, Quest, Cosmetics, UserTeam, Community 등)
+ */
+export async function DELETE() {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
+
+    try {
+        await prisma.user.delete({ where: { id: userId } })
+        return NextResponse.json({ success: true })
+    } catch (error) {
+        console.error('Account deletion error:', error)
+        return NextResponse.json({ error: '계정 삭제 중 오류가 발생했습니다.' }, { status: 500 })
+    }
 }
 
 export async function GET() {

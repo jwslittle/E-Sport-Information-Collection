@@ -37,10 +37,11 @@ export const metadata: Metadata = {
     description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서. 비상업적 팬 프로젝트.",
     images: [
       {
-        url: "/og-image.png",
+        // Next.js app/opengraph-image.tsx 에서 자동 생성 (Edge Runtime)
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "E-Sport Information Collection",
+        alt: "E-Sport Information Collection — LCK 판타지 리그",
       },
     ],
   },
@@ -48,7 +49,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "E-Sport Information Collection",
     description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,
