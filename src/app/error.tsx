@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { RefreshCw, Home } from 'lucide-react'
 
 export default function Error({
@@ -11,8 +12,8 @@ export default function Error({
     reset: () => void
 }) {
     useEffect(() => {
-        // 에러를 모니터링 서비스에 전송 (Sentry 연동 시 여기에 추가)
-        console.error('[GlobalError]', error)
+        // Sentry로 에러 전송
+        Sentry.captureException(error)
     }, [error])
 
     return (
