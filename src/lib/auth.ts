@@ -35,9 +35,14 @@ export const authOptions: NextAuthOptions = {
                     }).catch(err => console.error("Failed to auto-admin user:", err))
                 }
             }
-            // Update token if session is updated (e.g. points change)
+            // 세션 업데이트 시 안전한 필드만 반영 (role·id 변조 방지)
             if (trigger === "update" && session) {
-                return { ...token, ...session.user }
+                const safe: Record<string, unknown> = {}
+                // 허용 목록: points, gachaLevel만 클라이언트에서 갱신 가능
+                if (typeof session.user?.points === 'number') safe.points = session.user.points
+                if (typeof session.user?.gp === 'number') safe.points = session.user.gp
+                if (typeof session.user?.gachaLevel === 'number') safe.gachaLevel = session.user.gachaLevel
+                return { ...token, ...safe }
             }
             return token
         },

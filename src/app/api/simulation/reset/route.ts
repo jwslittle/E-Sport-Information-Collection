@@ -1,7 +1,15 @@
 ﻿import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function POST(req: Request) {
+    // ADMIN 전용 — 일반 유저 및 비로그인 즉시 차단
+    const session = await getServerSession(authOptions)
+    if ((session?.user as any)?.role !== 'ADMIN') {
+        return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 })
+    }
+
     try {
         console.log('--- Resetting Simulation Season ---')
 

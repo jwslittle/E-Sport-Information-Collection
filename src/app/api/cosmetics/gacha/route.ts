@@ -129,7 +129,7 @@ export async function POST(req: Request) {
     })
     const itemMap = new Map(itemData.map(i => [i.id, i]))
 
-    // ── 신규 아이템 지급 + GP 차감 (트랜잭션) ─────────────────────────────
+    // ── 신규 아이템 지급 + GP 차감 (인터랙티브 트랜잭션 — Race Condition 방지) ────
     let totalRefund = 0
     const newItems = draws.filter(d => !d.isDuplicate)
     const duplicates = draws.filter(d => d.isDuplicate)
@@ -140,23 +140,41 @@ export async function POST(req: Request) {
         if (item) totalRefund += DUPLICATE_REFUND[item.rarity] ?? 30
     }
 
-    const netCost = cost - totalRefund
+    // 음수 방지: 중복 환급이 비용보다 크더라도 최소 0 (GP 증가 버그 차단)
+    const netCost = Math.max(0, cost - totalRefund)
 
-    await prisma.$transaction([
-        // GP 차감 (순비용)
-        prisma.user.update({
-            where: { id: userId },
-            data: { gp: { decrement: netCost } },
-        }),
-        // 신규 아이템 생성
-        ...newItems.map(d =>
-            prisma.userCosmeticItem.upsert({
-                where: { userId_itemId: { userId, itemId: d.itemId } },
-                create: { userId, itemId: d.itemId, obtainedBy: 'GACHA' },
-                update: {},
+    try {
+        await prisma.$transaction(async (tx) => {
+            // GP 재확인 — 동시 요청이 먼저 소모했을 경우 차단
+            const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { gp: true } })
+            if (!currentUser || currentUser.gp < cost) {
+                throw new Error('GP_INSUFFICIENT')
+            }
+
+            // GP 차감 (순비용)
+            await tx.user.update({
+                where: { id: userId },
+                data: { gp: { decrement: netCost } },
             })
-        ),
-    ])
+
+            // 신규 아이템 생성
+            for (const d of newItems) {
+                await tx.userCosmeticItem.upsert({
+                    where: { userId_itemId: { userId, itemId: d.itemId } },
+                    create: { userId, itemId: d.itemId, obtainedBy: 'GACHA' },
+                    update: {},
+                })
+            }
+        })
+    } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'GP_INSUFFICIENT') {
+            return NextResponse.json(
+                { error: 'GP가 부족합니다. 동시 요청으로 인해 잔액이 변경되었을 수 있습니다.' },
+                { status: 400 }
+            )
+        }
+        throw err
+    }
 
     // 실제 잔여 GP 조회
     const updatedUser = await prisma.user.findUnique({ where: { id: userId }, select: { gp: true } })

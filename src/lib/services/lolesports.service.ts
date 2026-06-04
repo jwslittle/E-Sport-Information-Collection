@@ -8,7 +8,12 @@
  */
 
 const BASE_URL = 'https://esports-api.lolesports.com/persisted/gw'
-const API_KEY = process.env.LOL_ESPORTS_API_KEY ?? '0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z'
+// LOL_ESPORTS_API_KEY를 Vercel Dashboard → Settings → Environment Variables에 반드시 설정하세요.
+// 미설정 시 동기화 API 호출이 401/403으로 실패합니다.
+const API_KEY: string = process.env.LOL_ESPORTS_API_KEY ?? ''
+if (!API_KEY) {
+    console.error('[LoLEsports] LOL_ESPORTS_API_KEY 환경변수가 설정되지 않았습니다. 동기화가 실패합니다.')
+}
 
 // LCK league IDs
 export const LEAGUE_IDS = {
