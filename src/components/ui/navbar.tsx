@@ -79,7 +79,7 @@ export function Navbar() {
                     <Link href="/" className="flex items-center gap-2 shrink-0 mr-2">
                         <Trophy className="h-5 w-5 text-yellow-500" />
                         <span className="font-black text-white text-sm hidden sm:block">
-                            E-Sport <span className="text-yellow-400">SuperTeam</span>
+                            E-Sport <span className="text-yellow-400">IC</span>
                         </span>
                     </Link>
 
