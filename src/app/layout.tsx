@@ -21,7 +21,7 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "E-Sport-SuperTeam",
+  title: "E-Sport Information Collection",
   description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서. 비상업적 팬 프로젝트.",
 };
 

@@ -18,7 +18,7 @@ export function Footer() {
                 {/* Riot 공식 면책 */}
                 <div className="mb-4 text-center">
                     <p className="text-xs text-zinc-600 leading-relaxed max-w-3xl mx-auto">
-                        E-Sport SuperTeam isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games or anyone officially
+                        E-Sport Information Collection isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games or anyone officially
                         involved in producing or managing League of Legends or Valorant. League of Legends, Valorant, and all associated properties
                         are trademarks or registered trademarks of <strong>Riot Games, Inc.</strong>
                     </p>
@@ -43,7 +43,7 @@ export function Footer() {
 
                 {/* 하단 */}
                 <div className="text-center text-zinc-500 text-sm border-t border-zinc-900 pt-4">
-                    <p>&copy; 2026 E-Sport SuperTeam. All rights reserved.</p>
+                    <p>&copy; 2026 E-Sport Information Collection. All rights reserved.</p>
                     <p className="mt-1">
                         Contact:{' '}
                         <a href="mailto:jworks6365@gmail.com" className="hover:text-zinc-300 underline underline-offset-4">jworks6365@gmail.com</a>

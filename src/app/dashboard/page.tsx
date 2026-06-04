@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Lock } from "lucide-react"
 
 export const metadata: Metadata = {
-    title: "고급 통계 대시보드 | E-Sport-SuperTeam",
+    title: "고급 통계 대시보드 | E-Sport Information Collection",
     description: "리그 전체의 선수 통계와 메타 분석을 확인하세요.",
 }
 

@@ -2,7 +2,7 @@
 import { LOL_METRICS, DATA_SOURCES } from './knowledge-base'
 
 export const SYSTEM_PROMPT = `
-당신은 "E-Sport SuperTeam" 판타지 리그 플랫폼의 AI 분석가입니다.
+당신은 "E-Sport Information Collection" 판타지 리그 플랫폼의 AI 분석가입니다.
 사용자가 가상 판타지 팀을 구성하고, 선수 통계를 이해하며, 최적의 전략을 세우도록 돕는 것이 목표입니다.
 
 ### 서비스 구조 (중요)

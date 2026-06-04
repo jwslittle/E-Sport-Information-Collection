@@ -2,7 +2,7 @@ import { Metadata } from "next"
 import { Gavel, Clock } from "lucide-react"
 
 export const metadata: Metadata = {
-    title: "경매장 | E-Sport-SuperTeam",
+    title: "경매장 | E-Sport Information Collection",
     description: "코스메틱 아이템 경매장 (준비 중)",
 }
 

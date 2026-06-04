@@ -19,7 +19,7 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     {
         id: 'dq-login',
         title: '오늘의 출석 체크',
-        description: '오늘 E-Sport SuperTeam에 방문하세요.',
+        description: '오늘 E-Sport Information Collection에 방문하세요.',
         type: 'DAILY',
         category: 'GENERAL',
         icon: '📅',
@@ -133,7 +133,7 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     {
         id: 'ach-login-7',
         title: '7일 연속 방문',
-        description: '7일 연속으로 E-Sport SuperTeam을 방문하세요.',
+        description: '7일 연속으로 E-Sport Information Collection을 방문하세요.',
         type: 'ACHIEVEMENT',
         category: 'GENERAL',
         icon: '🔥',
@@ -143,7 +143,7 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     {
         id: 'ach-login-30',
         title: '30일 연속 방문',
-        description: '30일 연속으로 E-Sport SuperTeam을 방문하세요.',
+        description: '30일 연속으로 E-Sport Information Collection을 방문하세요.',
         type: 'ACHIEVEMENT',
         category: 'GENERAL',
         icon: '💎',
@@ -289,7 +289,7 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     {
         id: 'ach-login-100',
         title: '100일 팬',
-        description: 'E-Sport SuperTeam을 총 100일 방문하세요.',
+        description: 'E-Sport Information Collection을 총 100일 방문하세요.',
         type: 'ACHIEVEMENT',
         category: 'GENERAL',
         icon: '🏆',

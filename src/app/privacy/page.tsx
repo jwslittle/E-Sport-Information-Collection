@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: '개인정보처리방침 | E-Sport SuperTeam',
-    description: 'E-Sport SuperTeam 개인정보처리방침',
+    title: '개인정보처리방침 | E-Sport Information Collection',
+    description: 'E-Sport Information Collection 개인정보처리방침',
 }
 
 export default function PrivacyPage() {
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
 
                 <section>
                     <h2 className="text-base font-bold text-white mb-3">1. 수집하는 개인정보</h2>
-                    <p>E-Sport SuperTeam(이하 "서비스")은 Google 로그인을 통해 다음 정보를 수집합니다:</p>
+                    <p>E-Sport Information Collection(이하 "서비스")은 Google 로그인을 통해 다음 정보를 수집합니다:</p>
                     <ul className="mt-2 ml-4 space-y-1 list-disc text-zinc-400">
                         <li>이메일 주소 (계정 식별 용도)</li>
                         <li>Google 프로필 이름 및 프로필 사진 (닉네임·아바타 표시 용도)</li>

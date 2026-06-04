@@ -281,7 +281,7 @@ export default function RulesPage() {
                                 <div>
                                     <h4 className="font-bold text-yellow-300 mb-1">🇰🇷 한국어</h4>
                                     <p className="text-sm leading-relaxed text-zinc-300">
-                                        본 서비스(<strong>E-Sport SuperTeam</strong>)는 리그 오브 레전드 및 발로란트를 사랑하는 팬이 자발적으로 제작한
+                                        본 서비스(<strong>E-Sport Information Collection</strong>)는 리그 오브 레전드 및 발로란트를 사랑하는 팬이 자발적으로 제작한
                                         <strong className="text-yellow-400"> 비영리·비상업적 팬 프로젝트</strong>입니다.
                                         이 서비스는 어떠한 형태의 <strong>유료 결제, 광고 수익, 후원금, 상업적 이익도 발생하지 않으며</strong>,
                                         앞으로도 발생할 계획이 없습니다.
@@ -292,7 +292,7 @@ export default function RulesPage() {
                                 <div className="border-t border-yellow-800/30 pt-3">
                                     <h4 className="font-bold text-yellow-300 mb-1">🌐 English</h4>
                                     <p className="text-sm leading-relaxed text-zinc-400">
-                                        E-Sport SuperTeam is a <strong className="text-yellow-400">non-commercial, non-profit fan project</strong> created
+                                        E-Sport Information Collection is a <strong className="text-yellow-400">non-commercial, non-profit fan project</strong> created
                                         purely out of passion for League of Legends and Valorant esports. This service generates
                                         <strong> no revenue of any kind</strong> — no paid transactions, no ads, no sponsorships, no commercial gain.
                                         All in-game currency (GP) is earned exclusively through gameplay (fantasy points &amp; quests)
@@ -305,7 +305,7 @@ export default function RulesPage() {
                             <div className="bg-zinc-800/50 border border-zinc-700 p-4 rounded-lg">
                                 <h4 className="font-bold text-white mb-2 text-sm">Riot Games 공식 면책 조항</h4>
                                 <p className="text-xs text-zinc-400 leading-relaxed">
-                                    E-Sport SuperTeam isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games
+                                    E-Sport Information Collection isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games
                                     or anyone officially involved in producing or managing League of Legends or Valorant.
                                     <strong className="text-zinc-300"> League of Legends, Valorant, and all associated properties are trademarks or
                                     registered trademarks of Riot Games, Inc.</strong>
@@ -349,7 +349,7 @@ export default function RulesPage() {
                                 </p>
                             </div>
                             <p className="text-xs text-zinc-500 text-center pt-4">
-                                Copyright © 2026 E-Sport SuperTeam. All rights reserved.
+                                Copyright © 2026 E-Sport Information Collection. All rights reserved.
                             </p>
                         </CardContent>
                     </Card>

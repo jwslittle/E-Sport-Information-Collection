@@ -124,7 +124,7 @@ export default function Home() {
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-white leading-tight">
                             E-Sport<br />
-                            <span className="text-yellow-400">SuperTeam</span>
+                            <span className="text-yellow-400">Information Collection</span>
                         </h1>
                         <p className="text-zinc-400 text-base max-w-md">
                             실제 LCK 경기 일정을 확인하고, 결과를 예측해서 GP를 획득하세요.
