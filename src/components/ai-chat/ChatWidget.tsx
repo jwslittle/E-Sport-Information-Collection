@@ -95,7 +95,7 @@ export function ChatWidget() {
                                         <p className="text-xs text-muted-foreground">LangChain 기반 AI</p>
                                     </div>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
+                                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} aria-label="채팅 닫기" className="h-8 w-8">
                                     <X className="w-4 h-4" />
                                 </Button>
                             </div>
@@ -146,7 +146,7 @@ export function ChatWidget() {
                                         className="flex-1"
                                         disabled={isLoading}
                                     />
-                                    <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                                    <Button type="submit" size="icon" aria-label="메시지 전송" disabled={isLoading || !input.trim()}>
                                         <Send className="w-4 h-4" />
                                     </Button>
                                 </div>
@@ -159,6 +159,7 @@ export function ChatWidget() {
             <Button
                 onClick={() => setIsOpen(!isOpen)}
                 size="lg"
+                aria-label={isOpen ? '채팅 닫기' : 'AI 채팅 열기'}
                 className="rounded-full h-14 w-14 shadow-lg hover:scale-105 transition-transform"
             >
                 {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}

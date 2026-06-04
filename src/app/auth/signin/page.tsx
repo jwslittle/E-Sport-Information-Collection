@@ -80,6 +80,7 @@ export default function SignInPage() {
 
                     <Button
                         variant="outline"
+                        disabled={!canSignIn}
                         className={cn(
                             'w-full bg-white text-black hover:bg-gray-100 transition-opacity',
                             !canSignIn && 'opacity-50 cursor-not-allowed'

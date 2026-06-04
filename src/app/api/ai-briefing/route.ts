@@ -12,9 +12,18 @@ import { Redis } from '@upstash/redis'
 const CACHE_KEY = 'ai-briefing:tip'
 const CACHE_DURATION_SEC = 60 * 60 // 1시간 (Redis TTL 단위: 초)
 
-const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
-    ? Redis.fromEnv()
-    : null
+// ✅ 빌드 에러 방지: 모듈 레벨 Redis.fromEnv() 제거 → 핸들러 내부에서 lazy 생성
+// (Vercel 빌드 시 환경변수가 [REDACTED]로 마스킹 → fromEnv() URL 검증 실패)
+function getRedis(): Redis | null {
+    const url = process.env.UPSTASH_REDIS_REST_URL
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN
+    if (!url?.startsWith('https://') || !token) return null
+    try {
+        return new Redis({ url, token })
+    } catch {
+        return null
+    }
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +33,9 @@ export async function GET() {
     if (!session?.user?.id) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // ✅ 런타임에만 Redis 클라이언트 생성 (빌드 시 환경변수 마스킹 우회)
+    const redis = getRedis()
 
     try {
         // ✅ Redis 캐시 확인 (1시간 이내면 재사용 — 모든 인스턴스 공유)

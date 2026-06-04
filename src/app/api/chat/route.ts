@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
             modelName: 'gpt-4.1-nano',
             temperature: 0.7,
             streaming: true,
+            maxTokens: 1000, // ✅ 비용 폭탄 방지: 응답 최대 1000 토큰 (~750 단어)
         })
 
         const parser = new StringOutputParser()

@@ -40,18 +40,6 @@ export async function GET() {
         })
     }
 
-    // 카테고리 패치: GENERAL → QUIZ (dq-daily-quiz, ach-quiz-7 재분류)
-    // DB에 이미 존재하는 레코드를 올바른 카테고리로 마이그레이션
-    const quizCategoryPatch = await prisma.quest.count({
-        where: { id: { in: ['dq-daily-quiz', 'ach-quiz-7'] }, category: 'GENERAL' }
-    })
-    if (quizCategoryPatch > 0) {
-        await prisma.quest.updateMany({
-            where: { id: { in: ['dq-daily-quiz', 'ach-quiz-7'] } },
-            data: { category: 'QUIZ' },
-        })
-    }
-
     const allQuests = await prisma.quest.findMany({ where: { isActive: true }, orderBy: { type: 'asc' } })
 
     // 현재 기간 키 계산

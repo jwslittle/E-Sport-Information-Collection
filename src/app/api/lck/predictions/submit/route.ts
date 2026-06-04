@@ -6,9 +6,11 @@ import { updateQuestProgress } from '@/lib/quest-utils'
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    // ✅ session.user.id 직접 사용 (email 경유 DB 조회 불필요)
+    if (!session?.user?.id) {
         return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
+    const userId = session.user.id as string
 
     const body = await req.json()
     const { matchId, predictedWinner, predictedScore } = body
@@ -21,9 +23,6 @@ export async function POST(req: NextRequest) {
     if (predictedScore && !['2:0', '2:1'].includes(predictedScore)) {
         return NextResponse.json({ error: '유효한 스코어: 2:0 또는 2:1' }, { status: 400 })
     }
-
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } })
-    if (!user) return NextResponse.json({ error: '유저 없음' }, { status: 404 })
 
     // 경기 존재 + 상태 확인
     const match = await prisma.lckRealMatch.findUnique({ where: { id: matchId } })
@@ -55,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     // 중복 예측 방지
     const existing = await prisma.lckPrediction.findUnique({
-        where: { userId_matchId: { userId: user.id, matchId } }
+        where: { userId_matchId: { userId, matchId } }
     })
     if (existing) {
         return NextResponse.json({ error: '이미 예측했습니다.' }, { status: 400 })
@@ -63,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     const prediction = await prisma.lckPrediction.create({
         data: {
-            userId: user.id,
+            userId,
             matchId,
             predictedWinner,
             predictedScore: predictedScore || null,
@@ -71,7 +70,7 @@ export async function POST(req: NextRequest) {
     })
 
     // 퀘스트 진행도 업데이트 (fire-and-forget, 오류 무시)
-    updateQuestProgress(user.id, 'PREDICT').catch(() => {})
+    updateQuestProgress(userId, 'PREDICT').catch(() => {})
 
     return NextResponse.json({ ok: true, prediction })
 }

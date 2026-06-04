@@ -48,17 +48,12 @@ export async function GET() {
     const { answer, explanation, ...quizPublic } = quiz
 
     // 로그인한 경우 오늘 이미 답했는지 확인
+    // ✅ session.user.id 직접 사용 (email→DB 조회 불필요)
     let myAnswer = null
-    if (session?.user?.email) {
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: { id: true },
+    if (session?.user?.id) {
+        myAnswer = await prisma.userDailyQuizAnswer.findFirst({
+            where: { userId: session.user.id, dateKey },
         })
-        if (user) {
-            myAnswer = await prisma.userDailyQuizAnswer.findFirst({
-                where: { userId: user.id, dateKey },
-            })
-        }
     }
 
     // 이미 답한 경우 정답 + 해설 공개

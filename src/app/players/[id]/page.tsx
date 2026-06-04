@@ -1,8 +1,23 @@
+import type { Metadata } from 'next'
 import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { PlayerDetail } from './player-detail'
 
-export default async function PlayerPage({ params }: { params: { id: string } }) {
+type Props = { params: { id: string } }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const player = await prisma.player.findUnique({
+        where: { id: params.id },
+        include: { team: true },
+    })
+    if (!player) return { title: '선수 없음 | E-Sport Information Collection' }
+    return {
+        title: `${player.name} | 선수 정보 | E-Sport Information Collection`,
+        description: `${player.team?.name ?? ''} ${player.position} ${player.name} 선수의 LCK 경기 스탯과 판타지 리그 정보를 확인하세요.`,
+    }
+}
+
+export default async function PlayerPage({ params }: Props) {
     const player = await prisma.player.findUnique({
         where: { id: params.id },
         include: { team: true },

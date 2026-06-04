@@ -441,7 +441,7 @@ function RealMatchTab() {
                     {/* 네비게이션 */}
                     {viewMode === 'week' ? (
                         <div className="flex items-center justify-center gap-6">
-                            <Button variant="ghost" size="icon" onClick={() => setViewWeek(subWeeks(viewWeek, 1))} className="hover:bg-zinc-800">
+                            <Button variant="ghost" size="icon" aria-label="이전 주" onClick={() => setViewWeek(subWeeks(viewWeek, 1))} className="hover:bg-zinc-800">
                                 <ChevronLeft className="w-6 h-6" />
                             </Button>
                             <div className="text-center">
@@ -452,19 +452,19 @@ function RealMatchTab() {
                                     {format(weekStart, 'yyyy년 MM월', { locale: ko })} · {weekMatches.length}경기
                                 </p>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={() => setViewWeek(addWeeks(viewWeek, 1))} className="hover:bg-zinc-800">
+                            <Button variant="ghost" size="icon" aria-label="다음 주" onClick={() => setViewWeek(addWeeks(viewWeek, 1))} className="hover:bg-zinc-800">
                                 <ChevronRight className="w-6 h-6" />
                             </Button>
                         </div>
                     ) : (
                         <div className="flex items-center justify-center gap-6">
-                            <Button variant="ghost" size="icon" onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="hover:bg-zinc-800">
+                            <Button variant="ghost" size="icon" aria-label="이전 달" onClick={() => setViewMonth(subMonths(viewMonth, 1))} className="hover:bg-zinc-800">
                                 <ChevronLeft className="w-6 h-6" />
                             </Button>
                             <h2 className="text-2xl font-bold tracking-tight">
                                 {format(viewMonth, 'yyyy년 MM월', { locale: ko })}
                             </h2>
-                            <Button variant="ghost" size="icon" onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="hover:bg-zinc-800">
+                            <Button variant="ghost" size="icon" aria-label="다음 달" onClick={() => setViewMonth(addMonths(viewMonth, 1))} className="hover:bg-zinc-800">
                                 <ChevronRight className="w-6 h-6" />
                             </Button>
                         </div>

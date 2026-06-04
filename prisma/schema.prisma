@@ -458,7 +458,8 @@ model LckPrediction {
   userId          String
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   matchId         String       // LckRealMatch.id
-  match           LckRealMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  // ✅ Restrict: 경기 삭제 시 예측/GP 기록 연쇄 삭제 방지 (관리자 실수 차단)
+  match           LckRealMatch @relation(fields: [matchId], references: [id], onDelete: Restrict)
 
   predictedWinner String       // team code e.g. "T1"
   predictedScore  String?      // "2:0" or "2:1" (null = 승팀만 예측)
