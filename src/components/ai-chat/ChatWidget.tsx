@@ -67,7 +67,7 @@ export function ChatWidget() {
 
         } catch (error) {
             console.error(error)
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }])
+            setMessages(prev => [...prev, { role: 'assistant', content: '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }])
         } finally {
             setIsLoading(false)
         }
@@ -92,7 +92,7 @@ export function ChatWidget() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-sm">LCK Fantasy AI</h3>
-                                        <p className="text-xs text-muted-foreground">Powered by LangChain</p>
+                                        <p className="text-xs text-muted-foreground">LangChain 기반 AI</p>
                                     </div>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-8 w-8">
@@ -141,7 +141,8 @@ export function ChatWidget() {
                                     <Input
                                         value={input}
                                         onChange={e => setInput(e.target.value)}
-                                        placeholder="Ask about players or rules..."
+                                        placeholder="선수, 팀, 경기 규칙에 대해 질문하세요..."
+                        aria-label="AI 채팅 메시지 입력"
                                         className="flex-1"
                                         disabled={isLoading}
                                     />

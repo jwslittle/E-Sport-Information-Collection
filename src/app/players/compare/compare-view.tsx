@@ -93,29 +93,32 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-white">Player Comparison</h1>
+                <h1 className="text-3xl font-bold text-white">선수 비교</h1>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="bg-yellow-500 text-black hover:bg-yellow-400">
-                            <Plus className="mr-2 h-4 w-4" /> Add Player
+                        <Button className="bg-yellow-500 text-black hover:bg-yellow-400" aria-label="비교할 선수 추가">
+                            <Plus className="mr-2 h-4 w-4" aria-hidden="true" /> 선수 추가
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
                         <DialogHeader>
-                            <DialogTitle>Add Player to Compare</DialogTitle>
+                            <DialogTitle>비교할 선수 추가</DialogTitle>
                         </DialogHeader>
                         <Input
-                            placeholder="Search players..."
+                            placeholder="선수 이름 검색..."
                             className="bg-zinc-800 border-zinc-700 text-white"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            aria-label="선수 이름 검색"
                         />
                         <div className="max-h-[300px] overflow-y-auto space-y-2 mt-4">
                             {filteredAllPlayers.map((player) => (
-                                <div
+                                // ✅ div onClick → button으로 교체 (키보드 접근성 확보)
+                                <button
                                     key={player.id}
-                                    className="flex items-center justify-between p-2 rounded hover:bg-zinc-800 cursor-pointer"
+                                    className="w-full flex items-center justify-between p-2 rounded hover:bg-zinc-800 cursor-pointer text-left"
                                     onClick={() => addPlayer(player)}
+                                    aria-label={`${player.name} 선수 추가`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <Avatar>
@@ -127,8 +130,8 @@ export function CompareView({ initialPlayers, allPlayers }: CompareViewProps) {
                                             <p className="text-xs text-zinc-400">{player.teamName ?? player.teamId?.slice(0, 3) ?? 'FA'} • {player.position}</p>
                                         </div>
                                     </div>
-                                    <Button size="sm" variant="ghost">Select</Button>
-                                </div>
+                                    <span className="text-xs text-zinc-400 border border-zinc-700 px-2 py-1 rounded">선택</span>
+                                </button>
                             ))}
                         </div>
                     </DialogContent>

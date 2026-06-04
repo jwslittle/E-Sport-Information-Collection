@@ -116,6 +116,8 @@ export async function POST(req: Request) {
         const itemId = pickItem(tierRarities, itemsByRarity)
         if (!itemId) continue
         draws.push({ itemId, isDuplicate: ownedSet.has(itemId) })
+        // ✅ 같은 회차 내 동일 아이템 중복도 체크 (10연속 뽑기 시 두 번째도 환급 적용)
+        ownedSet.add(itemId)
     }
 
     if (draws.length === 0) {

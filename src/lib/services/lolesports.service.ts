@@ -209,7 +209,9 @@ export function transformEventToMatch(event: LoLEsportsEvent) {
         winner,
         bestOf: event.match.strategy.count,
         scheduledAt: new Date(event.startTime),
-        completedAt: event.state === 'completed' ? new Date(event.startTime) : null,
+        // ✅ completedAt: API가 완료시각을 별도 제공하지 않으므로 동기화 시점(현재시각) 사용
+        // (이전: startTime을 잘못 사용 → scheduledAt과 동일한 값이 저장되는 버그)
+        completedAt: event.state === 'completed' ? new Date() : null,
         status: event.state === 'completed' ? 'COMPLETED'
             : event.state === 'inProgress' ? 'LIVE'
                 : 'SCHEDULED',

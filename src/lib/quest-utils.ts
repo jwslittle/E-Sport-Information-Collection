@@ -15,6 +15,12 @@ function getPeriodKey(type: string): string {
     return 'LIFETIME'
 }
 
+// ✅ 연속(streak) 퀘스트 ID 목록 — 틀렸을 때 progress 초기화
+const STREAK_QUEST_IDS = new Set([
+    'ach-correct-streak-5',
+    'ach-correct-streak-10',
+])
+
 export const ACTION_QUEST_MAP: Record<string, string[]> = {
     // ── 방문 / 출석
     LOGIN:               ['dq-login', 'wq-login-5', 'ach-login-7', 'ach-login-30', 'ach-login-100'],
@@ -32,6 +38,9 @@ export const ACTION_QUEST_MAP: Record<string, string[]> = {
     AI_CHAT:             ['dq-ai-chat', 'ach-ai-10', 'wq-ai-chat-3'],
     DAILY_QUIZ:          ['dq-daily-quiz', 'ach-quiz-7', 'ach-quiz-30days'],
     QUIZ_CORRECT:        ['ach-quiz-correct-10', 'ach-quiz-correct-30'],
+
+    // ── 예측 틀림 → 연속 적중 streak 초기화
+    PREDICT_WRONG:       ['ach-correct-streak-5', 'ach-correct-streak-10'],
 
     // ── 코스메틱 / 상점
     GET_COSMETIC:        ['ach-cosmetic-first'],
@@ -74,6 +83,17 @@ export async function updateQuestProgress(
 
         // 이미 완료된 퀘스트 스킵
         if (existing?.isCompleted) continue
+
+        // ✅ PREDICT_WRONG 처리: streak 퀘스트는 progress를 0으로 초기화
+        if (action === 'PREDICT_WRONG' && STREAK_QUEST_IDS.has(quest.id)) {
+            if (existing && existing.progress > 0) {
+                await prisma.userQuestProgress.update({
+                    where: { userId_questId_periodKey: { userId, questId: quest.id, periodKey } },
+                    data: { progress: 0, isCompleted: false },
+                })
+            }
+            continue
+        }
 
         const newProgress = Math.min((existing?.progress ?? 0) + amount, quest.targetCount)
         const isCompleted = newProgress >= quest.targetCount

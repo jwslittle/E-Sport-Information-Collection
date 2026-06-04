@@ -16,6 +16,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const comments = await prisma.comment.findMany({
         where: { postId, isDeleted: false },
         orderBy: { createdAt: 'asc' },
+        // ✅ 댓글 무제한 조회 방지 — 메모리 DoS 차단
+        take: 200,
         include: {
             author: {
                 select: {

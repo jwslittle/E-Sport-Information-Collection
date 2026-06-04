@@ -85,8 +85,9 @@ export async function GET(req: Request) {
             total: matches.length,
             syncStatus,
         })
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('[API /lck/matches]', err)
-        return NextResponse.json({ error: 'Failed to fetch matches', detail: String(err) }, { status: 500 })
+        // ✅ 내부 에러 메시지 노출 금지
+        return NextResponse.json({ error: '경기 데이터를 불러오는 중 오류가 발생했습니다.' }, { status: 500 })
     }
 }

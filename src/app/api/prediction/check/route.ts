@@ -12,69 +12,66 @@ export async function POST(request: Request) {
     try {
         const userId = (session.user as any).id
 
-        // 1. Find all unprocessed predictions for this user where the match is COMPLETED
+        // 미정산 예측 조회 (완료된 경기만)
         const unprocessedPredictions = await prisma.matchPrediction.findMany({
             where: {
                 userId,
                 isProcessed: false,
                 match: {
                     status: 'COMPLETED',
-                    winnerId: { not: null } // Ensure winner is set
+                    winnerId: { not: null }
                 }
             },
             include: {
-                match: {
-                    include: {
-                        winner: true
-                    }
-                }
+                match: { include: { winner: true } }
             }
         })
 
         if (unprocessedPredictions.length === 0) {
-            return NextResponse.json({ message: 'No new predictions to process', processed: 0 })
+            return NextResponse.json({ message: '정산할 예측이 없습니다.', processed: 0 })
         }
 
         let totalPointsEarned = 0
-        const processedIds = []
+        const processedIds: string[] = []
 
-        // 2. Process each prediction
         for (const pred of unprocessedPredictions) {
             let isCorrect = false
             let points = 0
 
             if (pred.type === 'WINNER') {
-                // Check if target (TeamCode) matches Winner's Code
                 if (pred.match.winner && pred.match.winner.code === pred.target) {
                     isCorrect = true
-                    points = 50 // Fixed 50 points reward
+                    points = 50
                 }
             }
 
-            // Update Prediction Record
-            await prisma.matchPrediction.update({
-                where: { id: pred.id },
-                data: {
-                    isProcessed: true,
-                    isCorrect,
-                    pointsEarned: points
-                }
-            })
+            try {
+                // ✅ 인터랙티브 트랜잭션 — isProcessed 재확인으로 이중 정산 방지
+                await prisma.$transaction(async (tx) => {
+                    const current = await tx.matchPrediction.findUnique({
+                        where: { id: pred.id },
+                        select: { isProcessed: true },
+                    })
+                    if (current?.isProcessed) return // 이미 처리됨 → 건너뜀
 
-            if (isCorrect && points > 0) {
-                totalPointsEarned += points
+                    await tx.matchPrediction.update({
+                        where: { id: pred.id },
+                        data: { isProcessed: true, isCorrect, pointsEarned: points },
+                    })
+
+                    if (isCorrect && points > 0) {
+                        await tx.user.update({
+                            where: { id: userId },
+                            data: { gp: { increment: points } },
+                        })
+                    }
+                })
+
+                if (isCorrect && points > 0) totalPointsEarned += points
+                processedIds.push(pred.id)
+            } catch (err) {
+                console.error(`[prediction/check] 정산 오류 (predId: ${pred.id}):`, err)
             }
-            processedIds.push(pred.id)
-        }
-
-        // 3. Award points to user
-        if (totalPointsEarned > 0) {
-            await prisma.user.update({
-                where: { id: userId },
-                data: {
-                    gp: { increment: totalPointsEarned }
-                }
-            })
         }
 
         return NextResponse.json({
@@ -84,6 +81,6 @@ export async function POST(request: Request) {
         })
     } catch (error) {
         console.error('Error processing predictions:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: '예측 정산 중 오류가 발생했습니다.' }, { status: 500 })
     }
 }

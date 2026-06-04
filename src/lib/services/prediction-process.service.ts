@@ -61,32 +61,38 @@ export async function processLckPredictions(fromCron = false): Promise<ProcessRe
         if (winnerCorrect) gpEarned += 10
         if (scoreCorrect)  gpEarned += 20
 
-        // 예측 정산 + GP 지급을 원자적으로 처리
-        // 두 쿼리 중 하나라도 실패하면 전체 롤백 → GP 소실 방지
-        await prisma.$transaction([
-            prisma.lckPrediction.update({
+        // ✅ 인터랙티브 트랜잭션 — isProcessed 재확인으로 크론+어드민 동시 실행 시 이중 정산 방지
+        let settled = false
+        await prisma.$transaction(async (tx) => {
+            const current = await tx.lckPrediction.findUnique({
                 where: { id: pred.id },
-                data: {
-                    isProcessed: true,
-                    winnerCorrect,
-                    scoreCorrect,
-                    isCorrect: winnerCorrect,
-                    gpEarned,
-                },
-            }),
-            ...(gpEarned > 0
-                ? [prisma.user.update({
-                      where: { id: pred.userId },
-                      data: { gp: { increment: gpEarned } },
-                  })]
-                : []),
-        ])
+                select: { isProcessed: true },
+            })
+            if (current?.isProcessed) return // 이미 처리됨
 
+            await tx.lckPrediction.update({
+                where: { id: pred.id },
+                data: { isProcessed: true, winnerCorrect, scoreCorrect, isCorrect: winnerCorrect, gpEarned },
+            })
+
+            if (gpEarned > 0) {
+                await tx.user.update({
+                    where: { id: pred.userId },
+                    data: { gp: { increment: gpEarned } },
+                })
+            }
+            settled = true
+        })
+
+        if (!settled) { skipped++; continue }
         if (gpEarned > 0) gpAwarded += gpEarned
 
         // 퀘스트 업데이트 (트랜잭션 성공 후 fire-and-forget)
         if (winnerCorrect) {
             updateQuestProgress(pred.userId, 'PREDICT_CORRECT').catch(() => {})
+        } else {
+            // ✅ 틀린 예측 → 연속 적중 streak 초기화
+            updateQuestProgress(pred.userId, 'PREDICT_WRONG').catch(() => {})
         }
 
         processed++

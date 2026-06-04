@@ -55,9 +55,10 @@ export async function GET(request: Request) {
         // 2 & 3. Stats (Points & Position Meta)
         let playerStatsMap: Record<string, number> = {}
 
+        // ✅ allPlayers 단일 조회 (이전: REAL 분기에서 한 번 + 하단에서 또 한 번 = 이중 쿼리)
+        const allPlayers = await prisma.player.findMany({ include: { team: true } })
+
         if (type === 'REAL') {
-            // Use stored JSON stats
-            const allPlayers = await prisma.player.findMany({ include: { team: true } })
             allPlayers.forEach(p => {
                 const stats = p.stats ? (typeof p.stats === 'string' ? JSON.parse(p.stats) : p.stats) : {}
                 // Schema says `stats Json?`. It might be object.
@@ -82,8 +83,6 @@ export async function GET(request: Request) {
                 playerStatsMap[p.playerId] = p._sum.fantasyPoints || 0
             })
         }
-
-        const allPlayers = await prisma.player.findMany({ include: { team: true } })
 
         const processedStats = allPlayers.map(p => ({
             name: p.name,

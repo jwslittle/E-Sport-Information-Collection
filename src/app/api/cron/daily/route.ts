@@ -14,6 +14,7 @@
  * Pro 플랜($20/월) 업그레이드 시 최대 300초로 늘어납니다.
  */
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import { syncCurrentSeason } from '@/lib/services/lck-sync.service'
 import { processLckPredictions } from '@/lib/services/prediction-process.service'
 
@@ -58,6 +59,8 @@ export async function GET(req: Request) {
         const msg = err instanceof Error ? err.message : String(err)
         report.sync = { ok: false, error: msg, elapsedMs: Date.now() - syncStart }
         console.error('[Cron/Daily] [1/2] 동기화 오류:', msg)
+        // ✅ Sentry 에러 캡처 — 크론 실패 알림
+        Sentry.captureException(err, { tags: { cron: 'daily', step: 'sync' } })
         // 동기화 실패해도 정산은 계속 진행
     }
 
@@ -72,6 +75,8 @@ export async function GET(req: Request) {
         const msg = err instanceof Error ? err.message : String(err)
         report.process = { ok: false, error: msg, elapsedMs: Date.now() - processStart }
         console.error('[Cron/Daily] [2/2] 정산 오류:', msg)
+        // ✅ Sentry 에러 캡처 — 정산 실패 알림
+        Sentry.captureException(err, { tags: { cron: 'daily', step: 'process' } })
     }
 
     const totalElapsed = Date.now() - startedAt

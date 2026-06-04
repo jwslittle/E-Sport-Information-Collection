@@ -14,19 +14,13 @@ import { updateQuestProgress } from '@/lib/quest-utils'
  */
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    // ✅ session.user.id 사용 (email 기반 조회 제거)
+    if (!session?.user?.id) {
         return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
+    const userId = session.user.id
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, gp: true },
-    })
-    if (!user) {
-        return NextResponse.json({ error: '사용자를 찾을 수 없습니다.' }, { status: 404 })
-    }
-
-    const body = await req.json()
+    const body = await req.json().catch(() => ({}))
     const { quizId, selectedAnswer } = body as { quizId: string; selectedAnswer: string }
 
     if (!quizId || !selectedAnswer) {
@@ -38,52 +32,56 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '유효하지 않은 답변입니다.' }, { status: 400 })
     }
 
-    // KST(Asia/Seoul) 기준 날짜 키 — "2026-06-02" 형식
-    const dateKey = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
-
-    // 오늘 이미 답했는지 확인
-    const existing = await prisma.userDailyQuizAnswer.findFirst({
-        where: { userId: user.id, dateKey },
-    })
-    if (existing) {
-        return NextResponse.json({ error: '오늘은 이미 퀴즈에 응답했습니다.', alreadyAnswered: true }, { status: 409 })
-    }
-
-    // 퀴즈 조회
-    const quiz = await prisma.dailyQuiz.findUnique({
-        where: { id: quizId },
-    })
+    // 퀴즈 조회 (먼저 확인)
+    const quiz = await prisma.dailyQuiz.findUnique({ where: { id: quizId } })
     if (!quiz || !quiz.isActive) {
         return NextResponse.json({ error: '퀴즈를 찾을 수 없습니다.' }, { status: 404 })
     }
 
+    // KST(Asia/Seoul) 기준 날짜 키
+    const dateKey = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
+
     const isCorrect = selectedAnswer === quiz.answer
     const gpEarned = isCorrect ? quiz.gpReward : 0
 
-    // 트랜잭션: 응답 저장 + GP 지급
-    const [quizAnswer] = await prisma.$transaction([
-        prisma.userDailyQuizAnswer.create({
-            data: {
-                userId: user.id,
-                quizId: quiz.id,
-                dateKey,
-                selectedAnswer,
-                isCorrect,
-                gpEarned,
-            },
-        }),
-        ...(gpEarned > 0
-            ? [prisma.user.update({
-                where: { id: user.id },
-                data: { gp: { increment: gpEarned } },
-            })]
-            : []),
-    ])
+    // ✅ 인터랙티브 트랜잭션 — 중복 체크 + 응답 저장 + GP 지급을 원자적으로 처리
+    let quizAnswer: { id: string }
+    try {
+        quizAnswer = await prisma.$transaction(async (tx) => {
+            // 트랜잭션 내부에서 중복 확인 (race condition 방지)
+            const existing = await tx.userDailyQuizAnswer.findFirst({
+                where: { userId, dateKey },
+            })
+            if (existing) throw new Error('ALREADY_ANSWERED')
 
-    // 퀘스트 진행도 업데이트 (fire-and-forget, 오류 무시)
-    updateQuestProgress(user.id, 'DAILY_QUIZ').catch(() => {})
+            const answer = await tx.userDailyQuizAnswer.create({
+                data: { userId, quizId: quiz.id, dateKey, selectedAnswer, isCorrect, gpEarned },
+            })
+
+            if (gpEarned > 0) {
+                await tx.user.update({
+                    where: { id: userId },
+                    data: { gp: { increment: gpEarned } },
+                })
+            }
+
+            return answer
+        })
+    } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'ALREADY_ANSWERED') {
+            return NextResponse.json(
+                { error: '오늘은 이미 퀴즈에 응답했습니다.', alreadyAnswered: true },
+                { status: 409 }
+            )
+        }
+        console.error('quiz/answer error:', err)
+        return NextResponse.json({ error: '답변 제출 중 오류가 발생했습니다.' }, { status: 500 })
+    }
+
+    // 퀘스트 진행도 업데이트 (fire-and-forget)
+    updateQuestProgress(userId, 'DAILY_QUIZ').catch(() => {})
     if (isCorrect) {
-        updateQuestProgress(user.id, 'QUIZ_CORRECT').catch(() => {})
+        updateQuestProgress(userId, 'QUIZ_CORRECT').catch(() => {})
     }
 
     return NextResponse.json({

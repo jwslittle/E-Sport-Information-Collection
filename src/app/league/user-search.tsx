@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, UserPlus, UserMinus } from 'lucide-react'
@@ -55,13 +56,9 @@ export function UserSearch() {
             if (!res.ok) throw new Error('Failed to toggle follow')
 
             const data = await res.json()
-
             setResults(prev => prev.map(item => {
                 if (item.owner.id === targetUserId) {
-                    return {
-                        ...item,
-                        owner: { ...item.owner, isFollowing: data.isFollowing }
-                    }
+                    return { ...item, owner: { ...item.owner, isFollowing: data.isFollowing } }
                 }
                 return item
             }))
@@ -74,17 +71,18 @@ export function UserSearch() {
         <div className="space-y-4">
             <form onSubmit={handleSearch} className="flex gap-2">
                 <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <Input
                         type="search"
-                        placeholder="Search by team name..."
+                        placeholder="팀 이름으로 검색..."
                         className="pl-8"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
+                        aria-label="팀 이름 검색"
                     />
                 </div>
                 <Button type="submit" disabled={loading}>
-                    {loading ? 'Searching...' : 'Search'}
+                    {loading ? '검색 중...' : '검색'}
                 </Button>
             </form>
 
@@ -97,33 +95,28 @@ export function UserSearch() {
                                 <AvatarFallback>{item.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                             </Avatar>
 
-                            <div
-                                className="flex-1 min-w-0 cursor-pointer"
-                                onClick={() => window.location.href = `/league/team/${item.id}`}
+                            {/* ✅ div onClick → Link로 교체 (키보드 접근성 확보) */}
+                            <Link
+                                href={`/league/team/${item.id}`}
+                                className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
                             >
                                 <div className="font-medium truncate">{item.name}</div>
                                 <div className="text-xs text-muted-foreground">
                                     {item.totalPoints.toLocaleString()} PTS
                                 </div>
-                            </div>
+                            </Link>
 
                             {!item.owner.isMe && (
                                 <Button
                                     variant={item.owner.isFollowing ? "secondary" : "outline"}
                                     size="sm"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleFollow(item.owner.id)
-                                    }}
+                                    onClick={() => handleFollow(item.owner.id)}
+                                    aria-label={item.owner.isFollowing ? `${item.owner.name} 팔로우 취소` : `${item.owner.name} 팔로우`}
                                 >
                                     {item.owner.isFollowing ? (
-                                        <>
-                                            <UserMinus className="h-3 w-3 mr-1" /> Unfollow
-                                        </>
+                                        <><UserMinus className="h-3 w-3 mr-1" aria-hidden="true" /> 팔로우 취소</>
                                     ) : (
-                                        <>
-                                            <UserPlus className="h-3 w-3 mr-1" /> Follow
-                                        </>
+                                        <><UserPlus className="h-3 w-3 mr-1" aria-hidden="true" /> 팔로우</>
                                     )}
                                 </Button>
                             )}
@@ -133,7 +126,7 @@ export function UserSearch() {
 
                 {searched && results.length === 0 && !loading && (
                     <div className="text-center text-sm text-muted-foreground py-4">
-                        No teams found matching "{query}"
+                        &ldquo;{query}&rdquo;에 해당하는 팀이 없습니다.
                     </div>
                 )}
             </div>

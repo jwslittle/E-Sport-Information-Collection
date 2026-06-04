@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { ADMIN_EMAIL } from '@/lib/config/admin'
+import { ADMIN_EMAILS } from '@/lib/config/admin'
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
 
-    // Strict Admin Check
     const isAdmin = (session?.user as any)?.role === 'ADMIN'
     if (!isAdmin) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,33 +15,19 @@ export async function POST(req: Request) {
     try {
         console.log(`--- Admin Initiated: FULL USER RESET by ${session?.user?.email} ---`)
 
-        const adminEmail = ADMIN_EMAIL
-
-        // Count users before deletion for logging
-        const totalUsers = await prisma.user.count()
-
-        // Delete all users except Admin
-        // Note: Due to 'onDelete: Cascade' in schema, this should wipe:
-        // - Accounts, Sessions
-        // - UserTeams (Real/Sim)
-        // - UserInventory
-        // - MatchPredictions
-        // - SystemLogs (if userId is linked, wait SystemLog userId is optional? schema check recommended)
-
-        // Wait, SystemLog userId is String? but no foreign key relation defined in my snippet earlier?
-        // Let's check schema again? 
-        // Earlier I wrote: model SystemLog { ... userId String? ... } without @relation.
-        // So SystemLogs will persist with 'userId' string remaining but user gone. That's actually fine for audit.
+        // ✅ 복수 관리자 모두 보호 (ADMIN_EMAILS Set 사용)
+        const adminEmailList = [...ADMIN_EMAILS]
+        if (adminEmailList.length === 0) {
+            return NextResponse.json({ error: 'ADMIN_EMAILS 환경변수가 설정되지 않았습니다.' }, { status: 500 })
+        }
 
         const deleteResult = await prisma.user.deleteMany({
             where: {
-                email: {
-                    not: adminEmail
-                }
+                email: { notIn: adminEmailList }
             }
         })
 
-        console.log(`Deleted ${deleteResult.count} users.`)
+        console.log(`Deleted ${deleteResult.count} users (protected: ${adminEmailList.join(', ')})`)
 
         return NextResponse.json({
             success: true,
@@ -50,8 +35,9 @@ export async function POST(req: Request) {
             deletedCount: deleteResult.count
         })
 
-    } catch (error: any) {
+    } catch (error) {
+        // ✅ 내부 에러 메시지 노출 방지
         console.error('User Reset Error:', error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ error: '초기화 중 오류가 발생했습니다.' }, { status: 500 })
     }
 }
