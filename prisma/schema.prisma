@@ -67,6 +67,9 @@ model User {
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  // ✅ M-9 수정: 랭킹 정렬 최적화 인덱스 (gp DESC 풀스캔 방지)
+  @@index([gp])
 }
 
 model Follows {
@@ -158,9 +161,10 @@ model PlayerPerformance {
   id          String   @id @default(uuid())
   matchId     String
   match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  
+
   playerId    String
-  player      Player   @relation(fields: [playerId], references: [id])
+  // ✅ M-16 수정: Player 삭제 시 FK 오류 방지 — Restrict로 명시 (선수 삭제 전 퍼포먼스 데이터 정리 필요)
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
   
   // Game Stats
   kills       Int      @default(0)
@@ -203,7 +207,8 @@ model UserTeamPlayer {
   userTeam    UserTeam @relation(fields: [userTeamId], references: [id], onDelete: Cascade)
   
   playerId    String
-  player      Player   @relation(fields: [playerId], references: [id])
+  // ✅ M-16 수정: Player 삭제 시 FK 오류 방지
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
   position    String // Slot position
   isCaptain   Boolean  @default(false)
   
@@ -470,6 +475,7 @@ model LckPrediction {
   @@unique([userId, matchId])
   @@index([isProcessed])  // 크론 정산: 미처리 예측 필터링
   @@index([matchId])      // 경기별 예측 집계
+  @@index([userId])       // ✅ M-9 수정: 유저별 예측 내역 조회 최적화
 }
 
 // ─────────────────────────────────────────────
@@ -637,6 +643,10 @@ model Post {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ✅ M-9 수정: 커뮤니티 목록 정렬 최적화
+  @@index([isDeleted, createdAt])
+  @@index([category, createdAt])
 }
 
 model Comment {

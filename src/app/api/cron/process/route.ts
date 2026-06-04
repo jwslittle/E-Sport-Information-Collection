@@ -8,6 +8,8 @@
  * 전날 완료된 경기의 예측을 정산하고 GP를 지급합니다.
  */
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { processLckPredictions } from '@/lib/services/prediction-process.service'
 
 export const dynamic = 'force-dynamic'
@@ -15,17 +17,19 @@ export const maxDuration = 60
 
 const CRON_SECRET = process.env.CRON_SECRET
 
-function isAuthorized(req: Request): boolean {
+// ✅ M-7 수정: Admin 세션 또는 CRON_SECRET 둘 다 허용 (admin 페이지에서 직접 호출 가능)
+async function isAuthorized(req: Request): Promise<boolean> {
+    const session = await getServerSession(authOptions)
+    if (session?.user?.role === 'ADMIN') return true
     if (!CRON_SECRET) {
-        console.error('[Cron/Process] CRON_SECRET 환경변수가 설정되지 않았습니다. 요청을 거부합니다.')
+        console.error('[Cron/Process] CRON_SECRET 환경변수가 설정되지 않았습니다.')
         return false
     }
-    const authHeader = req.headers.get('authorization')
-    return authHeader === `Bearer ${CRON_SECRET}`
+    return req.headers.get('authorization') === `Bearer ${CRON_SECRET}`
 }
 
 export async function GET(req: Request) {
-    if (!isAuthorized(req)) {
+    if (!(await isAuthorized(req))) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -47,6 +51,6 @@ export async function GET(req: Request) {
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[Cron/Process] 오류:', msg)
-        return NextResponse.json({ ok: false, error: msg }, { status: 500 })
+        return NextResponse.json({ ok: false, error: '정산 중 오류가 발생했습니다.' }, { status: 500 })
     }
 }

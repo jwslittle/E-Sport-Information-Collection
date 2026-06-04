@@ -26,7 +26,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         const likeCount = await prisma.postLike.count({ where: { postId } })
         return NextResponse.json({ liked: false, likeCount })
     } else {
-        await prisma.postLike.create({ data: { postId, userId } })
+        // ✅ M-6 수정: race condition 대비 unique 제약 위반(P2002)을 정상 처리
+        try {
+            await prisma.postLike.create({ data: { postId, userId } })
+        } catch (e: any) {
+            // 동시 요청으로 이미 좋아요가 생성된 경우 — 정상으로 처리
+            if (e?.code !== 'P2002') throw e
+        }
         const likeCount = await prisma.postLike.count({ where: { postId } })
         return NextResponse.json({ liked: true, likeCount })
     }

@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
                 token.id = user.id
                 token.role = user.role
                 token.points = user.gp // Prisma 'gp' → session 'points'
-                // ✅ gachaLevel 제거 — User 스키마에 해당 필드 없음 (미구현)
+                token.roleRefreshedAt = Date.now() // ✅ role 갱신 시각 기록
 
                 // 관리자 이메일 목록에 포함된 계정 자동 ADMIN 승격
                 if (user.email && isAdminEmail(user.email)) {
@@ -33,6 +33,20 @@ export const authOptions: NextAuthOptions = {
                         where: { id: user.id },
                         data: { role: 'ADMIN' }
                     }).catch(err => console.error("Failed to auto-admin user:", err))
+                }
+            } else if (token.id) {
+                // ✅ M-4 수정: 1시간마다 DB에서 role 재확인 (ADMIN 제거 반영)
+                const ONE_HOUR = 60 * 60 * 1000
+                const lastRefresh = (token.roleRefreshedAt as number) ?? 0
+                if (Date.now() - lastRefresh > ONE_HOUR) {
+                    const dbUser = await prisma.user.findUnique({
+                        where: { id: token.id as string },
+                        select: { role: true },
+                    }).catch(() => null)
+                    if (dbUser) {
+                        token.role = dbUser.role
+                        token.roleRefreshedAt = Date.now()
+                    }
                 }
             }
             // 세션 업데이트 시 안전한 필드만 반영 (role·id 변조 방지)

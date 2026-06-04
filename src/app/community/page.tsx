@@ -112,22 +112,29 @@ function WriteDialog({ open, onClose, onCreated }: {
                             </button>
                         ))}
                     </div>
+                    {/* ✅ M-19 수정: label htmlFor 연결로 접근성 개선 (WCAG 2.1 기준 1.3.1) */}
                     {/* 제목 */}
+                    <label htmlFor="post-title" className="sr-only">게시글 제목</label>
                     <Input
+                        id="post-title"
                         placeholder="제목 (최대 100자)"
                         value={title}
                         onChange={e => setTitle(e.target.value)}
                         maxLength={100}
                         className="bg-zinc-950 border-zinc-700 text-white"
+                        aria-required="true"
                     />
                     {/* 내용 */}
+                    <label htmlFor="post-content" className="sr-only">게시글 내용</label>
                     <Textarea
+                        id="post-content"
                         placeholder="내용을 작성해주세요. (최대 5000자)"
                         value={content}
                         onChange={e => setContent(e.target.value)}
                         maxLength={5000}
                         rows={8}
                         className="bg-zinc-950 border-zinc-700 text-white resize-none"
+                        aria-required="true"
                     />
                     <p className="text-xs text-zinc-600 text-right">{content.length} / 5000</p>
                 </div>

@@ -10,6 +10,10 @@ let strictLimiter: Ratelimit | null = null
 
 function getLimiters() {
     if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+        // ✅ M-5 수정: 프로덕션에서 Upstash 미설정 시 경고 (레이트리밋 우회 방지)
+        if (process.env.NODE_ENV === 'production') {
+            console.error('[Rate Limit] UPSTASH 환경변수 미설정 — 레이트리밋 비활성화 상태. Vercel 환경변수를 확인하세요.')
+        }
         return { general: null, strict: null }
     }
     if (!generalLimiter) {

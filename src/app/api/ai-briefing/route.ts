@@ -5,10 +5,16 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { ChatOpenAI } from "@langchain/openai"
 import { HumanMessage, SystemMessage } from "@langchain/core/messages"
+import { Redis } from '@upstash/redis'
 
-// 1시간 캐시 — 같은 AI 응답을 반복 호출로 인한 OpenAI 비용 방지
-let cachedTip: { text: string, timestamp: number } | null = null
-const CACHE_DURATION = 1000 * 60 * 60 // 1 hour
+// ✅ M-8 수정: 서버리스 환경에서 인메모리 캐시 무효 → Upstash Redis 캐시 사용
+// 인메모리 변수는 cold start 마다 초기화되어 사실상 캐시 기능 없음
+const CACHE_KEY = 'ai-briefing:tip'
+const CACHE_DURATION_SEC = 60 * 60 // 1시간 (Redis TTL 단위: 초)
+
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+    ? Redis.fromEnv()
+    : null
 
 export const dynamic = 'force-dynamic'
 
@@ -20,9 +26,10 @@ export async function GET() {
     }
 
     try {
-        // 캐시 확인 (1시간 이내면 재사용)
-        if (cachedTip && Date.now() - cachedTip.timestamp < CACHE_DURATION) {
-            return NextResponse.json({ tip: cachedTip.text })
+        // ✅ Redis 캐시 확인 (1시간 이내면 재사용 — 모든 인스턴스 공유)
+        if (redis) {
+            const cached = await redis.get<string>(CACHE_KEY).catch(() => null)
+            if (cached) return NextResponse.json({ tip: cached })
         }
 
         // ✅ 실제 LCK 경기 데이터 사용 (시뮬레이션 Match 모델 아님)
@@ -91,8 +98,10 @@ export async function GET() {
 
         const tip = response.content.toString().trim()
 
-        // 캐시 갱신
-        cachedTip = { text: tip, timestamp: Date.now() }
+        // ✅ Redis에 1시간 TTL로 캐시 저장 (실패해도 응답은 정상 반환)
+        if (redis) {
+            await redis.set(CACHE_KEY, tip, { ex: CACHE_DURATION_SEC }).catch(() => {})
+        }
 
         return NextResponse.json({ tip })
 

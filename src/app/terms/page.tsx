@@ -44,13 +44,31 @@ export default function TermsPage() {
                 </section>
 
                 <section>
-                    <h2 className="text-base font-bold text-white mb-3">4. 금지 행위</h2>
+                    <h2 className="text-base font-bold text-white mb-3">4. 금지 행위 및 제재</h2>
                     <ul className="ml-4 space-y-1 list-disc text-zinc-400">
                         <li>타인의 계정을 도용하거나 부정한 방법으로 GP를 획득하는 행위</li>
                         <li>서비스를 상업적 목적으로 이용하는 행위</li>
                         <li>타인에게 혐오감을 주는 콘텐츠를 게시하는 행위</li>
                         <li>서비스의 정상적인 운영을 방해하는 행위</li>
                     </ul>
+                    {/* ✅ L-12 수정: 제재 결과 명시 */}
+                    <p className="mt-3 text-zinc-500 text-xs">
+                        위 금지 행위 위반 시 사전 통보 없이 게시물 삭제, 계정 이용 제한,
+                        영구 이용 정지 등의 조치를 취할 수 있습니다.
+                    </p>
+                </section>
+
+                {/* ✅ M-12 수정: 계정 삭제 시 데이터 처리 정책 명시 */}
+                <section>
+                    <h2 className="text-base font-bold text-white mb-3">4-1. 계정 탈퇴 및 데이터 처리</h2>
+                    <p>
+                        서비스 탈퇴 시 작성한 게시글, 댓글, 예측 기록, GP 내역 등 모든 데이터가
+                        즉시 삭제됩니다. 삭제된 데이터는 복구할 수 없으며, 다른 이용자가 작성한
+                        게시글에 달린 댓글도 함께 삭제됩니다.
+                    </p>
+                    <p className="mt-2 text-zinc-500">
+                        탈퇴는 서비스 내 계정 설정 페이지에서 직접 하실 수 있습니다.
+                    </p>
                 </section>
 
                 <section>

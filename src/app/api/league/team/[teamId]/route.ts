@@ -41,6 +41,11 @@ export async function GET(
             return NextResponse.json({ error: 'Team not found' }, { status: 404 })
         }
 
+        // ✅ IDOR 방지 — 본인 팀만 조회 가능
+        if (team.user.id !== session.user.id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
         return NextResponse.json(team)
     } catch (error) {
         console.error('Failed to fetch team:', error)

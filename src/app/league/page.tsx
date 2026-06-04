@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+export const metadata: Metadata = {
+    title: '리그 | E-Sport Information Collection',
+    description: '판타지 리그 랭킹과 다른 플레이어들을 검색하세요.',
+}
 import { RankingList } from './ranking-list'
 import { UserSearch } from './user-search'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

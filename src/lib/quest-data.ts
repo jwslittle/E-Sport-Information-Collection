@@ -132,8 +132,9 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     // ── ACHIEVEMENT ───────────────────────────────────────────────
     {
         id: 'ach-login-7',
-        title: '7일 연속 방문',
-        description: '7일 연속으로 E-Sport Information Collection을 방문하세요.',
+        // ✅ M-15 수정: 날짜 연속성 미검증 → 누적 방문으로 설명 수정
+        title: '7일 방문',
+        description: 'E-Sport Information Collection을 총 7번 방문하세요.',
         type: 'ACHIEVEMENT',
         category: 'GENERAL',
         icon: '🔥',
@@ -142,8 +143,8 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     },
     {
         id: 'ach-login-30',
-        title: '30일 연속 방문',
-        description: '30일 연속으로 E-Sport Information Collection을 방문하세요.',
+        title: '30일 방문',
+        description: 'E-Sport Information Collection을 총 30번 방문하세요.',
         type: 'ACHIEVEMENT',
         category: 'GENERAL',
         icon: '💎',
