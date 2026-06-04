@@ -2,7 +2,7 @@ import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import prisma from "@/lib/prisma"
 import { NextAuthOptions } from "next-auth"
-import { ADMIN_EMAIL } from "@/lib/config/admin"
+import { isAdminEmail } from "@/lib/config/admin"
 
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma) as any,
@@ -25,8 +25,8 @@ export const authOptions: NextAuthOptions = {
                 token.points = user.gp // Map Prisma 'gp' to session 'points'
                 token.gachaLevel = user.gachaLevel
 
-                // Auto-grant ADMIN to specific email
-                if (user.email === ADMIN_EMAIL) {
+                // 관리자 이메일 목록에 포함된 계정 자동 ADMIN 승격
+                if (user.email && isAdminEmail(user.email)) {
                     token.role = 'ADMIN'
                     // Update DB asynchronously to ensure persistence
                     prisma.user.update({
