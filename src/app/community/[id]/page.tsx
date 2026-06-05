@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     ThumbsUp, Eye, MessageSquare, ArrowLeft, Trash2,
-    Loader2, Send, Crown
+    Loader2, Send, Crown, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
@@ -54,6 +54,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     const [submittingComment, setSubmittingComment] = useState(false)
     const [likeLoading, setLikeLoading] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
 
     const myId = (session?.user as any)?.id
     const isAdmin = (session?.user as any)?.role === 'ADMIN'
@@ -101,6 +102,22 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 toast.error(d.error ?? '댓글 작성 실패')
             }
         } finally { setSubmittingComment(false) }
+    }
+
+    const handleDeleteComment = async (commentId: string) => {
+        if (!confirm('댓글을 삭제하시겠습니까?')) return
+        setDeletingCommentId(commentId)
+        try {
+            const res = await fetch(`/api/community/${postId}/comments?cid=${commentId}`, { method: 'DELETE' })
+            if (res.ok) {
+                setComments(prev => prev.filter(c => c.id !== commentId))
+                setPost(prev => prev ? { ...prev, commentCount: Math.max(0, prev.commentCount - 1) } : prev)
+                toast.success('댓글이 삭제되었습니다.')
+            } else {
+                const d = await res.json()
+                toast.error(d.error ?? '삭제 실패')
+            }
+        } finally { setDeletingCommentId(null) }
     }
 
     const handleDelete = async () => {
@@ -247,6 +264,19 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                                         <span className="text-yellow-600 text-xs">{comment.author.displayTitle}</span>
                                     )}
                                     <span className="text-xs text-zinc-600 ml-auto">{timeAgo(comment.createdAt)}</span>
+                                    {/* 본인 댓글 또는 관리자 — 삭제 버튼 */}
+                                    {(myId === comment.author.id || isAdmin) && (
+                                        <button
+                                            onClick={() => handleDeleteComment(comment.id)}
+                                            disabled={deletingCommentId === comment.id}
+                                            className="text-zinc-700 hover:text-red-400 transition-colors p-0.5 shrink-0"
+                                            aria-label="댓글 삭제"
+                                        >
+                                            {deletingCommentId === comment.id
+                                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                : <X className="w-3.5 h-3.5" />}
+                                        </button>
+                                    )}
                                 </div>
                                 <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
                                     {comment.content}

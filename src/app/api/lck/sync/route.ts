@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { syncCurrentSeason, resetSyncLog } from '@/lib/services/lck-sync.service'
+import { CURRENT_SEASON, CURRENT_YEAR } from '@/lib/config/season'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,11 +22,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}))
-    const year: number = body.year ?? 2026
+    const year: number = body.year ?? CURRENT_YEAR
     const reset: boolean = body.reset ?? false
 
     if (reset) {
-        await resetSyncLog('2026-SPLIT2')
+        await resetSyncLog(CURRENT_SEASON)
     }
 
     const result = await syncCurrentSeason(year, true)

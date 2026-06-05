@@ -187,7 +187,7 @@ export default function AdminPage() {
         try {
             const res = await fetch('/api/admin/cosmetics/seed', { method: 'POST' })
             const d   = await res.json()
-            if (res.ok) setSeedResult({ type: 'success', text: `완료 — ${d.created}개 등록, ${d.skipped}개 건너뜀` })
+            if (res.ok) setSeedResult({ type: 'success', text: `완료 — 등록 ${d.created}개 · 업데이트 ${d.updated}개 · 비활성화 ${d.deactivated}개 · 스킵 ${d.skipped}개` })
             else        setSeedResult({ type: 'error',   text: d.error ?? 'Failed' })
         } catch {
             setSeedResult({ type: 'error', text: '오류 발생' })
@@ -219,7 +219,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-2 mb-3">
                             <Database className="w-4 h-4 text-blue-400" />
                             <span className="text-sm font-semibold text-zinc-200">LCK 데이터 동기화</span>
-                            <Badge className="text-[10px] px-1.5 py-0.5 bg-zinc-700 text-zinc-400 ml-auto">매주 월요일</Badge>
+                            <Badge className="text-[10px] px-1.5 py-0.5 bg-zinc-700 text-zinc-400 ml-auto">매일 06:00 KST</Badge>
                         </div>
                         <div className="space-y-1 text-xs text-zinc-400">
                             <div className="flex justify-between">
@@ -273,7 +273,7 @@ export default function AdminPage() {
                     <div className="md:col-span-2 flex items-start gap-2 bg-blue-900/10 border border-blue-800/40 rounded-lg px-4 py-3 text-xs text-blue-300">
                         <Clock className="w-4 h-4 shrink-0 mt-0.5 text-blue-400" />
                         <span>
-                            <strong>스케줄:</strong> 데이터 동기화는 <strong>매주 월요일 09:00 KST</strong> 자동 실행, 예측 정산은 <strong>매일 오전 06:00 KST</strong> 자동 실행됩니다.
+                            <strong>스케줄:</strong> 데이터 동기화 + 예측 정산 모두 <strong>매일 오전 06:00 KST</strong> (21:00 UTC) 자동 실행됩니다.
                             {' '}수시 업데이트가 필요하면 아래 수동 버튼을 이용하세요.
                             {' '}Vercel 대시보드 → Functions → Cron Jobs에서 실행 로그를 확인하세요.
                         </span>
@@ -379,7 +379,7 @@ export default function AdminPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                    <p className="text-xs text-zinc-400">기본 코스메틱 아이템 33종을 DB에 등록합니다. 중복은 건너뜁니다.</p>
+                    <p className="text-xs text-zinc-400">기본 코스메틱 아이템(칭호·스티커·프레임·배경·질의권)을 DB에 등록합니다. 중복은 가격 변경 시만 업데이트합니다.</p>
                     <div className="flex gap-2">
                     <Button
                         onClick={handleSeed}

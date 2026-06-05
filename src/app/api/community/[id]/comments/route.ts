@@ -1,6 +1,7 @@
 /**
- * GET  /api/community/[id]/comments — 댓글 목록
- * POST /api/community/[id]/comments — 댓글 작성 { content }
+ * GET    /api/community/[id]/comments            — 댓글 목록
+ * POST   /api/community/[id]/comments            — 댓글 작성 { content }
+ * DELETE /api/community/[id]/comments?cid=<cid>  — 댓글 삭제 (작성자 or 관리자)
  */
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -86,4 +87,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             displayTitle: comment.author.profile?.displayTitle ?? null,
         },
     }, { status: 201 })
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const userId = session.user.id
+    const isAdmin = (session.user as any)?.role === 'ADMIN'
+    await params // postId는 URL path에서만 쓰임
+
+    const { searchParams } = new URL(req.url)
+    const commentId = searchParams.get('cid')
+    if (!commentId) return NextResponse.json({ error: '댓글 ID(cid)가 필요합니다.' }, { status: 400 })
+
+    const comment = await prisma.comment.findUnique({
+        where: { id: commentId },
+        select: { authorId: true, isDeleted: true },
+    })
+    if (!comment || comment.isDeleted) {
+        return NextResponse.json({ error: '댓글을 찾을 수 없습니다.' }, { status: 404 })
+    }
+    if (comment.authorId !== userId && !isAdmin) {
+        return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })
+    }
+
+    await prisma.comment.update({ where: { id: commentId }, data: { isDeleted: true } })
+    return NextResponse.json({ success: true })
 }

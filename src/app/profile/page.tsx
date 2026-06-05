@@ -18,6 +18,14 @@ interface UserProfile {
     equippedCosmetics: { type: string; name: string; titleText: string | null; imageUrl: string | null }[]
 }
 
+/** 이메일 마스킹 — a*****@gmail.com 형태 */
+function maskEmail(email: string): string {
+    const [local, domain] = email.split('@')
+    if (!local || !domain) return email
+    const visible = local.slice(0, 1)
+    return `${visible}${'*'.repeat(Math.min(local.length - 1, 5))}@${domain}`
+}
+
 const TYPE_ICONS: Record<string, React.ReactNode> = {
     TITLE: <Tag className="w-3.5 h-3.5 text-yellow-400" />,
     AVATAR: <User className="w-3.5 h-3.5 text-blue-400" />,
@@ -32,16 +40,20 @@ const TYPE_KO: Record<string, string> = {
 }
 
 export default function ProfilePage() {
-    const { data: session } = useSession()
+    const { data: session, update: updateSession } = useSession()
     const [profile, setProfile] = useState<UserProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [editing, setEditing] = useState(false)
+    const [editNickname, setEditNickname] = useState('')
     const [editTeam, setEditTeam] = useState('')
     const [editBio, setEditBio] = useState('')
+    const [nicknameError, setNicknameError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deleteConfirmText, setDeleteConfirmText] = useState('')
     const [deleting, setDeleting] = useState(false)
+
+    const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9_]{2,15}$/
 
     useEffect(() => {
         if (!session) { setLoading(false); return }
@@ -49,6 +61,7 @@ export default function ProfilePage() {
             .then(r => r.json())
             .then(d => {
                 setProfile(d)
+                setEditNickname(d.name ?? '')
                 setEditTeam(d.profile?.favoriteTeam ?? '')
                 setEditBio(d.profile?.bio ?? '')
             })
@@ -76,18 +89,39 @@ export default function ProfilePage() {
     }
 
     const handleSave = async () => {
+        // 닉네임 클라이언트 검증
+        const trimmedNick = editNickname.trim()
+        if (!trimmedNick) {
+            setNicknameError('닉네임을 입력해주세요.')
+            return
+        }
+        if (!NICKNAME_REGEX.test(trimmedNick)) {
+            setNicknameError('한글·영문·숫자·_ 만 사용 가능 (2~15자)')
+            return
+        }
+        setNicknameError(null)
+
         setSaving(true)
         try {
             const res = await fetch('/api/users/me', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ favoriteTeam: editTeam, bio: editBio }),
+                body: JSON.stringify({
+                    nickname: trimmedNick,
+                    favoriteTeam: editTeam,
+                    bio: editBio,
+                }),
             })
             const d = await res.json()
             if (res.ok) {
                 toast.success('프로필이 저장되었습니다.')
+                // 세션 닉네임도 업데이트
+                if (d.nickname) {
+                    await updateSession({ user: { name: d.nickname } })
+                }
                 setProfile(prev => prev ? {
                     ...prev,
+                    name: d.nickname ?? prev.name,
                     profile: {
                         ...(prev.profile ?? { displayTitle: null, bio: null, favoriteTeam: null }),
                         favoriteTeam: editTeam || null,
@@ -96,30 +130,13 @@ export default function ProfilePage() {
                 } : prev)
                 setEditing(false)
             } else {
-                toast.error(d.error ?? '저장 실패')
+                // 409 = 닉네임 중복
+                if (res.status === 409) setNicknameError(d.error)
+                else toast.error(d.error ?? '저장 실패')
             }
         } finally {
             setSaving(false)
         }
-    }
-
-    if (!session) {
-        return (
-            <div className="container mx-auto py-20 text-center text-zinc-500">
-                <p>로그인이 필요합니다.</p>
-                <Button asChild className="mt-4">
-                    <Link href="/auth/signin">로그인</Link>
-                </Button>
-            </div>
-        )
-    }
-
-    if (loading) {
-        return (
-            <div className="flex justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
-            </div>
-        )
     }
 
     if (!session) {
@@ -130,6 +147,14 @@ export default function ProfilePage() {
                 <Link href="/auth/signin">
                     <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">로그인하기</Button>
                 </Link>
+            </div>
+        )
+    }
+
+    if (loading) {
+        return (
+            <div className="flex justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
             </div>
         )
     }
@@ -170,7 +195,7 @@ export default function ProfilePage() {
                                         &quot;{title.titleText}&quot;
                                     </p>
                                 )}
-                                <p className="text-xs text-zinc-500 mt-0.5">{profile.email}</p>
+                                <p className="text-xs text-zinc-500 mt-0.5">{maskEmail(profile.email)}</p>
                             </div>
                             <Button
                                 size="sm"
@@ -205,6 +230,26 @@ export default function ProfilePage() {
                         {/* 편집 모드 */}
                         {editing && (
                             <div className="space-y-3 border border-zinc-700 rounded-xl p-4">
+                                {/* 닉네임 변경 */}
+                                <div>
+                                    <p className="text-xs text-zinc-400 mb-1">
+                                        닉네임 <span className="text-zinc-600">({editNickname.length}/15)</span>
+                                    </p>
+                                    <Input
+                                        value={editNickname}
+                                        onChange={e => {
+                                            setEditNickname(e.target.value.slice(0, 15))
+                                            setNicknameError(null)
+                                        }}
+                                        placeholder="한글·영문·숫자·_ (2~15자)"
+                                        className="bg-zinc-800 border-zinc-700 text-sm"
+                                        maxLength={15}
+                                    />
+                                    {nicknameError && (
+                                        <p className="text-xs text-red-400 mt-1">{nicknameError}</p>
+                                    )}
+                                </div>
+
                                 {/* 응원 팀 */}
                                 <div>
                                     <p className="text-xs text-zinc-400 mb-2">응원하는 LCK 팀</p>
@@ -311,8 +356,8 @@ export default function ProfilePage() {
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         {[
-                            { label: '판타지 팀 포인트', desc: '선수들의 실제 경기 성적에 따라 자동 지급', icon: '⚽' },
-                            { label: '승부 예측 성공', desc: '경기 결과 예측 적중 시 +50 GP', icon: '🎯' },
+                            { label: '데일리 퀴즈', desc: '퀴즈 정답 시 +15~20 GP', icon: '🧠' },
+                            { label: '승부 예측 성공', desc: '승팀 적중 +10 GP, 스코어까지 적중 최대 +30 GP', icon: '🎯' },
                             { label: '일일 퀘스트', desc: '매일 초기화되는 미션 완료 시 지급', icon: '📋' },
                             { label: '주간 퀘스트', desc: '주별 목표 달성 시 보너스 GP', icon: '🏅' },
                             { label: '랭킹 보상', desc: '시즌 종료 시 랭킹에 따른 보상 지급', icon: '🏆' },

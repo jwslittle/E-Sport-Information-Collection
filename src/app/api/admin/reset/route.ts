@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { ADMIN_EMAILS } from '@/lib/config/admin'
+import * as Sentry from '@sentry/nextjs'
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
@@ -10,6 +11,23 @@ export async function POST(req: Request) {
     const isAdmin = (session?.user as any)?.role === 'ADMIN'
     if (!isAdmin) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // ✅ 이중 확인: RESET_SECRET 환경변수 필수 — 우발적 실행 방지
+    const body = await req.json().catch(() => ({}))
+    const { confirmSecret } = body as { confirmSecret?: string }
+    const RESET_SECRET = process.env.RESET_SECRET
+    if (!RESET_SECRET) {
+        return NextResponse.json(
+            { error: 'RESET_SECRET 환경변수가 설정되지 않았습니다. Vercel 대시보드에서 설정하세요.' },
+            { status: 500 }
+        )
+    }
+    if (confirmSecret !== RESET_SECRET) {
+        return NextResponse.json(
+            { error: 'RESET_SECRET이 일치하지 않습니다.' },
+            { status: 403 }
+        )
     }
 
     try {
@@ -30,6 +48,12 @@ export async function POST(req: Request) {
         })
 
         console.log(`Deleted ${deleteResult.count} users (protected: ${adminEmailList.join(', ')})`)
+
+        // Sentry로 실행 알림 (감사 추적)
+        Sentry.captureMessage(
+            `[Admin Reset] ${deleteResult.count}명 삭제 — 실행자: ${(session?.user as any)?.id ?? 'unknown'}`,
+            'warning'
+        )
 
         return NextResponse.json({
             success: true,
