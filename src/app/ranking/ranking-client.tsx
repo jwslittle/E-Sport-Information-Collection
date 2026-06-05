@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TEAM_COLORS } from '@/lib/config/teams'
+import { UserName } from '@/components/admin-badge'
 
 // ─── 타입 ────────────────────────────────────────────────────────────
 interface RankItem {
@@ -22,6 +23,7 @@ interface RankItem {
     userName: string | null
     image: string | null
     gp?: number
+    role?: string
     title?: string | null
     isMe: boolean
 }
@@ -73,10 +75,10 @@ function RankCard({ item, scoreLabel }: { item: RankItem; scoreLabel: string }) 
                 </Avatar>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-white truncate">{item.userName ?? '익명'}</span>
+                        <UserName name={item.userName} role={item.role ?? 'USER'} className="truncate" />
                         {item.isMe && <Badge className="text-[10px] bg-yellow-600 text-black px-1.5">나</Badge>}
                     </div>
-                    {item.title && <p className="text-xs text-yellow-400 font-mono">"{item.title}"</p>}
+                    {item.title && item.role !== 'ADMIN' && <p className="text-xs text-yellow-400 font-mono">"{item.title}"</p>}
                 </div>
                 <div className="text-right flex-shrink-0">
                     <span className="text-lg font-bold text-yellow-400">{score.toLocaleString()}</span>

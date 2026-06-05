@@ -31,7 +31,7 @@ export async function GET(req: Request) {
             include: {
                 author: {
                     select: {
-                        id: true, name: true, image: true,
+                        id: true, name: true, image: true, role: true,
                         profile: { select: { displayTitle: true } },
                     },
                 },
@@ -53,6 +53,7 @@ export async function GET(req: Request) {
                 id: p.author.id,
                 name: p.author.name,
                 image: p.author.image,
+                role: p.author.role,
                 displayTitle: p.author.profile?.displayTitle ?? null,
             },
             commentCount: p._count.comments,

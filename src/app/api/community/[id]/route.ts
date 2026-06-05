@@ -19,7 +19,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         include: {
             author: {
                 select: {
-                    id: true, name: true, image: true,
+                    id: true, name: true, image: true, role: true,
                     profile: { select: { displayTitle: true } },
                 },
             },
@@ -56,6 +56,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             id: post.author.id,
             name: post.author.name,
             image: post.author.image,
+            role: post.author.role,
             displayTitle: post.author.profile?.displayTitle ?? null,
         },
         commentCount: post._count.comments,

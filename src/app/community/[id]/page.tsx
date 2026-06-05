@@ -15,17 +15,18 @@ import {
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { UserName } from '@/components/admin-badge'
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 interface PostDetail {
     id: string; title: string; content: string; category: string
     viewCount: number; isPinned: boolean; likeCount: number; isLiked: boolean
     commentCount: number; createdAt: string; updatedAt: string
-    author: { id: string; name: string | null; image: string | null; displayTitle: string | null }
+    author: { id: string; name: string | null; image: string | null; role: string; displayTitle: string | null }
 }
 interface CommentItem {
     id: string; content: string; createdAt: string
-    author: { id: string; name: string | null; image: string | null; displayTitle: string | null }
+    author: { id: string; name: string | null; image: string | null; role: string; displayTitle: string | null }
 }
 
 // ─── 상수 ─────────────────────────────────────────────────────────────────────
@@ -167,10 +168,10 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                                     {post.author.name?.[0] ?? 'U'}
                                 </AvatarFallback>
                             </Avatar>
-                            <Link href={`/profile/${post.author.id}`} className="hover:text-white transition-colors">
-                                {post.author.name ?? '익명'}
+                            <Link href={`/profile/${post.author.id}`} className="hover:opacity-80 transition-opacity">
+                                <UserName name={post.author.name} role={post.author.role} />
                             </Link>
-                            {post.author.displayTitle && (
+                            {post.author.displayTitle && post.author.role !== 'ADMIN' && (
                                 <span className="text-yellow-600 text-xs flex items-center gap-0.5">
                                     <Crown className="w-3 h-3" />
                                     {post.author.displayTitle}
@@ -226,7 +227,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                 {comments.length > 0 ? (
                     <div className="space-y-3">
                         {comments.map(comment => (
-                            <div key={comment.id} className="bg-zinc-900/40 border border-zinc-800 rounded-lg p-4 space-y-2">
+                            <div key={comment.id} className={cn(
+                                'border rounded-lg p-4 space-y-2',
+                                comment.author.role === 'ADMIN'
+                                    ? 'bg-red-950/10 border-red-900/30'
+                                    : 'bg-zinc-900/40 border-zinc-800'
+                            )}>
                                 <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">
                                         <AvatarImage src={comment.author.image ?? ''} />
@@ -234,10 +240,10 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
                                             {comment.author.name?.[0] ?? 'U'}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <Link href={`/profile/${comment.author.id}`} className="text-sm font-medium text-zinc-300 hover:text-white">
-                                        {comment.author.name ?? '익명'}
+                                    <Link href={`/profile/${comment.author.id}`} className="hover:opacity-80 transition-opacity">
+                                        <UserName name={comment.author.name} role={comment.author.role} />
                                     </Link>
-                                    {comment.author.displayTitle && (
+                                    {comment.author.displayTitle && comment.author.role !== 'ADMIN' && (
                                         <span className="text-yellow-600 text-xs">{comment.author.displayTitle}</span>
                                     )}
                                     <span className="text-xs text-zinc-600 ml-auto">{timeAgo(comment.createdAt)}</span>

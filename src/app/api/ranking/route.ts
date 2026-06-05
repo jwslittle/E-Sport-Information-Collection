@@ -27,7 +27,7 @@ export async function GET(req: Request) {
         const users = await prisma.user.findMany({
             where: { id: { in: ids } },
             select: {
-                id: true, name: true, image: true, gp: true,
+                id: true, name: true, image: true, gp: true, role: true,
                 profile: { select: { displayTitle: true } },
             },
             orderBy: { gp: 'desc' },
@@ -44,6 +44,7 @@ export async function GET(req: Request) {
                 userName: u.name,
                 image: u.image,
                 gp: u.gp,
+                role: u.role,
                 title: u.profile?.displayTitle ?? null,
                 isMe: u.id === session.user.id,
             }
@@ -53,7 +54,7 @@ export async function GET(req: Request) {
     // 기본: GP 기준 글로벌 랭킹
     const users = await prisma.user.findMany({
         select: {
-            id: true, name: true, image: true, gp: true,
+            id: true, name: true, image: true, gp: true, role: true,
             profile: { select: { displayTitle: true } },
         },
         orderBy: { gp: 'desc' },
@@ -71,6 +72,7 @@ export async function GET(req: Request) {
             userName: u.name,
             image: u.image,
             gp: u.gp,
+            role: u.role,
             title: u.profile?.displayTitle ?? null,
             isMe: u.id === session?.user?.id,
         }

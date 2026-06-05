@@ -18,12 +18,13 @@ import {
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { UserName } from '@/components/admin-badge'
 
 // ─── 타입 ─────────────────────────────────────────────────────────────────────
 interface PostItem {
     id: string; title: string; category: string
     viewCount: number; isPinned: boolean; createdAt: string
-    author: { id: string; name: string | null; image: string | null; displayTitle: string | null }
+    author: { id: string; name: string | null; image: string | null; role: string; displayTitle: string | null }
     commentCount: number; likeCount: number
 }
 
@@ -281,15 +282,15 @@ export default function CommunityPage() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-3 text-[11px] text-zinc-500">
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1.5">
                                         <Avatar className="h-4 w-4">
                                             <AvatarImage src={post.author.image ?? ''} />
                                             <AvatarFallback className="text-[8px] bg-zinc-800">
                                                 {post.author.name?.[0] ?? 'U'}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span>{post.author.name ?? '익명'}</span>
-                                        {post.author.displayTitle && (
+                                        <UserName name={post.author.name} role={post.author.role} />
+                                        {post.author.displayTitle && post.author.role !== 'ADMIN' && (
                                             <span className="text-yellow-600">{post.author.displayTitle}</span>
                                         )}
                                     </div>

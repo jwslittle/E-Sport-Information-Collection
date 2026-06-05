@@ -21,7 +21,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         include: {
             author: {
                 select: {
-                    id: true, name: true, image: true,
+                    id: true, name: true, image: true, role: true,
                     profile: { select: { displayTitle: true } },
                 },
             },
@@ -37,6 +37,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
                 id: c.author.id,
                 name: c.author.name,
                 image: c.author.image,
+                role: c.author.role,
                 displayTitle: c.author.profile?.displayTitle ?? null,
             },
         }))
@@ -63,7 +64,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         include: {
             author: {
                 select: {
-                    id: true, name: true, image: true,
+                    id: true, name: true, image: true, role: true,
                     profile: { select: { displayTitle: true } },
                 },
             },
@@ -81,6 +82,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             id: comment.author.id,
             name: comment.author.name,
             image: comment.author.image,
+            role: comment.author.role,
             displayTitle: comment.author.profile?.displayTitle ?? null,
         },
     }, { status: 201 })
