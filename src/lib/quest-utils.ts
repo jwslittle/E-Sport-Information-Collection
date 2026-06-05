@@ -43,15 +43,12 @@ export const ACTION_QUEST_MAP: Record<string, string[]> = {
     PREDICT_WRONG:       ['ach-correct-streak-5', 'ach-correct-streak-10'],
 
     // ── 코스메틱 / 상점
-    GET_COSMETIC:        ['ach-cosmetic-first'],
+    GET_COSMETIC:        ['ach-cosmetic-first', 'ach-shop-first', 'ach-shop-5'],
 
     // ── 소셜
     FOLLOW_USER:         ['ach-follow-first'],
     COMMUNITY_POST:      ['dq-community-post', 'wq-community-5', 'ach-post-10'],
     COMMUNITY_COMMENT:   ['dq-community-comment', 'wq-community-5'],
-
-    // ── 가챠
-    GACHA:               ['dq-gacha-1', 'wq-gacha-3', 'ach-gacha-first', 'ach-gacha-10'],
 }
 
 /**
