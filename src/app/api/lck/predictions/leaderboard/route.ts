@@ -53,11 +53,6 @@ export async function GET(req: NextRequest) {
             profile: {
                 select: { displayTitle: true, favoriteTeam: true }
             },
-            userTeams: {
-                where: { type: 'REAL' },
-                take: 1,
-                select: { name: true }
-            }
         }
     })
     const userMap = Object.fromEntries(users.map(u => [u.id, u]))
@@ -94,7 +89,7 @@ export async function GET(req: NextRequest) {
         userId: row.userId,
         userName: row.user.name ?? null,
         image: row.user.image ?? null,
-        teamName: row.user.userTeams[0]?.name ?? null,
+        teamName: null,
         title: row.user.profile?.displayTitle ?? null,
         favoriteTeam: row.user.profile?.favoriteTeam ?? null,
         total: row.total,

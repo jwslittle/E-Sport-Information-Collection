@@ -32,7 +32,6 @@ export async function GET(req: Request) {
         select: {
             id: true, name: true, image: true,
             profile: { select: { displayTitle: true } },
-            userTeams: { select: { name: true, totalPoints: true }, take: 1 },
             followedBy: {
                 where: { followerId: session.user.id },
                 select: { followerId: true },
@@ -46,7 +45,6 @@ export async function GET(req: Request) {
         name: u.name,
         image: u.image,
         title: u.profile?.displayTitle ?? null,
-        teamName: u.userTeams[0]?.name ?? '-',
         isFollowing: u.followedBy.length > 0,
     })))
 }

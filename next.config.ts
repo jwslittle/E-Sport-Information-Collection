@@ -75,11 +75,8 @@ export default withSentryConfig(nextConfig, {
 
     // 소스맵을 Sentry에 업로드 (에러 위치 정확하게 표시)
     silent: true,
-
-    // 빌드 시 Sentry 비활성화 (DSN 없어도 빌드 성공)
-    disableLogger: true,
     widenClientFileUpload: true,
 
-    // 서버 함수 자동 계측 활성화 — 에러 자동 캡처 (Sentry 핵심 기능)
-    autoInstrumentServerFunctions: true,
+    // ✅ Turbopack에서는 webpack.* 옵션 미지원 — top-level deprecated 옵션 제거
+    // autoInstrumentServerFunctions, disableLogger → 제거 (Turbopack incompatible)
 })
