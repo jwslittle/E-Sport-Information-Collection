@@ -95,15 +95,17 @@ export async function proxy(req: NextRequest) {
             signInUrl.searchParams.set("callbackUrl", "/")
             return NextResponse.redirect(signInUrl)
         }
-        // 이미 온보딩 완료 → 홈으로
-        if (token.isOnboarded) {
+        // 온보딩 완료된 유저는 홈으로 (undefined = 기존 세션도 완료로 간주)
+        if (token.isOnboarded !== false) {
             return NextResponse.redirect(new URL("/", req.url))
         }
         return NextResponse.next()
     }
 
     // ── 5. 온보딩 미완료 유저 → /onboarding으로 강제 이동 ──────────────────
-    if (token && !token.isOnboarded) {
+    // ⚠️  !token.isOnboarded 는 undefined(기존 세션)도 true로 처리 → 무한 리다이렉트 버그
+    //     strict equality(=== false)로만 체크: 새 계정만 온보딩으로 이동
+    if (token && token.isOnboarded === false) {
         return NextResponse.redirect(new URL("/onboarding", req.url))
     }
 
@@ -127,9 +129,9 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
     matcher: [
-        // API 라우트 (인증·정적 파일 제외)
+        // API 라우트
         "/api/((?!_next|favicon).)*",
-        // 모든 페이지 경로 (Next.js 내부 정적 파일 제외)
-        "/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|images/|icons/).*)",
+        // 모든 페이지 경로 (_next 내부 경로·정적 파일 전체 제외)
+        "/((?!_next|favicon\\.ico|robots\\.txt|sitemap\\.xml|images/|icons/).*)",
     ],
 }
