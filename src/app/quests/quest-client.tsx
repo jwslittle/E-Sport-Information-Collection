@@ -200,7 +200,7 @@ export function QuestClient() {
                         <Crown className="w-4 h-4 text-yellow-400" />
                         <span className="text-yellow-400 font-bold">{totalGp.toLocaleString()} GP</span>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={fetchQuests} className="hover:bg-zinc-800">
+                    <Button variant="ghost" size="icon" aria-label="새로고침" onClick={fetchQuests} className="hover:bg-zinc-800">
                         <RefreshCw className="w-4 h-4" />
                     </Button>
                 </div>

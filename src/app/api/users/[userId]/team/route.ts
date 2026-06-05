@@ -15,6 +15,11 @@ export async function GET(
     try {
         const { userId } = await params
 
+        // ✅ IDOR 방지: 본인 팀만 조회 가능
+        if (userId !== (session.user as any).id) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
         const myTeam = await prisma.userTeam.findFirst({
             where: { userId },
             include: {

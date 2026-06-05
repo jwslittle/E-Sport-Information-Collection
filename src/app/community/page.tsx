@@ -201,7 +201,7 @@ export default function CommunityPage() {
                     <p className="text-zinc-500 text-sm mt-1">LCK 팬들과 자유롭게 소통하세요</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={fetchPosts} className="hover:bg-zinc-800">
+                    <Button variant="ghost" size="icon" aria-label="새로고침" onClick={fetchPosts} className="hover:bg-zinc-800">
                         <RefreshCw className="w-4 h-4" />
                     </Button>
                     {session && (

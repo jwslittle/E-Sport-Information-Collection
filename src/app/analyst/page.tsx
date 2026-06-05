@@ -196,9 +196,10 @@ export default function AnalystPage() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             disabled={isLoading}
+                            aria-label="AI 분석가에게 질문"
                             className="bg-zinc-800 border-zinc-700 text-white focus-visible:ring-purple-500"
                         />
-                        <Button type="submit" disabled={isLoading} className="bg-purple-600 hover:bg-purple-500">
+                        <Button type="submit" aria-label="질문 전송" disabled={isLoading} className="bg-purple-600 hover:bg-purple-500">
                             <Send className="h-4 w-4" />
                         </Button>
                     </form>

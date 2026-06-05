@@ -12,7 +12,8 @@ import { updateQuestProgress } from '@/lib/quest-utils'
 export async function POST(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
-        if (!session?.user?.email) {
+        // ✅ session.user.id 직접 사용 (email 기반 DB 조회 제거)
+        if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
         // Check and consume ticket
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: session.user.id as string },
             include: { inventory: true }
         })
 

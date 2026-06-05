@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-    const lastUpdated = '2026년 6월 4일'
+    const lastUpdated = '2026년 6월 5일'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -104,9 +104,19 @@ export default function PrivacyPage() {
                                     <td className="py-2 pr-4">프로필 이미지 저장</td>
                                     <td className="py-2">미국</td>
                                 </tr>
-                                <tr>
+                                <tr className="border-b border-zinc-800">
                                     <td className="py-2 pr-4">OpenAI LLC</td>
                                     <td className="py-2 pr-4">AI 채팅 분석</td>
+                                    <td className="py-2">미국</td>
+                                </tr>
+                                <tr className="border-b border-zinc-800">
+                                    <td className="py-2 pr-4">Functional Software Inc. (Sentry)</td>
+                                    <td className="py-2 pr-4">서비스 오류 모니터링 및 에러 로그 수집</td>
+                                    <td className="py-2">미국</td>
+                                </tr>
+                                <tr>
+                                    <td className="py-2 pr-4">Upstash Inc.</td>
+                                    <td className="py-2 pr-4">API 요청 빈도 제한(Rate Limiting) 처리</td>
                                     <td className="py-2">미국</td>
                                 </tr>
                             </tbody>
@@ -114,7 +124,10 @@ export default function PrivacyPage() {
                     </div>
                     <p className="mt-2 text-zinc-500 text-xs">
                         * OpenAI에는 사용자가 AI 채팅창에 직접 입력한 내용만 전송됩니다.
-                          이름, 이메일 등 계정 정보는 전송되지 않습니다.
+                          이름, 이메일 등 계정 정보는 전송되지 않습니다.<br />
+                        * Sentry에는 서비스 오류 발생 시 에러 내용 및 요청 정보가 전송됩니다.
+                          사용자가 직접 입력한 개인정보는 전송되지 않습니다.<br />
+                        * Upstash에는 API 남용 방지를 위한 요청 횟수 추적 목적으로 요청 IP가 일시 저장됩니다.
                     </p>
                 </section>
 
@@ -131,6 +144,8 @@ export default function PrivacyPage() {
                         <li>Neon Inc. — SOC 2 인증, 데이터 암호화</li>
                         <li>Cloudinary Ltd. — ISO 27001 인증, GDPR 준수</li>
                         <li>OpenAI LLC — API 데이터 처리 계약(DPA) 적용</li>
+                        <li>Functional Software Inc. (Sentry) — SOC 2 Type 2 인증, GDPR 준수</li>
+                        <li>Upstash Inc. — SOC 2 인증, GDPR 준수</li>
                     </ul>
                     <p className="mt-2 text-zinc-500 text-xs">
                         이전 목적: 서비스 제공 및 운영 유지.<br />

@@ -26,6 +26,8 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  // ✅ NextAuth 계정 조회 최적화
+  @@index([userId])
 }
 
 model Session {
@@ -34,6 +36,9 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ✅ NextAuth 세션 조회 최적화
+  @@index([userId])
 }
 
 model User {
@@ -175,8 +180,12 @@ model PlayerPerformance {
   damage      Int      @default(0)
   
   fantasyPoints Float  @default(0)
-  
+
   createdAt   DateTime @default(now())
+
+  // ✅ 대시보드/집계 쿼리 최적화
+  @@index([matchId])
+  @@index([playerId])
 }
 
 // --- User Gameplay Models ---
@@ -662,6 +671,9 @@ model Comment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ✅ 게시글 댓글 목록 조회 최적화
+  @@index([postId])
 }
 
 model PostLike {

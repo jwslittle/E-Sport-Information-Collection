@@ -72,6 +72,8 @@ async function fetchSchedulePage(
     const res = await fetch(url, {
         headers: { 'x-api-key': API_KEY },
         next: { revalidate: 0 },
+        // ✅ 타임아웃: Vercel Hobby 10초 제한 대비 8초로 설정
+        signal: AbortSignal.timeout(8000),
     })
 
     if (!res.ok) throw new Error(`LoL Esports API error: HTTP ${res.status}`)

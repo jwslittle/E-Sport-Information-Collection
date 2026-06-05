@@ -538,7 +538,7 @@ export default function ShopPage() {
                             </Button>
                         </Link>
                     )}
-                    <Button variant="ghost" size="icon" onClick={fetchAll} className="hover:bg-zinc-800">
+                    <Button variant="ghost" size="icon" aria-label="새로고침" onClick={fetchAll} className="hover:bg-zinc-800">
                         <RefreshCw className="w-4 h-4" />
                     </Button>
                 </div>

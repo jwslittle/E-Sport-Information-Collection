@@ -36,20 +36,21 @@ export async function GET(request: Request) {
             take: 5
         })
 
-        // ✅ N+1 제거: topPickedDetails 중복 루프 제거, 단일 Promise.all만 사용
-        const topPickedWithTeam = await Promise.all(
-            topPicked.map(async (item) => {
-                const player = await prisma.player.findUnique({
-                    where: { id: item.playerId },
-                    include: { team: true }
-                })
-                return {
-                    name: player?.name || 'Unknown',
-                    team: player?.team?.shortName || player?.team?.name || 'Unknown',
-                    count: item._count._all
-                }
-            })
-        )
+        // ✅ N+1 완전 제거: 개별 findUnique 루프 → 단일 findMany로 교체
+        const topPickedPlayerIds = topPicked.map(item => item.playerId)
+        const topPickedPlayers = await prisma.player.findMany({
+            where: { id: { in: topPickedPlayerIds } },
+            include: { team: true },
+        })
+        const topPickedPlayerMap = new Map(topPickedPlayers.map(p => [p.id, p]))
+        const topPickedWithTeam = topPicked.map(item => {
+            const player = topPickedPlayerMap.get(item.playerId)
+            return {
+                name: player?.name || 'Unknown',
+                team: player?.team?.shortName || player?.team?.name || 'Unknown',
+                count: item._count._all,
+            }
+        })
 
 
         // 2 & 3. Stats (Points & Position Meta)

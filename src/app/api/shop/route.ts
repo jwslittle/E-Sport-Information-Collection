@@ -15,9 +15,10 @@ export async function GET() {
         let userInventory: any[] = []
         let userPoints = 0
 
-        if (session?.user?.email) {
+        // ✅ session.user.id 직접 사용 (email 기반 DB 조회 제거)
+        if (session?.user?.id) {
             const user = await prisma.user.findUnique({
-                where: { email: session.user.email },
+                where: { id: session.user.id as string },
                 include: { inventory: true }
             })
             if (user) {

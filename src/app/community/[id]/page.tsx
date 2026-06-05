@@ -147,6 +147,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                         {(myId === post.author.id || isAdmin) && (
                             <Button
                                 variant="ghost" size="sm"
+                                aria-label="게시글 삭제"
                                 className="text-red-500 hover:text-red-400 hover:bg-red-500/10 shrink-0"
                                 onClick={handleDelete}
                                 disabled={deleting}
