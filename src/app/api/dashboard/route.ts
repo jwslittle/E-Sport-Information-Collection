@@ -5,149 +5,78 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: Request) {
+export async function GET() {
     // 로그인 필수 — 통계 데이터 보호
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     try {
-        const { searchParams } = new URL(request.url)
-        const type = searchParams.get('type') || 'REAL'
+        const now = new Date()
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        const todayKey = now.toISOString().slice(0, 10) // "YYYY-MM-DD"
 
-        // 1. Top Picked Players (Usage in UserTeams of specific type)
-        // Note: Prisma groupBy doesn't support deep filtering easily in all versions, 
-        // but we can filter where userTeam matches type.
-        // Actually, for groupBy, we can use `where`.
-        const topPicked = await prisma.userTeamPlayer.groupBy({
-            by: ['playerId'],
-            where: {
-                userTeam: {
-                    type: type
-                }
-            },
-            _count: {
-                _all: true
-            },
-            orderBy: {
-                _count: {
-                    playerId: 'desc'
-                }
-            },
-            take: 5
-        })
+        const [recentPredictionCount, topAccuracyUsers, todayQuizCount] = await Promise.all([
+            // 1. 최근 7일 LCK 예측 참여 수
+            prisma.lckPrediction.count({
+                where: { createdAt: { gte: sevenDaysAgo } },
+            }),
 
-        // ✅ N+1 완전 제거: 개별 findUnique 루프 → 단일 findMany로 교체
-        const topPickedPlayerIds = topPicked.map(item => item.playerId)
-        const topPickedPlayers = await prisma.player.findMany({
-            where: { id: { in: topPickedPlayerIds } },
-            include: { team: true },
-        })
-        const topPickedPlayerMap = new Map(topPickedPlayers.map(p => [p.id, p]))
-        const topPickedWithTeam = topPicked.map(item => {
-            const player = topPickedPlayerMap.get(item.playerId)
-            return {
-                name: player?.name || 'Unknown',
-                team: player?.team?.shortName || player?.team?.name || 'Unknown',
-                count: item._count._all,
-            }
-        })
+            // 2. 예측 정확도 상위 5명 (최소 3경기 이상, isCorrect 기준)
+            prisma.lckPrediction.groupBy({
+                by: ['userId'],
+                where: { isProcessed: true },
+                _count: { _all: true },
+                _sum: { gpEarned: true },
+            }).then(async (rows) => {
+                const filtered = rows.filter(r => r._count._all >= 3)
 
+                // 정답 수 집계
+                const correctCounts = await prisma.lckPrediction.groupBy({
+                    by: ['userId'],
+                    where: { isProcessed: true, isCorrect: true },
+                    _count: { _all: true },
+                })
+                const correctMap = new Map(correctCounts.map(r => [r.userId, r._count._all]))
 
-        // 2 & 3. Stats (Points & Position Meta)
-        let playerStatsMap: Record<string, number> = {}
+                const withAccuracy = filtered.map(r => {
+                    const correct = correctMap.get(r.userId) ?? 0
+                    const accuracy = Math.round((correct / r._count._all) * 100)
+                    return { userId: r.userId, total: r._count._all, correct, accuracy, gpEarned: r._sum.gpEarned ?? 0 }
+                })
+                .sort((a, b) => b.accuracy - a.accuracy || b.total - a.total)
+                .slice(0, 5)
 
-        // ✅ allPlayers 단일 조회 (이전: REAL 분기에서 한 번 + 하단에서 또 한 번 = 이중 쿼리)
-        const allPlayers = await prisma.player.findMany({ include: { team: true } })
+                // 유저 정보 조회
+                const userIds = withAccuracy.map(r => r.userId)
+                const users = await prisma.user.findMany({
+                    where: { id: { in: userIds } },
+                    select: { id: true, name: true, image: true },
+                })
+                const userMap = new Map(users.map(u => [u.id, u]))
 
-        if (type === 'REAL') {
-            allPlayers.forEach(p => {
-                const stats = p.stats ? (typeof p.stats === 'string' ? JSON.parse(p.stats) : p.stats) : {}
-                // Schema says `stats Json?`. It might be object.
-                // Safely handle json.
-                const points = (stats as any)?.fantasyPoints || 0
-                playerStatsMap[p.id] = points
-            })
-        } else {
-            // SIMULATION: Aggregate from PlayerPerformance
-            const performances = await prisma.playerPerformance.groupBy({
-                by: ['playerId'],
-                where: {
-                    match: {
-                        leagueType: 'SIMULATION'
-                    }
-                },
-                _sum: {
-                    fantasyPoints: true
-                }
-            })
-            performances.forEach(p => {
-                playerStatsMap[p.playerId] = p._sum.fantasyPoints || 0
-            })
-        }
+                return withAccuracy.map((r, i) => ({
+                    rank: i + 1,
+                    userId: r.userId,
+                    userName: userMap.get(r.userId)?.name ?? '익명',
+                    image: userMap.get(r.userId)?.image ?? null,
+                    total: r.total,
+                    correct: r.correct,
+                    accuracy: r.accuracy,
+                    gpEarned: r.gpEarned,
+                    isMe: r.userId === session.user.id,
+                }))
+            }),
 
-        const processedStats = allPlayers.map(p => ({
-            name: p.name,
-            team: p.team?.shortName || p.team?.name || 'Unknown',
-            points: playerStatsMap[p.id] || 0,
-            position: p.position
-        }))
-
-        // Chart 1: Top Points
-        const topPoints = processedStats
-            .sort((a, b) => b.points - a.points)
-            .slice(0, 5)
-
-
-        // Chart 2: Top Wildcard (Effective)
-        const wildcardUsages = await prisma.userTeamPlayer.groupBy({
-            by: ['playerId'],
-            where: {
-                position: 'WILDCARD',
-                userTeam: { type: type }
-            },
-            _count: { playerId: true }
-        })
-
-        const topWildcardPoints = wildcardUsages.map(usage => {
-            const player = processedStats.find(p => p.name === allPlayers.find(ap => ap.id === usage.playerId)?.name)
-            if (!player) return null
-
-            const wildcardPointsPerUser = player.points * 0.33
-            const totalContribution = wildcardPointsPerUser * usage._count.playerId
-
-            return {
-                name: player.name,
-                team: player.team,
-                points: Math.round(totalContribution),
-                count: usage._count.playerId
-            }
-        })
-            .filter(p => p !== null)
-            .sort((a, b) => (b?.points || 0) - (a?.points || 0))
-            .slice(0, 5)
-
-
-        // 3. Position Meta
-        const positionStats: Record<string, { totalPoints: number, count: number }> = {}
-        processedStats.forEach(p => {
-            if (!positionStats[p.position]) {
-                positionStats[p.position] = { totalPoints: 0, count: 0 }
-            }
-            positionStats[p.position].totalPoints += p.points
-            positionStats[p.position].count += 1
-        })
-
-        const positionMeta = Object.entries(positionStats).map(([position, data]) => ({
-            position,
-            avgPoints: Math.round(data.totalPoints / Math.max(1, data.count))
-        })).sort((a, b) => b.avgPoints - a.avgPoints)
-
+            // 3. 오늘의 퀴즈 참여자 수
+            prisma.userDailyQuizAnswer.count({
+                where: { dateKey: todayKey },
+            }),
+        ])
 
         return NextResponse.json({
-            topPicked: topPickedWithTeam,
-            topPoints,
-            topWildcardPoints,
-            positionMeta
+            recentPredictionCount,
+            topAccuracyUsers,
+            todayQuizCount,
         })
 
     } catch (error) {

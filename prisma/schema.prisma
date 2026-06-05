@@ -55,9 +55,6 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  userTeams     UserTeam[]
-  inventory     UserInventory[]
-  predictions   MatchPrediction[]
   lckPredictions LckPrediction[]
   cosmeticItems UserCosmeticItem[]
   userStickers  UserSticker[]
@@ -97,13 +94,9 @@ model Team {
   shortName    String?  // T1, GEN
   logoUrl      String?
   primaryColor String?
-  
+
   players      Player[]
-  
-  homeMatches  Match[] @relation("HomeTeam")
-  awayMatches  Match[] @relation("AwayTeam")
-  wonMatches   Match[] @relation("WinnerTeam")
-  
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -112,145 +105,22 @@ model Player {
   id          String   @id @default(uuid())
   teamId      String?
   team        Team?    @relation(fields: [teamId], references: [id])
-  
+
   name        String   // Faker
   realName    String?  // Lee Sang-hyeok
   position    String   // TOP, JUG, MID, ADC, SUP
   status      String   @default("ACTIVE") // ACTIVE, INACTIVE
-  
+
   basePrice   Int      @default(10)
-  
+
   // Aggregated Stats (from CSV)
   stats       Json?    // { kda: 3.5, dpm: 500, ... }
-  
-  performances PlayerPerformance[]
-  userTeamPlayers UserTeamPlayer[]
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-model Match {
-  id          String   @id @default(uuid())
-  season      String   // 2026-SPRING
-  round       Int      // 1, 2, 3...
-  matchDate   DateTime // Scheduled Time (UTC)
-  
-  status      String   @default("SCHEDULED") // SCHEDULED, COMPLETED
-  leagueType  String   @default("REAL") // REAL, SIMULATION
-  
-  winnerId    String?
-  winner      Team?    @relation("WinnerTeam", fields: [winnerId], references: [id])
-  
-  team1Id     String
-  team1       Team     @relation("HomeTeam", fields: [team1Id], references: [id])
-  team1Score  Int      @default(0)
-  
-  team2Id     String
-  team2       Team     @relation("AwayTeam", fields: [team2Id], references: [id])
-  team2Score  Int      @default(0)
-  
-    // Removed duplicate winnerId
-  
-  // Detailed Results (JSON for flexibility: bans, towers, dragons)
-  details     Json?
-  
-  playerPerformances PlayerPerformance[]
-  predictions        MatchPrediction[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model PlayerPerformance {
-  id          String   @id @default(uuid())
-  matchId     String
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-
-  playerId    String
-  // ✅ M-16 수정: Player 삭제 시 FK 오류 방지 — Restrict로 명시 (선수 삭제 전 퍼포먼스 데이터 정리 필요)
-  player      Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  
-  // Game Stats
-  kills       Int      @default(0)
-  deaths      Int      @default(0)
-  assists     Int      @default(0)
-  cs          Int      @default(0)
-  visionScore Int      @default(0)
-  damage      Int      @default(0)
-  
-  fantasyPoints Float  @default(0)
-
-  createdAt   DateTime @default(now())
-
-  // ✅ 대시보드/집계 쿼리 최적화
-  @@index([matchId])
-  @@index([playerId])
-}
-
-// --- User Gameplay Models ---
-
-model UserTeam {
-  id          String   @id @default(uuid())
-  userId      String   
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  type        String   @default("REAL") // REAL, SIMULATION
-  
-  name        String
-  totalPoints Float    @default(0)
-  budget      Int      @default(100) // Salary Cap
-  isFinalized Boolean  @default(false)
-  
-  roster      UserTeamPlayer[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([userId, type])
-}
-
-model UserTeamPlayer {
-  id          String   @id @default(uuid())
-  userTeamId  String
-  userTeam    UserTeam @relation(fields: [userTeamId], references: [id], onDelete: Cascade)
-  
-  playerId    String
-  // ✅ M-16 수정: Player 삭제 시 FK 오류 방지
-  player      Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  position    String // Slot position
-  isCaptain   Boolean  @default(false)
-  
-  createdAt   DateTime @default(now())
-}
-
-// --- Shop Models ---
-
-model ShopItem {
-  id          String   @id @default(uuid())
-  name        String
-  description String
-  price       Int
-  type        String   // CARD_PACK, ITEM
-  imageUrl    String?
-  
-  createdAt   DateTime @default(now())
-}
-
-model UserInventory {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  itemId      String?
-  itemType    String   // CARD, ITEM
-  
-  // If Card
-  playerId    String?
-  grade       String?  // NORMAL, RARE, EPIC, LEGEND
-  
-  createdAt   DateTime @default(now())
-}
+// --- User Gameplay Models (판타지 팀 제거됨) ---
 
 // --- Historical Stats Models (For Info Tab) ---
 
@@ -304,25 +174,6 @@ model HistoricalPlayerStat {
   @@unique([playerName, year, tournament])
 }
 
-model MatchPrediction {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  matchId     String
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  
-  type        String   // WINNER
-  target      String   // TeamCode
-  
-  isProcessed Boolean  @default(false)
-  isCorrect   Boolean?
-  pointsEarned Int     @default(0)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([userId, matchId, type])
-}
 
 // ─────────────────────────────────────────────
 // QUEST & ACHIEVEMENT SYSTEM

@@ -23,39 +23,13 @@ export async function POST(req: NextRequest) {
             }, { status: 503 })
         }
 
-        // Check and consume ticket
+        // 사용자 확인
         const user = await prisma.user.findUnique({
             where: { id: session.user.id as string },
-            include: { inventory: true }
+            select: { id: true, role: true },
         })
 
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
-
-        let consumedTicketId: string | null = null
-
-        // Check ticket or Admin role (Disabled for Beta)
-        /*
-        if (user.role !== 'ADMIN') {
-            const ticket = user.inventory.find(i => i.item.category === 'TICKET' && i.quantity > 0)
-
-            if (!ticket) {
-                return NextResponse.json({ error: 'AI 분석가 질문권이 필요합니다.' }, { status: 403 })
-            }
-
-            // Consume Ticket
-            if (ticket.quantity > 1) {
-                await prisma.userInventory.update({
-                    where: { id: ticket.id },
-                    data: { quantity: { decrement: 1 } }
-                })
-            } else {
-                await prisma.userInventory.delete({
-                    where: { id: ticket.id }
-                })
-            }
-            consumedTicketId = ticket.id
-        }
-        */
 
         const { messages } = await req.json()
 

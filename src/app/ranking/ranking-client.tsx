@@ -3,16 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import {
-    Trophy, Users, UserPlus, Search, Crown,
-    Star, Loader2, UserCheck, Target, TrendingUp,
-    CheckCircle2, Coins
+    Trophy, Users, UserPlus, Search, Loader2, UserCheck, Target, Coins
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TEAM_COLORS } from '@/lib/config/teams'
@@ -24,8 +22,6 @@ interface RankItem {
     userName: string | null
     image: string | null
     gp?: number
-    fantasyPoints?: number
-    teamName?: string
     title?: string | null
     isMe: boolean
 }
@@ -35,7 +31,6 @@ interface PredictionRankItem {
     userId: string
     userName: string | null
     image: string | null
-    teamName: string | null
     title: string | null
     favoriteTeam: string | null
     total: number
@@ -50,7 +45,6 @@ interface SearchUser {
     name: string | null
     image: string | null
     title: string | null
-    teamName: string
     isFollowing: boolean
 }
 
@@ -61,7 +55,7 @@ const RANK_COLOR = (rank: number) =>
 
 // ─── GP 랭킹 카드 ─────────────────────────────────────────────────────
 function RankCard({ item, scoreLabel }: { item: RankItem; scoreLabel: string }) {
-    const score = item.gp ?? item.fantasyPoints ?? 0
+    const score = item.gp ?? 0
     return (
         <Card className={cn(
             'border transition-all hover:brightness-105',
@@ -83,9 +77,6 @@ function RankCard({ item, scoreLabel }: { item: RankItem; scoreLabel: string }) 
                         {item.isMe && <Badge className="text-[10px] bg-yellow-600 text-black px-1.5">나</Badge>}
                     </div>
                     {item.title && <p className="text-xs text-yellow-400 font-mono">"{item.title}"</p>}
-                    {item.teamName && item.teamName !== '-' && (
-                        <p className="text-xs text-zinc-500 truncate">{item.teamName}</p>
-                    )}
                 </div>
                 <div className="text-right flex-shrink-0">
                     <span className="text-lg font-bold text-yellow-400">{score.toLocaleString()}</span>
@@ -285,7 +276,6 @@ function FriendSearch() {
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-white text-sm">{user.name}</p>
                                     {user.title && <p className="text-xs text-yellow-400">"{user.title}"</p>}
-                                    <p className="text-xs text-zinc-500">{user.teamName}</p>
                                 </div>
                                 <Button size="sm" variant={isFollowing ? 'outline' : 'default'}
                                     className={isFollowing ? 'border-zinc-600 text-zinc-400' : ''}
@@ -311,9 +301,9 @@ export function RankingClient() {
     const [tab, setTab] = useState('prediction')
 
     useEffect(() => {
-        fetch('/api/league/ranking?type=wealth&limit=50')
+        fetch('/api/ranking?type=global')
             .then(r => r.json())
-            .then(d => setGpRankings(d.data ?? []))
+            .then(d => setGpRankings(Array.isArray(d) ? d : []))
             .catch(console.error)
             .finally(() => setLoading(false))
     }, [])
@@ -356,16 +346,9 @@ export function RankingClient() {
                         </div>
                     ) : gpRankings.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500">아직 GP 랭킹 데이터가 없습니다.</div>
-                    ) : gpRankings.map((item: any, idx: number) => (
-                        <RankCard key={item.id ?? idx}
-                            item={{
-                                rank: item.rank ?? idx + 1,
-                                userId: item.id ?? '',
-                                userName: item.userName ?? null,
-                                image: item.image ?? null,
-                                gp: item.totalPoints,
-                                isMe: item.isMe ?? false,
-                            }}
+                    ) : gpRankings.map((item, idx) => (
+                        <RankCard key={item.userId ?? idx}
+                            item={item}
                             scoreLabel="GP"
                         />
                     ))}

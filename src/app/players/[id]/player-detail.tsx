@@ -129,7 +129,7 @@ export function PlayerDetail({ player, realGameStats }: {
                                 </Badge>
                             </div>
                             <div className="w-full bg-zinc-800 rounded-lg p-3 border border-zinc-700">
-                                <p className="text-xs text-zinc-500 mb-1">Fantasy Cost</p>
+                                <p className="text-xs text-zinc-500 mb-1">선수 가격</p>
                                 <p className="text-2xl font-bold text-yellow-400">{player.basePrice} <span className="text-sm text-zinc-500">pt</span></p>
                             </div>
                         </CardContent>

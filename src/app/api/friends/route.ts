@@ -23,8 +23,7 @@ export async function GET() {
             include: {
                 following: {
                     select: {
-                        id: true, name: true, image: true, gp: true,
-                        userTeams: { select: { name: true, totalPoints: true, type: true } },
+                        id: true, name: true, image: true,
                         profile: { select: { displayTitle: true } },
                     },
                 },
@@ -36,8 +35,7 @@ export async function GET() {
             include: {
                 follower: {
                     select: {
-                        id: true, name: true, image: true, gp: true,
-                        userTeams: { select: { name: true, totalPoints: true, type: true } },
+                        id: true, name: true, image: true,
                         profile: { select: { displayTitle: true } },
                     },
                 },
@@ -46,14 +44,8 @@ export async function GET() {
     ])
 
     return NextResponse.json({
-        following: following.map(f => ({
-            ...f.following,
-            fantasyPoints: f.following.userTeams.reduce((s, t) => s + t.totalPoints, 0),
-        })),
-        followers: followers.map(f => ({
-            ...f.follower,
-            fantasyPoints: f.follower.userTeams.reduce((s, t) => s + t.totalPoints, 0),
-        })),
+        following: following.map(f => ({ ...f.following })),
+        followers: followers.map(f => ({ ...f.follower })),
     })
 }
 

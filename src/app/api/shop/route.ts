@@ -1,35 +1,11 @@
+/**
+ * GET /api/shop — 레거시 엔드포인트
+ * 상점 페이지는 /api/cosmetics를 직접 사용합니다.
+ */
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
-    try {
-        const session = await getServerSession(authOptions)
-
-        // Fetch all shop items
-        const items = await prisma.shopItem.findMany({
-            orderBy: { price: 'asc' }
-        })
-
-        let userInventory: any[] = []
-        let userPoints = 0
-
-        // ✅ session.user.id 직접 사용 (email 기반 DB 조회 제거)
-        if (session?.user?.id) {
-            const user = await prisma.user.findUnique({
-                where: { id: session.user.id as string },
-                include: { inventory: true }
-            })
-            if (user) {
-                userInventory = user.inventory
-                userPoints = user.gp
-            }
-        }
-
-        return NextResponse.json({ items, userInventory, userPoints })
-    } catch (error) {
-        console.error('Failed to fetch shop items:', error)
-        return NextResponse.json({ error: 'Failed to fetch shop items' }, { status: 500 })
-    }
+    return NextResponse.json({ items: [], userInventory: [], userPoints: 0 })
 }

@@ -53,7 +53,7 @@ export async function PATCH(req: Request) {
 /**
  * DELETE /api/users/me — 계정 영구 탈퇴
  * onDelete: Cascade 설정으로 User 삭제 시 모든 관련 데이터 함께 삭제됨
- * (Account, Session, LckPrediction, Quest, Cosmetics, UserTeam, Community 등)
+ * (Account, Session, LckPrediction, Quest, Cosmetics, Community 등)
  */
 export async function DELETE() {
     const session = await getServerSession(authOptions)

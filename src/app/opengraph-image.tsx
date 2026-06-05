@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'E-Sport Information Collection — LCK 판타지 리그'
+export const alt = 'E-Sport Information Collection — LCK 경기 예측 리그'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -46,7 +46,7 @@ export default async function Image() {
                     borderRadius: 24, padding: '6px 20px', marginBottom: 32,
                 }}>
                     <span style={{ fontSize: 14, color: '#eab308', letterSpacing: 2, fontWeight: 700 }}>
-                        LCK FANTASY LEAGUE
+                        LCK 경기 예측 리그
                     </span>
                 </div>
 
@@ -65,7 +65,7 @@ export default async function Image() {
                     textAlign: 'center', maxWidth: 700,
                     lineHeight: 1.6, marginBottom: 48,
                 }}>
-                    경기 예측 · 퀴즈 · 판타지 팀 · 랭킹
+                    경기 예측 · 퀴즈 · GP 랭킹 · 코스메틱
                 </div>
 
                 {/* 태그 */}

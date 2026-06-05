@@ -38,8 +38,8 @@ function getLimiters() {
 
 // ─── 보호된 페이지 경로 ──────────────────────────────────────────────────────
 const PROTECTED_PATHS = [
-    "/admin", "/shop", "/league", "/quests", "/auction",
-    "/dashboard", "/simulation", "/analyst", "/prediction", "/profile",
+    "/admin", "/shop", "/quests", "/auction",
+    "/dashboard", "/analyst", "/prediction", "/profile",
 ]
 
 export async function middleware(req: NextRequest) {
@@ -107,11 +107,9 @@ export const config = {
         // 보호된 페이지 경로
         "/admin/:path*",
         "/shop/:path*",
-        "/league/:path*",
         "/quests/:path*",
         "/auction/:path*",
         "/dashboard/:path*",
-        "/simulation/:path*",
         "/analyst/:path*",
         "/prediction/:path*",
         "/profile",

@@ -41,7 +41,7 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "E-Sport Information Collection — LCK 판타지 리그",
+        alt: "E-Sport Information Collection — LCK 경기 예측 리그",
       },
     ],
   },
