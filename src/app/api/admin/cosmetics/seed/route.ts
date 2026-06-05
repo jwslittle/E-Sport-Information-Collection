@@ -8,6 +8,10 @@ import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 const SEED_ITEMS = [
+    // ── AI 질의권 (AI_TICKET) — 소모성 아이템, 구매 시 aiQueryTickets +1 ──────
+    { name: 'AI 분석가 질의권', type: 'AI_TICKET', rarity: 'COMMON', gpCost: 50,
+      description: 'AI 분석가에게 1회 질문할 수 있는 이용권. 구매 즉시 사용 가능합니다.' },
+
     // ── 칭호 (TITLE) ──────────────────────────────────────────────────────────
     { name: 'T1 열혈 팬', type: 'TITLE', titleText: 'T1 열혈 팬', rarity: 'UNCOMMON', gpCost: 500, description: 'T1을 사랑하는 열정적인 팬' },
     { name: 'GEN.G 지지자', type: 'TITLE', titleText: 'GEN.G 지지자', rarity: 'UNCOMMON', gpCost: 500, description: 'Gen.G의 든든한 응원군' },

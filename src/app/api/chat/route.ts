@@ -23,13 +23,39 @@ export async function POST(req: NextRequest) {
             }, { status: 503 })
         }
 
-        // 사용자 확인
+        // 사용자 확인 + 질의권 체크
         const user = await prisma.user.findUnique({
             where: { id: session.user.id as string },
-            select: { id: true, role: true },
+            select: { id: true, role: true, aiQueryTickets: true },
         })
 
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+        // ── 질의권 소모 (원자적 체크 + 차감) ─────────────────────────────────
+        // 어드민은 질의권 없이도 이용 가능 (테스트·관리 목적)
+        if (user.role !== 'ADMIN') {
+            try {
+                await prisma.$transaction(async (tx) => {
+                    const fresh = await tx.user.findUnique({
+                        where: { id: user.id },
+                        select: { aiQueryTickets: true },
+                    })
+                    if (!fresh || fresh.aiQueryTickets < 1) throw new Error('NO_TICKET')
+                    await tx.user.update({
+                        where: { id: user.id },
+                        data: { aiQueryTickets: { decrement: 1 } },
+                    })
+                })
+            } catch (err: unknown) {
+                if (err instanceof Error && err.message === 'NO_TICKET') {
+                    return NextResponse.json(
+                        { error: '질의권이 없습니다. 상점에서 구매해주세요.' },
+                        { status: 402 }
+                    )
+                }
+                throw err
+            }
+        }
 
         const { messages } = await req.json()
 

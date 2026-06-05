@@ -4,7 +4,6 @@ import "./globals.css";
 import { Navbar } from "@/components/ui/navbar";
 import { AuthProvider } from "@/components/auth-provider";
 import { Footer } from "@/components/footer";
-import { ChatWidget } from "@/components/ai-chat/ChatWidget";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Toaster } from "sonner";
 import { QuestTracker } from "@/components/quest-tracker";

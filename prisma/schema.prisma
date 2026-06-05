@@ -50,7 +50,8 @@ model User {
   role          String    @default("USER") // USER, ADMIN
 
   // Game Data
-  gp            Int       @default(100) // Game Points
+  gp              Int       @default(100) // Game Points
+  aiQueryTickets  Int       @default(0)  // AI 분석가 질의권 수량 (소모성)
 
   accounts      Account[]
   sessions      Session[]

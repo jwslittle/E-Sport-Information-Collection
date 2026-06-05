@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import {
     Crown, ShoppingBag, Tag, Smile, Image, Loader2, CheckCircle2,
-    Lock, Sparkles, Zap, Star, RefreshCw
+    Lock, Sparkles, Zap, Star, RefreshCw, TicketX, Bot
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -63,10 +63,11 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
     STICKER:      <Smile className="w-4 h-4" />,
     PROFILE_FRAME: <Crown className="w-4 h-4" />,
     BACKGROUND:   <Image className="w-4 h-4" />,
+    AI_TICKET:    <Bot className="w-4 h-4" />,
 }
 const TYPE_KO: Record<string, string> = {
     TITLE: '칭호', AVATAR: '아바타', STICKER: '스티커',
-    PROFILE_FRAME: '프레임', BACKGROUND: '배경',
+    PROFILE_FRAME: '프레임', BACKGROUND: '배경', AI_TICKET: '질의권',
 }
 const SHOP_TABS = [
     { value: 'ALL',           label: '전체' },
@@ -434,6 +435,7 @@ export default function ShopPage() {
     const { data: session } = useSession()
     const [items, setItems] = useState<CosmeticItem[]>([])
     const [gp, setGp] = useState(0)
+    const [aiTickets, setAiTickets] = useState(0)  // AI 질의권 보유 수
     const [loading, setLoading] = useState(true)
     const [buying, setBuying] = useState<string | null>(null)
     const [equipping, setEquipping] = useState<string | null>(null)
@@ -450,6 +452,7 @@ export default function ShopPage() {
             if (userRes?.ok) {
                 const u = await userRes.json()
                 setGp(u.gp ?? 0)
+                setAiTickets(u.aiQueryTickets ?? 0)
             }
         } catch { /* ignore */ }
         finally { setLoading(false) }
@@ -474,9 +477,16 @@ export default function ShopPage() {
             })
             const d = await res.json()
             if (res.ok) {
-                toast.success(`"${item.name}" 구매 완료! (잔여 GP: ${d.remainingGp.toLocaleString()})`)
-                setGp(d.remainingGp)
-                setItems(prev => prev.map(i => i.id === itemId ? { ...i, owned: true } : i))
+                // AI_TICKET: 소모성 — owned 표시 없이 카운터만 업데이트
+                if (item.type === 'AI_TICKET') {
+                    toast.success(`질의권 구매 완료! (잔여 GP: ${d.remainingGp.toLocaleString()}, 보유 질의권: ${d.aiQueryTickets}장)`)
+                    setGp(d.remainingGp)
+                    setAiTickets(d.aiQueryTickets)
+                } else {
+                    toast.success(`"${item.name}" 구매 완료! (잔여 GP: ${d.remainingGp.toLocaleString()})`)
+                    setGp(d.remainingGp)
+                    setItems(prev => prev.map(i => i.id === itemId ? { ...i, owned: true } : i))
+                }
             } else {
                 toast.error(d.error ?? '구매 실패')
             }
@@ -508,7 +518,11 @@ export default function ShopPage() {
         } finally { setEquipping(null) }
     }
 
-    const filtered = tab === 'ALL' ? items : items.filter(i => i.type === tab)
+    // AI_TICKET은 별도 탭에서만 표시 — 일반 코스메틱 탭에서 제외
+    const cosmeticItems = items.filter(i => i.type !== 'AI_TICKET')
+    const ticketItem = items.find(i => i.type === 'AI_TICKET')
+
+    const filtered = tab === 'ALL' ? cosmeticItems : cosmeticItems.filter(i => i.type === tab)
     const purchasable = filtered.filter(i => i.gpCost > 0 && !i.condition)
     const conditionOnly = filtered.filter(i => (i.condition || i.gpCost === 0) && !i.owned)
 
@@ -557,7 +571,20 @@ export default function ShopPage() {
                 <Tabs value={tab} onValueChange={setTab}>
                     {/* 탭 리스트 */}
                     <TabsList className="w-full flex flex-wrap h-auto bg-zinc-900 border border-zinc-800 p-1 gap-1">
-                        {/* 가챠 탭 (강조) */}
+                        {/* 질의권 탭 (강조) */}
+                        <TabsTrigger
+                            value="AI_TICKET"
+                            className="gap-1.5 data-[state=active]:bg-blue-900/60 data-[state=active]:text-blue-300 text-xs px-3 py-2"
+                        >
+                            <Bot className="w-3.5 h-3.5" /> 질의권
+                            {aiTickets > 0 && (
+                                <span className="ml-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 rounded-full">
+                                    {aiTickets}
+                                </span>
+                            )}
+                        </TabsTrigger>
+
+                        {/* 가챠 탭 */}
                         <TabsTrigger
                             value="GACHA"
                             className="gap-1.5 data-[state=active]:bg-purple-900/60 data-[state=active]:text-purple-300 text-xs px-3 py-2"
@@ -579,6 +606,73 @@ export default function ShopPage() {
                             </TabsTrigger>
                         ))}
                     </TabsList>
+
+                    {/* 질의권 탭 콘텐츠 */}
+                    <TabsContent value="AI_TICKET" className="mt-6">
+                        <div className="space-y-6">
+                            {/* 안내 카드 */}
+                            <div className="bg-gradient-to-br from-blue-900/20 to-zinc-900 border border-blue-800/40 rounded-xl p-5 space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <Bot className="w-5 h-5 text-blue-400" />
+                                    <h2 className="text-lg font-bold text-white">AI 분석가 질의권</h2>
+                                </div>
+                                <p className="text-sm text-zinc-400 leading-relaxed">
+                                    AI 분석가에게 <strong className="text-white">1회 질문</strong>할 수 있는 이용권입니다.
+                                    GP 상점에서 구매 후 <a href="/analyst" className="text-blue-400 underline">/analyst</a> 페이지에서 바로 사용하세요.
+                                </p>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <div className="flex items-center gap-1.5 bg-zinc-800 rounded-lg px-3 py-2 text-sm">
+                                        <TicketX className="w-4 h-4 text-blue-400" />
+                                        <span className="text-zinc-400">현재 보유</span>
+                                        <span className="font-black text-white">{aiTickets}장</span>
+                                    </div>
+                                    <div className="text-xs text-zinc-500">질문 1회 = 질의권 1장 소모</div>
+                                </div>
+                            </div>
+
+                            {/* 구매 카드 */}
+                            {ticketItem && session ? (
+                                <div className="border border-blue-800/40 rounded-xl p-5 space-y-4 bg-zinc-900 max-w-sm">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <p className="font-bold text-white">{ticketItem.name}</p>
+                                            <p className="text-xs text-zinc-500 mt-0.5">{ticketItem.description}</p>
+                                        </div>
+                                        <p className="text-xl font-black text-yellow-400 shrink-0 ml-2">
+                                            {ticketItem.gpCost} GP
+                                        </p>
+                                    </div>
+                                    <Button
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold gap-2"
+                                        disabled={buying === ticketItem.id || gp < ticketItem.gpCost}
+                                        onClick={() => handleBuy(ticketItem.id)}
+                                    >
+                                        {buying === ticketItem.id
+                                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                                            : <TicketX className="w-4 h-4" />
+                                        }
+                                        {gp < ticketItem.gpCost ? 'GP 부족' : '질의권 1장 구매'}
+                                    </Button>
+                                    <p className="text-[11px] text-zinc-600 text-center">
+                                        여러 장 구매하려면 버튼을 반복 클릭하세요
+                                    </p>
+                                </div>
+                            ) : !session ? (
+                                <div className="text-center py-10 space-y-3">
+                                    <p className="text-zinc-400 text-sm">로그인 후 질의권을 구매할 수 있습니다.</p>
+                                    <a href="/auth/signin">
+                                        <Button className="bg-blue-600 hover:bg-blue-500 text-white font-bold">
+                                            로그인하기
+                                        </Button>
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 text-zinc-500 text-sm">
+                                    관리자가 질의권 아이템을 시딩하면 여기에 표시됩니다.
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
 
                     {/* 가챠 탭 콘텐츠 */}
                     <TabsContent value="GACHA" className="mt-6">

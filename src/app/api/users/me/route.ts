@@ -86,6 +86,7 @@ export async function GET() {
             image: true,
             gp: true,
             role: true,
+            aiQueryTickets: true,
             profile: true,
             cosmeticItems: {
                 where: { isEquipped: true },
@@ -103,6 +104,7 @@ export async function GET() {
         image: user.image,
         gp: user.gp,
         role: user.role,
+        aiQueryTickets: user.aiQueryTickets,
         profile: user.profile,
         equippedCosmetics: user.cosmeticItems.map(ci => ({
             type: ci.item.type,
