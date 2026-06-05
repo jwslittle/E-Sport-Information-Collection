@@ -40,6 +40,13 @@ export async function GET() {
         })
     }
 
+    // ✅ 설명 문구가 변경된 퀘스트 DB 업데이트 (description은 createMany로 갱신 불가)
+    // ach-quiz-7: "7일 연속" → "7일 이상" (누적 카운트 로직과 일치)
+    await prisma.quest.updateMany({
+        where: { id: 'ach-quiz-7', description: '7일 연속 오늘의 퀴즈를 풀어보세요.' },
+        data: { description: '오늘의 퀴즈를 7일 이상 풀어보세요.' },
+    }).catch(() => {})
+
     const allQuests = await prisma.quest.findMany({ where: { isActive: true }, orderBy: { type: 'asc' } })
 
     // 현재 기간 키 계산

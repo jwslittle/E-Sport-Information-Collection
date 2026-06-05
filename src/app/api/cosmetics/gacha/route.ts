@@ -124,6 +124,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: '가챠 풀에 아이템이 없습니다.' }, { status: 400 })
     }
 
+    // ✅ M-9 수정: 스킵(itemId=null)으로 인해 실제 뽑힌 수 < count 인 경우 비용 비례 조정
+    // 예: 10연속 중 2번 스킵 → 8번만 유효 → 실제 비용 = GACHA_COST[1] * draws.length
+    const effectiveCost = draws.length < count ? GACHA_COST[1] * draws.length : cost
+
     // ── 결과 아이템 데이터 조회 ────────────────────────────────────────────
     const itemIds = [...new Set(draws.map(d => d.itemId))]
     const itemData = await prisma.cosmeticItem.findMany({
@@ -143,13 +147,14 @@ export async function POST(req: Request) {
     }
 
     // 음수 방지: 중복 환급이 비용보다 크더라도 최소 0 (GP 증가 버그 차단)
-    const netCost = Math.max(0, cost - totalRefund)
+    // effectiveCost: 스킵 발생 시 실제 뽑힌 수에 비례 (M-9 수정)
+    const netCost = Math.max(0, effectiveCost - totalRefund)
 
     try {
         await prisma.$transaction(async (tx) => {
             // GP 재확인 — 동시 요청이 먼저 소모했을 경우 차단
             const currentUser = await tx.user.findUnique({ where: { id: userId }, select: { gp: true } })
-            if (!currentUser || currentUser.gp < cost) {
+            if (!currentUser || currentUser.gp < effectiveCost) {
                 throw new Error('GP_INSUFFICIENT')
             }
 
@@ -208,7 +213,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
         results,
-        totalCost: cost,
+        totalCost: effectiveCost,  // 실제 청구된 비용 (스킵 시 비례 조정)
         totalRefund,
         netCost,
         remainingGp: updatedUser?.gp ?? 0,

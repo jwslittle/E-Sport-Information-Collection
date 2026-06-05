@@ -214,7 +214,8 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
     {
         id: 'ach-quiz-7',
         title: '퀴즈 마스터',
-        description: '7일 연속 오늘의 퀴즈를 풀어보세요.',
+        // ✅ 수정: 누적 카운트 로직에 맞게 설명 수정 (7일 연속 → 7일 이상)
+        description: '오늘의 퀴즈를 7일 이상 풀어보세요.',
         type: 'ACHIEVEMENT',
         category: 'QUIZ',
         icon: '🧠',

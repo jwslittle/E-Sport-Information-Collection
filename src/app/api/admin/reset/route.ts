@@ -13,7 +13,9 @@ export async function POST(req: Request) {
     }
 
     try {
-        console.log(`--- Admin Initiated: FULL USER RESET by ${session?.user?.email} ---`)
+        // ✅ L-2 수정: 이메일 직접 로그 제거 → id만 기록 (Sentry 이메일 캡처 방지)
+        const adminId = (session?.user as any)?.id ?? 'unknown'
+        console.log(`--- Admin Initiated: FULL USER RESET by userId=${adminId} ---`)
 
         // ✅ 복수 관리자 모두 보호 (ADMIN_EMAILS Set 사용)
         const adminEmailList = [...ADMIN_EMAILS]
