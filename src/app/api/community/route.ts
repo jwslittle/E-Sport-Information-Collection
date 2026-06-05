@@ -35,7 +35,7 @@ export async function GET(req: Request) {
                         profile: { select: { displayTitle: true } },
                     },
                 },
-                _count: { select: { comments: true, likes: true } },
+                _count: { select: { comments: { where: { isDeleted: false } }, likes: true } },
             },
         }),
         prisma.post.count({ where }),

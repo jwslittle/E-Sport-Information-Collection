@@ -54,9 +54,9 @@ export const authOptions: NextAuthOptions = {
             // 세션 업데이트 시 안전한 필드만 반영 (role·id 변조 방지)
             if (trigger === "update" && session) {
                 const safe: Record<string, unknown> = {}
-                // 허용 목록: points, isOnboarded만 클라이언트에서 갱신 가능
+                // 허용 목록: name, points, isOnboarded만 클라이언트에서 갱신 가능
+                if (typeof session.user?.name === 'string') safe.name = session.user.name
                 if (typeof session.user?.points === 'number') safe.points = session.user.points
-                if (typeof session.user?.gp === 'number') safe.points = session.user.gp
                 if (typeof session.user?.isOnboarded === 'boolean') safe.isOnboarded = session.user.isOnboarded
                 // gachaLevel은 스키마 미구현 — 추후 추가 시 여기서 허용
                 return { ...token, ...safe }
@@ -69,6 +69,8 @@ export const authOptions: NextAuthOptions = {
                 session.user.role = token.role
                 session.user.points = token.points
                 session.user.isOnboarded = token.isOnboarded ?? false
+                // token.name을 명시적으로 동기화 (닉네임 변경 후 세션 즉시 반영)
+                if (token.name) session.user.name = token.name
             }
             return session
         },

@@ -2,15 +2,15 @@
  * GET /api/cron/sync
  * Vercel Cron Job — LCK 경기 데이터 자동 동기화
  *
- * 스케줄: 매주 월요일 00:00 UTC (한국시간 09:00 KST)
- * 보안: Authorization: Bearer <CRON_SECRET> 헤더 확인
- * Vercel은 cron 요청 시 이 헤더를 자동으로 추가합니다.
- * 수동 동기화는 Admin 페이지 → "지금 동기화" 버튼으로 언제든 실행 가능합니다.
+ * 수동 동기화 전용 엔드포인트 — Admin 페이지 → "지금 동기화" 버튼 또는 직접 호출
+ * (vercel.json cron 스케줄 없음 — 자동 실행은 /api/cron/daily 에서 담당)
+ * 보안: Authorization: Bearer <CRON_SECRET> 헤더 또는 Admin 세션 필요
  */
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { syncCurrentSeason } from '@/lib/services/lck-sync.service'
+import { CURRENT_YEAR } from '@/lib/config/season'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60 // Vercel 함수 최대 실행시간 (Pro: 300s)
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     const startedAt = Date.now()
 
     try {
-        const result = await syncCurrentSeason(2026, false)
+        const result = await syncCurrentSeason(CURRENT_YEAR, false)
 
         const elapsed = Date.now() - startedAt
         console.log(`[Cron/Sync] 완료: ${result.matchesUpserted}경기 동기화, ${elapsed}ms`)

@@ -21,6 +21,7 @@ import { NextResponse } from 'next/server'
 import * as Sentry from '@sentry/nextjs'
 import { syncCurrentSeason } from '@/lib/services/lck-sync.service'
 import { processLckPredictions } from '@/lib/services/prediction-process.service'
+import { CURRENT_YEAR } from '@/lib/config/season'
 
 export const dynamic = 'force-dynamic'
 // Vercel Pro 플랜에서만 적용됨 (Hobby: 10초 고정)
@@ -75,7 +76,7 @@ export async function GET(req: Request) {
     const syncStart = Date.now()
     try {
         const result = await withTimeout(
-            syncCurrentSeason(2026, false),
+            syncCurrentSeason(CURRENT_YEAR, false),
             SYNC_BUDGET_MS,
             'sync',
         )

@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
                     profile: { select: { displayTitle: true } },
                 },
             },
-            _count: { select: { comments: true, likes: true } },
+            _count: { select: { comments: { where: { isDeleted: false } }, likes: true } },
         },
     })
 

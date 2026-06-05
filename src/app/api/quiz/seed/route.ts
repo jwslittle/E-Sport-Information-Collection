@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { INITIAL_QUIZ_QUESTIONS } from '@/lib/quiz-data'
-import { ADMIN_EMAIL } from '@/lib/config/admin'
 
 /**
  * POST /api/quiz/seed

@@ -13,7 +13,8 @@ export async function GET() {
     try {
         const now = new Date()
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        const todayKey = now.toISOString().slice(0, 10) // "YYYY-MM-DD"
+        // KST(Asia/Seoul) 기준 날짜 키 — 퀴즈 시스템과 동일한 기준 사용
+        const todayKey = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
 
         const [recentPredictionCount, topAccuracyUsers, todayQuizCount] = await Promise.all([
             // 1. 최근 7일 LCK 예측 참여 수
