@@ -400,7 +400,7 @@ model DataSyncLog {
 // Catalogue of all cosmetic items
 model CosmeticItem {
   id          String   @id @default(uuid())
-  type        String   // TITLE, AVATAR, STICKER, PLAYER_CARD, PROFILE_FRAME, BACKGROUND
+  type        String   // TITLE, AVATAR, STICKER, PLAYER_CARD, PROFILE_FRAME, BACKGROUND, AI_TICKET
   name        String
   description String?
   rarity      String   @default("COMMON") // COMMON, UNCOMMON, RARE, EPIC, LEGENDARY

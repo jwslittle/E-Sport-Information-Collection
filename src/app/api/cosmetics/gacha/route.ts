@@ -84,9 +84,10 @@ export async function POST(req: Request) {
         )
     }
 
-    // ── 가챠 풀 로드 (LEGENDARY 제외) ─────────────────────────────────────
+    // ── 가챠 풀 로드 (LEGENDARY·AI_TICKET 제외) ───────────────────────────
+    // AI_TICKET은 소모성 아이템으로 가챠 대상이 아님 (UserCosmeticItem이 아닌 aiQueryTickets 카운터 사용)
     const allItems = await prisma.cosmeticItem.findMany({
-        where: { isActive: true, rarity: { notIn: ['LEGENDARY'] } },
+        where: { isActive: true, rarity: { notIn: ['LEGENDARY'] }, type: { not: 'AI_TICKET' } },
         select: { id: true, rarity: true },
     })
 
