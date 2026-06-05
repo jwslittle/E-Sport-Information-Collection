@@ -36,7 +36,7 @@ function getLimiters() {
     return { general: generalLimiter, strict: strictLimiter }
 }
 
-// ─── 보호된 페이지 경로 ──────────────────────────────────────────────────────
+// ─── 로그인 필요 보호 경로 ────────────────────────────────────────────────────
 const PROTECTED_PATHS = [
     "/admin", "/shop", "/quests", "/auction",
     "/dashboard", "/analyst", "/prediction", "/profile",
@@ -79,22 +79,47 @@ export async function proxy(req: NextRequest) {
         return NextResponse.next()
     }
 
-    // ── 2. 페이지 인증 보호 ──────────────────────────────────────────────────
-    const isProtected = PROTECTED_PATHS.some(p => path.startsWith(p))
-    if (!isProtected) return NextResponse.next()
-
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-
-    // 로그인 안 된 경우 → 로그인 페이지로
-    if (!token) {
-        const signInUrl = new URL("/auth/signin", req.url)
-        signInUrl.searchParams.set("callbackUrl", req.url)
-        return NextResponse.redirect(signInUrl)
+    // ── 2. 인증·온보딩 페이지는 토큰 체크 스킵 ─────────────────────────────
+    if (path.startsWith("/auth")) {
+        return NextResponse.next()
     }
 
-    // Admin 전용 경로 → 비관리자는 홈으로
-    if (path.startsWith("/admin") && token?.role !== "ADMIN") {
-        return NextResponse.redirect(new URL("/", req.url))
+    // ── 3. JWT 토큰 파싱 (페이지 경로 전용) ─────────────────────────────────
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+
+    // ── 4. /onboarding 접근 제어 ─────────────────────────────────────────────
+    if (path === "/onboarding") {
+        // 미로그인 → 로그인 페이지로
+        if (!token) {
+            const signInUrl = new URL("/auth/signin", req.url)
+            signInUrl.searchParams.set("callbackUrl", "/")
+            return NextResponse.redirect(signInUrl)
+        }
+        // 이미 온보딩 완료 → 홈으로
+        if (token.isOnboarded) {
+            return NextResponse.redirect(new URL("/", req.url))
+        }
+        return NextResponse.next()
+    }
+
+    // ── 5. 온보딩 미완료 유저 → /onboarding으로 강제 이동 ──────────────────
+    if (token && !token.isOnboarded) {
+        return NextResponse.redirect(new URL("/onboarding", req.url))
+    }
+
+    // ── 6. 보호된 페이지 인증 체크 ──────────────────────────────────────────
+    const isProtected = PROTECTED_PATHS.some(p => path.startsWith(p))
+    if (isProtected) {
+        // 미로그인 → 로그인 페이지로
+        if (!token) {
+            const signInUrl = new URL("/auth/signin", req.url)
+            signInUrl.searchParams.set("callbackUrl", req.url)
+            return NextResponse.redirect(signInUrl)
+        }
+        // Admin 전용 경로 → 비관리자는 홈으로
+        if (path.startsWith("/admin") && token?.role !== "ADMIN") {
+            return NextResponse.redirect(new URL("/", req.url))
+        }
     }
 
     return NextResponse.next()
@@ -104,14 +129,7 @@ export const config = {
     matcher: [
         // API 라우트 (인증·정적 파일 제외)
         "/api/((?!_next|favicon).)*",
-        // 보호된 페이지 경로
-        "/admin/:path*",
-        "/shop/:path*",
-        "/quests/:path*",
-        "/auction/:path*",
-        "/dashboard/:path*",
-        "/analyst/:path*",
-        "/prediction/:path*",
-        "/profile",
+        // 모든 페이지 경로 (Next.js 내부 정적 파일 제외)
+        "/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|images/|icons/).*)",
     ],
 }

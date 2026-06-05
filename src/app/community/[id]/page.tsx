@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { use, useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -40,10 +40,11 @@ function timeAgo(dateStr: string) {
 }
 
 // ─── 메인 ─────────────────────────────────────────────────────────────────────
-export default function PostDetailPage({ params }: { params: { id: string } }) {
+// Next.js 16에서 params는 Promise — React.use()로 언래핑
+export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id: postId } = use(params)
     const { data: session } = useSession()
     const router = useRouter()
-    const postId = params.id
 
     const [post, setPost] = useState<PostDetail | null>(null)
     const [comments, setComments] = useState<CommentItem[]>([])

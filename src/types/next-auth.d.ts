@@ -6,11 +6,11 @@ declare module "next-auth" {
      */
     interface Session {
         user: {
-            /** The user's postal address. */
             id: string
             role: string
             points: number
             gachaLevel: number
+            isOnboarded: boolean
         } & DefaultSession["user"]
     }
 
@@ -18,5 +18,6 @@ declare module "next-auth" {
         role: string
         points: number
         gachaLevel: number
+        isOnboarded: boolean
     }
 }

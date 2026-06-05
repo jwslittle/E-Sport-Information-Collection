@@ -48,6 +48,7 @@ model User {
   emailVerified DateTime?
   image         String?
   role          String    @default("USER") // USER, ADMIN
+  isOnboarded   Boolean   @default(false) // 최초 로그인 후 닉네임 설정 완료 여부
 
   // Game Data
   gp              Int       @default(100) // Game Points
