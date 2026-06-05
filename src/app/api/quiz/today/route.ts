@@ -7,25 +7,33 @@ import { INITIAL_QUIZ_QUESTIONS } from '@/lib/quiz-data'
 /**
  * GET /api/quiz/today
  * 오늘의 데일리 퀴즈를 반환합니다.
- * - 날짜 기반으로 매일 문제가 교체됩니다.
- * - 이미 답한 경우 결과 포함 반환
- * - 답하지 않은 경우 정답 필드 제외 반환
+ *
+ * ─ 선택 방식 ─
+ *  - 로그인 유저: userId + dateKey 해시 기반 → 개인마다 다른 문제 (하루 중 동일 유지)
+ *  - 비로그인:   dateKey 해시 기반 → 날짜별 고정 (IP별 개인화 없음)
+ *  - 어제 푼 문제 제외: 같은 문제가 이틀 연속 나오지 않도록 처리
+ *
+ * ─ 자동 시딩 ─
+ *  - DB에 퀴즈가 INITIAL_QUIZ_QUESTIONS 개수보다 적으면 자동으로 시딩
  */
 export async function GET() {
     const session = await getServerSession(authOptions)
+    const userId = session?.user?.id
 
-    // KST(Asia/Seoul) 기준 날짜 키 — "2026-06-02" 형식
+    // KST(Asia/Seoul) 기준 날짜 키 — "2026-06-05" 형식
     const now = new Date()
-    const dateKey = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
+    const kstFmt = (d: Date) =>
+        new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(d)
+    const dateKey = kstFmt(now)
 
-    // 활성화된 퀴즈 목록 (orderIndex 순)
+    // ── 퀴즈 목록 조회 (자동 시딩 포함) ──────────────────────────────────────
     let quizzes = await prisma.dailyQuiz.findMany({
         where: { isActive: true },
         orderBy: { orderIndex: 'asc' },
     })
 
-    // 퀴즈가 없으면 초기 데이터 자동 삽입 (최초 1회)
-    if (quizzes.length === 0) {
+    // DB에 퀴즈가 없거나 부족하면 자동 시딩 (최초 1회 또는 신규 문항 추가 시)
+    if (quizzes.length < INITIAL_QUIZ_QUESTIONS.length) {
         await prisma.dailyQuiz.createMany({ data: INITIAL_QUIZ_QUESTIONS, skipDuplicates: true })
         quizzes = await prisma.dailyQuiz.findMany({
             where: { isActive: true },
@@ -37,27 +45,57 @@ export async function GET() {
         return NextResponse.json({ quiz: null, dateKey })
     }
 
-    // 날짜 기반 결정론적 선택 (같은 날은 모든 사용자에게 같은 문제)
-    // KST 자정 기준 일 수로 계산 (9h offset 포함)
-    const kstOffset = 9 * 60 * 60 * 1000
-    const dayNum = Math.floor((now.getTime() + kstOffset) / 86400000)
-    const quiz = quizzes[dayNum % quizzes.length]
+    // ── 어제 푼 퀴즈 ID 조회 (이틀 연속 동일 문제 방지) ────────────────────
+    let excludeId: string | undefined
+    if (userId) {
+        const yesterday = new Date(now)
+        yesterday.setDate(yesterday.getDate() - 1)
+        const yesterdayKey = kstFmt(yesterday)
+        const ya = await prisma.userDailyQuizAnswer.findFirst({
+            where: { userId, dateKey: yesterdayKey },
+            select: { quizId: true },
+        })
+        excludeId = ya?.quizId ?? undefined
+    }
 
-    // 정답 제외 (미응답 상태에서는 숨김)
+    // ── 풀 결정: 어제 문제 제외 (풀이 1개뿐이면 어쩔 수 없이 재사용) ─────────
+    const pool = excludeId
+        ? quizzes.filter(q => q.id !== excludeId)
+        : quizzes
+    const finalPool = pool.length > 0 ? pool : quizzes
+
+    // ── 개인별 + 날짜별 결정론적 선택 ─────────────────────────────────────────
+    // 동일 유저 동일 날짜 → 항상 같은 문제 / 유저마다 다른 문제
+    const seed = (userId ?? 'anon') + '-' + dateKey
+    let hash = 0
+    for (const c of seed) hash = (Math.imul(31, hash) + c.charCodeAt(0)) | 0
+    const idx = Math.abs(hash) % finalPool.length
+    const quiz = finalPool[idx]
+
+    // ── 정답 필드 제거 (미응답 상태) ─────────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { answer, explanation, ...quizPublic } = quiz
 
-    // 로그인한 경우 오늘 이미 답했는지 확인
-    // ✅ session.user.id 직접 사용 (email→DB 조회 불필요)
+    // ── 로그인 유저: 오늘 이미 답했는지 확인 ────────────────────────────────
     let myAnswer = null
-    if (session?.user?.id) {
+    if (userId) {
         myAnswer = await prisma.userDailyQuizAnswer.findFirst({
-            where: { userId: session.user.id, dateKey },
+            where: { userId, dateKey },
         })
     }
 
-    // 이미 답한 경우 정답 + 해설 공개
+    // 이미 답한 경우 → 정답 + 해설 공개
     if (myAnswer) {
+        // 오늘 실제로 푼 퀴즈 ID로 찾아서 반환 (today 선택과 다를 수 있음)
+        const answeredQuiz = quizzes.find(q => q.id === myAnswer!.quizId)
+        if (answeredQuiz) {
+            return NextResponse.json({
+                quiz: answeredQuiz,
+                myAnswer,
+                dateKey,
+                answered: true,
+            })
+        }
         return NextResponse.json({
             quiz: { ...quizPublic, answer, explanation },
             myAnswer,
