@@ -84,20 +84,26 @@ export async function GET(req: NextRequest) {
 
     const currentUserId = (session?.user as any)?.id
 
-    const leaderboard = rows.slice(0, limit).map((row, idx) => ({
-        rank: idx + 1,
-        userId: row.userId,
-        userName: row.user.name ?? null,
-        image: row.user.image ?? null,
-        teamName: null,
-        title: row.user.profile?.displayTitle ?? null,
-        favoriteTeam: row.user.profile?.favoriteTeam ?? null,
-        total: row.total,
-        correct: row.correct,
-        accuracy: row.accuracy,
-        gpEarned: row.gpEarned,
-        isMe: row.userId === currentUserId,
-    }))
+    // ✅ Q-1 수정: 동점(같은 accuracy) 처리 — /api/ranking 과 동일한 방식
+    let currentRank = 0
+    let prevAccuracy: number | null = null
+    const leaderboard = rows.slice(0, limit).map((row, idx) => {
+        if (row.accuracy !== prevAccuracy) { currentRank = idx + 1; prevAccuracy = row.accuracy }
+        return {
+            rank: currentRank,
+            userId: row.userId,
+            userName: row.user.name ?? null,
+            image: row.user.image ?? null,
+            teamName: null,
+            title: row.user.profile?.displayTitle ?? null,
+            favoriteTeam: row.user.profile?.favoriteTeam ?? null,
+            total: row.total,
+            correct: row.correct,
+            accuracy: row.accuracy,
+            gpEarned: row.gpEarned,
+            isMe: row.userId === currentUserId,
+        }
+    })
 
     // 내 순위 찾기 (상위 limit에 없을 경우)
     let myRank = null

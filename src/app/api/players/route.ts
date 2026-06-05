@@ -1,14 +1,11 @@
+/**
+ * GET /api/players — LCK 선수 목록 조회 (인증 불필요 — 공개 정보)
+ * /players 페이지는 비로그인 접근 허용 → API도 공개로 맞춤
+ */
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 
 export async function GET() {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     try {
         const players = await prisma.player.findMany({
             include: {

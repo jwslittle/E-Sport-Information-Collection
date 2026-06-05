@@ -3,14 +3,21 @@
  * API route에서 직접 호출하는 서버사이드 함수 (HTTP 오버헤드 없음)
  */
 import prisma from '@/lib/prisma'
-import { format, getISOWeek, getYear } from 'date-fns'
+import { getISOWeek, getYear } from 'date-fns'
+
+// KST(Asia/Seoul) 기준 날짜 문자열 반환 — 대시보드·퀴즈와 동일한 기준
+const kstDateStr = (d: Date) =>
+    new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(d)
 
 function getPeriodKey(type: string): string {
     const now = new Date()
-    if (type === 'DAILY') return format(now, 'yyyy-MM-dd')
+    const kst = kstDateStr(now)          // e.g. "2026-06-06"
+    if (type === 'DAILY') return kst
     if (type === 'WEEKLY') {
-        const w = String(getISOWeek(now)).padStart(2, '0')
-        return `${getYear(now)}-W${w}`
+        // KST 날짜 기준 ISO 주차: "YYYY-Www"
+        const kstDate = new Date(kst)    // UTC 자정으로 파싱 → 주차 계산에 안전
+        const w = String(getISOWeek(kstDate)).padStart(2, '0')
+        return `${getYear(kstDate)}-W${w}`
     }
     return 'LIFETIME'
 }

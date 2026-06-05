@@ -184,15 +184,18 @@ async function loadLiveStats(type: 'team' | 'player', lookupKey: string): Promis
     const specificTournament = isAll ? null : lookupKey  // 특정 대회명 (e.g. "LCK 2026 Spring")
     const seasonCode = specificTournament ? displayNameToSeason(specificTournament) : null
 
+    // ✅ M-3 수정: player 타입만 games+playerStats 포함 (team 타입은 match-level fallback 사용)
+    // buildTeamStats에는 m.winner 기반 폴백(team1Score/team2Score)이 이미 구현되어 있음
+    // buildPlayerStats는 game.playerStats 필수 → player 타입에서만 include
     const matches = await prisma.lckRealMatch.findMany({
         where: {
             season: seasonCode
                 ? { equals: seasonCode }
                 : { startsWith: '2026' },
         },
-        include: {
-            games: { include: { playerStats: true } },
-        },
+        ...(type === 'player' ? {
+            include: { games: { include: { playerStats: true } } },
+        } : {}),
         orderBy: { scheduledAt: 'asc' },
     })
 

@@ -6,18 +6,21 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { format, getISOWeek, getYear } from 'date-fns'
+import { getISOWeek, getYear } from 'date-fns'
 import { INITIAL_QUESTS } from '@/lib/quest-data'
 
 export const dynamic = 'force-dynamic'
 
-// ─── 기간 키 헬퍼 ────────────────────────────────────────────────────
+// ─── 기간 키 헬퍼 (KST 기준 — 퀴즈·대시보드와 동일) ──────────────────
 function getPeriodKey(type: string): string {
     const now = new Date()
-    if (type === 'DAILY') return format(now, 'yyyy-MM-dd')
+    // KST(Asia/Seoul) 날짜 문자열: "2026-06-06"
+    const kst = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
+    if (type === 'DAILY') return kst
     if (type === 'WEEKLY') {
-        const week = getISOWeek(now)
-        const year = getYear(now)
+        const kstDate = new Date(kst)
+        const week = getISOWeek(kstDate)
+        const year = getYear(kstDate)
         return `${year}-W${String(week).padStart(2, '0')}`
     }
     return 'LIFETIME'

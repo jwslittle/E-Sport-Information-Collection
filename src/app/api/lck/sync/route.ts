@@ -29,7 +29,8 @@ export async function POST(req: Request) {
         await resetSyncLog(CURRENT_SEASON)
     }
 
-    const result = await syncCurrentSeason(year, true)
+    // ✅ Q-4: 관리자 수동 동기화는 4페이지 조회 — 시즌 전체 커버
+    const result = await syncCurrentSeason(year, true, 4)
 
     return NextResponse.json(result)
 }

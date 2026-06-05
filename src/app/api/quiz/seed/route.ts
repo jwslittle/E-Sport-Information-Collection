@@ -53,16 +53,19 @@ export async function GET() {
     const count = await prisma.dailyQuiz.count()
     const answers = await prisma.userDailyQuizAnswer.count()
 
-    // 오늘의 퀴즈
-    const kstOffset = 9 * 60 * 60 * 1000
-    const now = Date.now()
-    const dayNum = Math.floor((now + kstOffset) / 86400000)
+    // ✅ Q-2 수정: quiz/today와 동일한 해시 방식으로 "오늘의 퀴즈" 계산
+    // (이전: dayNum % total 방식은 실제 선택 로직과 불일치)
+    const dateKey = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date())
     const quizzes = await prisma.dailyQuiz.findMany({
         where: { isActive: true },
         orderBy: { orderIndex: 'asc' },
         select: { id: true, question: true, orderIndex: true },
     })
-    const todayQuiz = quizzes.length > 0 ? quizzes[dayNum % quizzes.length] : null
+    // 비로그인(anon) 기준 오늘의 퀴즈 — quiz/today와 동일한 로직
+    let hash = 0
+    const seed = `anon-${dateKey}`
+    for (const c of seed) hash = (Math.imul(31, hash) + c.charCodeAt(0)) | 0
+    const todayQuiz = quizzes.length > 0 ? quizzes[Math.abs(hash) % quizzes.length] : null
 
     return NextResponse.json({ quizCount: count, totalAnswers: answers, todayQuiz })
 }

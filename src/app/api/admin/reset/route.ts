@@ -47,7 +47,8 @@ export async function POST(req: Request) {
             }
         })
 
-        console.log(`Deleted ${deleteResult.count} users (protected: ${adminEmailList.join(', ')})`)
+        // ✅ M-1 수정: 관리자 이메일 목록 평문 로그 금지 (Vercel 로그 노출 방지)
+        console.log(`Deleted ${deleteResult.count} users (protected ${adminEmailList.length}명 admin 계정 제외)`)
 
         // Sentry로 실행 알림 (감사 추적)
         Sentry.captureMessage(

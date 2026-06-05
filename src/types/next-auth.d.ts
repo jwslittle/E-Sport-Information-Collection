@@ -9,7 +9,7 @@ declare module "next-auth" {
             id: string
             role: string
             points: number
-            gachaLevel: number
+            // gachaLevel 제거 — DB 스키마 없음, JWT에서 미설정 (런타임 항상 undefined)
             isOnboarded: boolean
         } & DefaultSession["user"]
     }
@@ -17,7 +17,7 @@ declare module "next-auth" {
     interface User {
         role: string
         points: number
-        gachaLevel: number
+        // gachaLevel 제거 — 미구현 필드
         isOnboarded: boolean
     }
 }

@@ -40,18 +40,24 @@ export async function needsSync(seasonKey: string): Promise<boolean> {
     return isStale(log.lastSyncAt, STALE_HOURS)
 }
 
-/** LCK 동기화 강제 초기화 (관리자용) */
+/** LCK 동기화 강제 초기화 (관리자용) — seasonKey에 해당하는 로그만 삭제 */
 export async function resetSyncLog(seasonKey: string): Promise<void> {
+    // ✅ M-4 수정: 파라미터를 실제로 사용 (이전에는 전체 LCK_ 로그를 삭제하던 버그)
+    const dataType = `LCK_${seasonKey}`
     await prisma.dataSyncLog.deleteMany({
-        where: { dataType: { startsWith: 'LCK_' } },
+        where: { dataType },
     })
-    console.log(`[LckSync] Reset sync log for LCK seasons`)
+    console.log(`[LckSync] Reset sync log: ${dataType}`)
 }
 
-/** 현재 시즌 LCK 데이터 동기화 (LoL Esports API 사용) */
+/**
+ * 현재 시즌 LCK 데이터 동기화 (LoL Esports API 사용)
+ * @param maxPages API 페이지 수 (기본 2 = 크론 안전 범위 / 관리자 수동 시 4 권장)
+ */
 export async function syncCurrentSeason(
     year = 2026,
-    forceRefresh = false
+    forceRefresh = false,
+    maxPages = 2,
 ): Promise<SyncResult> {
     // 주요 시즌 키 (현재 시즌은 season.ts에서 관리)
     const seasonKey = year === 2026 ? CURRENT_SEASON : `${year}-SPRING`
@@ -67,8 +73,8 @@ export async function syncCurrentSeason(
     console.log(`[LckSync] Syncing LCK season ${seasonKey} via LoL Esports API`)
 
     try {
-        // LoL Esports API에서 현재 시즌 경기 가져오기
-        const events = await fetchLckCurrentSeason()
+        // LoL Esports API에서 현재 시즌 경기 가져오기 (페이지 수 조절)
+        const events = await fetchLckCurrentSeason(maxPages)
 
         if (events.length === 0) {
             // 데이터 없음 - 오류로 처리

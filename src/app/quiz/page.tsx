@@ -41,6 +41,7 @@ const CATEGORY_LABELS: Record<string, string> = {
     TRIVIA: '상식',
     TEAMS: '팀 정보',
     HISTORY: '역사',
+    PLAYERS: '선수',  // ✅ Q-3: quiz/generate가 생성하는 PLAYERS 카테고리 레이블 추가
 }
 
 const DIFFICULTY_COLORS: Record<string, string> = {

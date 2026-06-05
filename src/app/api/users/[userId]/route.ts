@@ -39,7 +39,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ userId: 
                 select: {
                     following: true,
                     followedBy: true,
-                    posts: true,
+                    // ✅ C-3 수정: 소프트 삭제된 게시글 제외
+                    posts: { where: { isDeleted: false } },
                     quizAnswers: true,
                     lckPredictions: true,
                 },
@@ -65,7 +66,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ userId: 
         take: 3,
         select: {
             id: true, title: true, category: true, createdAt: true,
-            _count: { select: { comments: true, likes: true } },
+            // ✅ C-3 수정: 소프트 삭제된 댓글 제외
+            _count: { select: { comments: { where: { isDeleted: false } }, likes: true } },
         },
     })
 

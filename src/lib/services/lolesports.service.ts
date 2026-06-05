@@ -91,25 +91,28 @@ async function fetchSchedulePage(
 }
 
 /**
- * LCK 현재 시즌 경기 일정 가져오기 (최신 2페이지)
- * 첫 페이지 = 최근 경기, 두번째 페이지 = 이전 경기
+ * LCK 현재 시즌 경기 일정 가져오기
+ *
+ * @param maxPages 가져올 페이지 수
+ *   - 기본(2): 크론잡 4초 예산 내 안전 범위 (~50경기)
+ *   - 관리자 수동 동기화(4): 전 시즌 누락 없이 커버 (~100경기)
+ *
+ * 최신 페이지부터 older 방향으로 순차 조회 → 중복 제거 → 날짜 정렬 반환
  */
-export async function fetchLckCurrentSeason(): Promise<LoLEsportsEvent[]> {
+export async function fetchLckCurrentSeason(maxPages = 2): Promise<LoLEsportsEvent[]> {
     const allEvents: LoLEsportsEvent[] = []
+    let pageToken: string | null = null
 
-    // 첫 페이지 (최신)
-    const page1 = await fetchSchedulePage(LEAGUE_IDS.LCK)
-    const lckEvents1 = page1.events.filter(e => e.league?.slug === 'lck')
-    allEvents.push(...lckEvents1)
+    for (let i = 0; i < maxPages; i++) {
+        const page = await fetchSchedulePage(LEAGUE_IDS.LCK, pageToken ?? undefined)
+        const lckEvents = page.events.filter(e => e.league?.slug === 'lck')
+        allEvents.push(...lckEvents)
 
-    // 두번째 페이지 (이전)
-    if (page1.olderToken) {
-        const page2 = await fetchSchedulePage(LEAGUE_IDS.LCK, page1.olderToken)
-        const lckEvents2 = page2.events.filter(e => e.league?.slug === 'lck')
-        allEvents.push(...lckEvents2)
+        if (!page.olderToken) break        // 더 이전 페이지 없으면 종료
+        pageToken = page.olderToken
     }
 
-    // 중복 제거 + 날짜 정렬
+    // 중복 제거 + 날짜 오름차순 정렬
     const seen = new Set<string>()
     const unique = allEvents.filter(e => {
         if (seen.has(e.match.id)) return false
