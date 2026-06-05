@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Loader2, Crown, Tag, Star, Palette, User, Image, Smile, ShoppingBag, Trophy, Pencil, Check, X, LogIn, Trash2, AlertTriangle } from 'lucide-react'
+import { Loader2, Crown, Tag, Star, Palette, User, Image, Smile, ShoppingBag, Trophy, Pencil, Check, X, LogIn, Trash2, AlertTriangle, Camera } from 'lucide-react'
 import { TEAM_COLORS, LCK_TEAMS } from '@/lib/config/teams'
 
 interface UserProfile {
@@ -49,9 +49,11 @@ export default function ProfilePage() {
     const [editBio, setEditBio] = useState('')
     const [nicknameError, setNicknameError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [uploadingImage, setUploadingImage] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deleteConfirmText, setDeleteConfirmText] = useState('')
     const [deleting, setDeleting] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9_]{2,15}$/
 
@@ -68,6 +70,58 @@ export default function ProfilePage() {
             .catch(console.error)
             .finally(() => setLoading(false))
     }, [session])
+
+    // ── 프로필 사진 업로드 ────────────────────────────────────────────────
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        if (!ALLOWED.includes(file.type)) {
+            toast.error('JPG, PNG, WebP 형식만 업로드 가능합니다.')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('파일 크기는 5MB 이하여야 합니다.')
+            return
+        }
+
+        setUploadingImage(true)
+        try {
+            // 1. Cloudinary에 업로드
+            const formData = new FormData()
+            formData.append('file', file)
+            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+            const uploadData = await uploadRes.json()
+            if (!uploadRes.ok) {
+                toast.error(uploadData.error ?? '업로드 실패')
+                return
+            }
+
+            // 2. DB에 이미지 URL 저장
+            const patchRes = await fetch('/api/users/me', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: uploadData.url }),
+            })
+            const patchData = await patchRes.json()
+            if (!patchRes.ok) {
+                toast.error(patchData.error ?? '이미지 저장 실패')
+                return
+            }
+
+            // 3. 로컬 상태 + 세션 업데이트
+            setProfile(prev => prev ? { ...prev, image: uploadData.url } : prev)
+            await updateSession({ user: { image: uploadData.url } })
+            toast.success('프로필 사진이 변경되었습니다.')
+        } catch {
+            toast.error('업로드 중 오류가 발생했습니다.')
+        } finally {
+            setUploadingImage(false)
+            // 같은 파일 재선택 허용
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
 
     const handleDeleteAccount = async () => {
         if (deleteConfirmText !== '탈퇴합니다') return
@@ -173,13 +227,33 @@ export default function ProfilePage() {
             <Card className="bg-zinc-900 border-zinc-800">
                 <CardContent className="p-6 flex flex-col md:flex-row items-start gap-6">
                     {/* 아바타 */}
-                    <div className="relative shrink-0 mx-auto md:mx-0">
+                    <div className="relative shrink-0 mx-auto md:mx-0 group">
+                        {/* 숨겨진 파일 인풋 */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                        />
                         <Avatar className="w-24 h-24 border-2 border-zinc-700">
                             <AvatarImage src={profile.image ?? ''} alt={profile.name ?? ''} />
                             <AvatarFallback className="text-2xl bg-zinc-800">
                                 {profile.name?.[0] ?? '?'}
                             </AvatarFallback>
                         </Avatar>
+                        {/* 카메라 오버레이 — 호버 시 표시 */}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingImage}
+                            title="프로필 사진 변경"
+                            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                        >
+                            {uploadingImage
+                                ? <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                : <Camera className="w-6 h-6 text-white" />
+                            }
+                        </button>
                         {profile.role === 'ADMIN' && (
                             <Badge className="absolute -top-1 -right-1 bg-red-600 text-xs px-1">ADMIN</Badge>
                         )}

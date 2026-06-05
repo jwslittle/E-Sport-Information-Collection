@@ -159,15 +159,24 @@ export async function syncCurrentSeason(
     }
 }
 
-/** DB에서 경기 목록 조회 (필터 포함) */
+/**
+ * DB에서 경기 목록 조회 (필터 포함)
+ *
+ * includeGames: false (기본) → 경기 헤더 정보만 반환 (가볍고 빠름)
+ * includeGames: true         → games + playerStats까지 포함
+ *   (경기 탭 상세 뷰처럼 선수 스탯이 필요한 경우에만 사용)
+ *
+ * 200경기 × 3게임 × 10선수 ≒ 6,000 rows — 불필요한 호출에서 생략하면 비용이 크게 줄어듦
+ */
 export async function getMatchesFromDb(options: {
     season?: string
     status?: string
     team?: string
     limit?: number
     offset?: number
+    includeGames?: boolean
 }) {
-    const { season, status, team, limit = 100, offset = 0 } = options
+    const { season, status, team, limit = 100, offset = 0, includeGames = false } = options
 
     const where: any = {}
     if (season) where.season = season
@@ -176,14 +185,16 @@ export async function getMatchesFromDb(options: {
 
     return prisma.lckRealMatch.findMany({
         where,
-        include: {
-            games: {
-                orderBy: { gameNumber: 'asc' },
-                include: {
-                    playerStats: { orderBy: [{ team: 'asc' }, { kills: 'desc' }] },
+        ...(includeGames ? {
+            include: {
+                games: {
+                    orderBy: { gameNumber: 'asc' },
+                    include: {
+                        playerStats: { orderBy: [{ team: 'asc' }, { kills: 'desc' }] },
+                    },
                 },
             },
-        },
+        } : {}),
         orderBy: { scheduledAt: 'asc' },
         take: limit,
         skip: offset,

@@ -228,7 +228,7 @@ function RealMatchTab() {
         setLoading(true)
         setError(null)
         try {
-            const params = new URLSearchParams({ season: selectedSeason, limit: '200' })
+            const params = new URLSearchParams({ season: selectedSeason, limit: '200', games: '1' })
             if (statusFilter !== 'ALL') params.set('status', statusFilter)
             if (teamFilter) params.set('team', teamFilter)
             if (forceSync) params.set('sync', '1')

@@ -1,6 +1,6 @@
 /**
  * GET    /api/users/me  — 내 프로필 조회
- * PATCH  /api/users/me  — 프로필 업데이트 { nickname?, favoriteTeam?, bio? }
+ * PATCH  /api/users/me  — 프로필 업데이트 { nickname?, image?, favoriteTeam?, bio? }
  * DELETE /api/users/me  — 계정 영구 탈퇴 (PIPA 제36조 준수)
  */
 
@@ -27,10 +27,25 @@ export async function PATCH(req: Request) {
     const userId = session.user.id
 
     const body = await req.json().catch(() => ({}))
-    const { nickname, favoriteTeam, bio } = body as {
+    const { nickname, image, favoriteTeam, bio } = body as {
         nickname?: string
+        image?: string
         favoriteTeam?: string
         bio?: string
+    }
+
+    // ── 프로필 사진 변경 처리 ──────────────────────────────────────────────
+    let updatedImage: string | undefined
+    if (image !== undefined) {
+        // Cloudinary URL만 허용 (외부 URL 주입 방지)
+        if (image && !image.startsWith('https://res.cloudinary.com/')) {
+            return NextResponse.json({ error: '유효하지 않은 이미지 URL입니다.' }, { status: 400 })
+        }
+        await prisma.user.update({
+            where: { id: userId },
+            data: { image: image || null },
+        })
+        updatedImage = image || undefined
     }
 
     // ── 닉네임 변경 처리 ─────────────────────────────────────────────────
@@ -84,11 +99,15 @@ export async function PATCH(req: Request) {
         })
     }
 
-    if (nickname === undefined && Object.keys(profileData).length === 0) {
+    if (nickname === undefined && image === undefined && Object.keys(profileData).length === 0) {
         return NextResponse.json({ error: '변경할 내용이 없습니다.' }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true, ...(updatedName ? { nickname: updatedName } : {}) })
+    return NextResponse.json({
+        success: true,
+        ...(updatedName  ? { nickname: updatedName }  : {}),
+        ...(updatedImage ? { image: updatedImage }     : {}),
+    })
 }
 
 /**

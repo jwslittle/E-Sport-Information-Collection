@@ -36,6 +36,8 @@ export async function GET(req: Request) {
     const offset = parseInt(searchParams.get('offset') ?? '0')
     const forceSync = searchParams.get('sync') === '1'
     const resetSync = searchParams.get('reset') === '1'
+    // games=1 일 때만 게임 상세(playerStats) 포함 — 경기 탭 전용, 기본 생략으로 쿼리 최적화
+    const includeGames = searchParams.get('games') === '1'
 
     // 관리자 전용 파라미터 확인
     if (forceSync || resetSync) {
@@ -74,6 +76,7 @@ export async function GET(req: Request) {
             team,
             limit,
             offset,
+            includeGames,
         })
 
         // 동기화 상태도 함께 반환
