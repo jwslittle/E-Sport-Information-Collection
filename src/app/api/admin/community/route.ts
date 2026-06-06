@@ -16,7 +16,9 @@ export async function GET() {
     }
 
     const now = new Date()
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    // ✅ M-4 수정: UTC 기반 자정이 아닌 KST 기반 자정 사용
+    const todayKST = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
+    const todayStart = new Date(`${todayKST}T00:00:00+09:00`)
 
     const [totalPosts, totalComments, postsToday, commentsToday, recentPosts] = await Promise.all([
         prisma.post.count({ where: { isDeleted: false } }),

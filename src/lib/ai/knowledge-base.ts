@@ -54,46 +54,5 @@ export const DATA_SOURCES = [
     },
 ];
 
-/** 판타지 리그 가상 선수 샘플 스탯 (AI 분석 참고용) */
-export const VIRTUAL_PLAYER_STATS_SAMPLE = [
-    {
-        name: "Blaze",
-        team: "Nexus Guardians (NGD)",
-        position: "MID",
-        price: 14,
-        stats: { KDA: 5.8, CSPM: 9.9, DPM: 770, KP: "67%" },
-        note: "최고가 미드라이너. 딜량과 KDA 모두 리그 최상위권.",
-    },
-    {
-        name: "Echo",
-        team: "Aurora Knights (AKT)",
-        position: "MID",
-        price: 14,
-        stats: { KDA: 6.0, CSPM: 9.9, DPM: 775, KP: "68%" },
-        note: "리그 최고 KDA 미드. 팀 기여도가 매우 높음.",
-    },
-    {
-        name: "Sniper",
-        team: "Neon Wolves (NWV)",
-        position: "ADC",
-        price: 14,
-        stats: { KDA: 6.0, CSPM: 10.3, DPM: 748, KP: "64%" },
-        note: "CS 1위 원딜. 안정적인 딜링과 높은 생존력.",
-    },
-    {
-        name: "Phantom",
-        team: "Shadow Foxes (SFX)",
-        position: "JUNGLE",
-        price: 14,
-        stats: { KDA: 5.1, CSPM: 6.2, DPM: 420, KP: "71%" },
-        note: "킬관여율 최상위 정글러. 시야 확보 능력 탁월.",
-    },
-    {
-        name: "Viper",
-        team: "Vortex Raiders (VTX)",
-        position: "JUNGLE",
-        price: 13,
-        stats: { KDA: 4.9, CSPM: 6.1, DPM: 415, KP: "70%" },
-        note: "공격적인 스타일의 정글러. 킬 가담률 높음.",
-    },
-];
+// ✅ M-2 수정: VIRTUAL_PLAYER_STATS_SAMPLE 제거 (가상 선수 데이터는 더 이상 사용하지 않음)
+// 실제 LCK 선수 데이터는 getHistoricalContext() (context.ts)에서 DB 조회로 제공

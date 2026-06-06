@@ -16,6 +16,6 @@ export async function POST() {
 
     return NextResponse.json({
         message: '시드는 서버 터미널에서 "npx tsx prisma/seed.ts" 명령어로 실행하세요.',
-        hint: '가상 팀 10개 + 가상 선수 50명 + 시뮬레이션 일정 45경기',
+        hint: 'LCK 실제 팀/선수 데이터 시딩은 npx tsx prisma/seed.ts 또는 /api/admin/cosmetics/seed (코스메틱) 사용',
     })
 }

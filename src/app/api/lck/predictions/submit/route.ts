@@ -19,9 +19,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'matchId, predictedWinner는 필수입니다.' }, { status: 400 })
     }
 
-    // 스코어 유효성 검사
-    if (predictedScore && !['2:0', '2:1'].includes(predictedScore)) {
-        return NextResponse.json({ error: '유효한 스코어: 2:0 또는 2:1' }, { status: 400 })
+    // 스코어 유효성 검사 — BO3/BO5에 따라 허용 스코어 분기
+    // (match.bestOf 확인 전에 먼저 형식 체크)
+    if (predictedScore) {
+        const scoreParts = predictedScore.split(':').map(Number)
+        if (scoreParts.length !== 2 || scoreParts.some(isNaN)) {
+            return NextResponse.json({ error: '스코어 형식이 올바르지 않습니다. (예: 2:0, 3:1)' }, { status: 400 })
+        }
     }
 
     // 경기 존재 + 상태 확인
@@ -45,6 +49,20 @@ export async function POST(req: NextRequest) {
     } else {
         // scheduledAt이 없으면 예측 불가 — TBD 경기 차단
         return NextResponse.json({ error: '경기 일정이 확정되지 않았습니다. 일정 확정 후 예측 가능합니다.' }, { status: 400 })
+    }
+
+    // ✅ C-2 수정: BO3/BO5 기반 스코어 유효성 검사 (match.bestOf 확인 후)
+    if (predictedScore) {
+        const winCount = Math.ceil(match.bestOf / 2) // BO3→2, BO5→3
+        const validScores = Array.from({ length: winCount }, (_, i) =>
+            `${winCount}:${i}` // "2:0", "2:1" 또는 "3:0", "3:1", "3:2"
+        )
+        if (!validScores.includes(predictedScore)) {
+            return NextResponse.json(
+                { error: `유효한 스코어: ${validScores.join(' 또는 ')} (BO${match.bestOf})` },
+                { status: 400 }
+            )
+        }
     }
 
     // 팀 코드 유효성

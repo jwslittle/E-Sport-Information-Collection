@@ -94,7 +94,6 @@ export async function GET(req: NextRequest) {
             userId: row.userId,
             userName: row.user.name ?? null,
             image: row.user.image ?? null,
-            teamName: null,
             title: row.user.profile?.displayTitle ?? null,
             favoriteTeam: row.user.profile?.favoriteTeam ?? null,
             total: row.total,
@@ -111,8 +110,14 @@ export async function GET(req: NextRequest) {
         const myIdx = rows.findIndex(r => r.userId === currentUserId)
         if (myIdx !== -1) {
             const myRow = rows[myIdx]
+            // ✅ M-1 수정: 동점(accuracy 동일) 시 같은 순위 부여
+            let myRankNum = 1
+            let prevAcc: number | null = null
+            for (let i = 0; i <= myIdx; i++) {
+                if (rows[i].accuracy !== prevAcc) { myRankNum = i + 1; prevAcc = rows[i].accuracy }
+            }
             myRank = {
-                rank: myIdx + 1,
+                rank: myRankNum,
                 total: myRow.total,
                 correct: myRow.correct,
                 accuracy: myRow.accuracy,
