@@ -185,12 +185,14 @@ export default function AdminPage() {
         setSeedLoading(true)
         setSeedResult(null)
         try {
-            const res = await fetch('/api/admin/cosmetics/seed', { method: 'POST' })
-            const d   = await res.json()
+            const res  = await fetch('/api/admin/cosmetics/seed', { method: 'POST' })
+            const text = await res.text()
+            let d: Record<string, any>
+            try { d = JSON.parse(text) } catch { d = { error: `응답 파싱 실패 (HTTP ${res.status}): ${text.slice(0, 300)}` } }
             if (res.ok) setSeedResult({ type: 'success', text: `완료 — 등록 ${d.created}개 · 업데이트 ${d.updated}개 · 비활성화 ${d.deactivated}개 · 스킵 ${d.skipped}개` })
-            else        setSeedResult({ type: 'error',   text: d.error ?? 'Failed' })
-        } catch {
-            setSeedResult({ type: 'error', text: '오류 발생' })
+            else        setSeedResult({ type: 'error',   text: d.error ?? `HTTP ${res.status}` })
+        } catch (e: unknown) {
+            setSeedResult({ type: 'error', text: e instanceof Error ? e.message : '네트워크 오류' })
         } finally {
             setSeedLoading(false)
         }

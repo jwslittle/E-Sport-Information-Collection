@@ -237,59 +237,71 @@ export async function POST() {
         return NextResponse.json({ error: 'Admin only' }, { status: 403 })
     }
 
-    // ── 1. 제거된 팀 로고 아이템 비활성화 ─────────────────────────────────
-    const deactivated = await prisma.cosmeticItem.updateMany({
-        where: { name: { in: DEPRECATED_NAMES }, isActive: true },
-        data: { isActive: false },
-    })
-
-    // ── 2. 아이템 시딩 (생성 / 업데이트) ──────────────────────────────────
-    let created = 0
-    let skipped = 0
-    let updated = 0
-
-    for (const item of SEED_ITEMS) {
-        const existing = await prisma.cosmeticItem.findFirst({
-            where: { name: item.name, type: item.type }
+    try {
+        // ── 1. 제거된 팀 로고 아이템 비활성화 ─────────────────────────────────
+        const deactivated = await prisma.cosmeticItem.updateMany({
+            where: { name: { in: DEPRECATED_NAMES }, isActive: true },
+            data: { isActive: false },
         })
 
-        if (existing) {
-            // 가격·설명이 변경됐으면 업데이트 + 활성화 보장
-            if (
-                existing.gpCost !== item.gpCost ||
-                existing.description !== item.description ||
-                !existing.isActive
-            ) {
-                await prisma.cosmeticItem.update({
-                    where: { id: existing.id },
-                    data: {
-                        gpCost: item.gpCost,
-                        description: item.description,
-                        isActive: true,
-                    },
-                })
-                updated++
-            } else {
-                skipped++
+        // ── 2. 아이템 시딩 (생성 / 업데이트) ──────────────────────────────────
+        let created = 0
+        let skipped = 0
+        let updated = 0
+
+        for (const item of SEED_ITEMS) {
+            const existing = await prisma.cosmeticItem.findFirst({
+                where: { name: item.name, type: item.type }
+            })
+
+            if (existing) {
+                // 가격·설명이 변경됐으면 업데이트 + 활성화 보장
+                if (
+                    existing.gpCost !== item.gpCost ||
+                    existing.description !== item.description ||
+                    !existing.isActive
+                ) {
+                    await prisma.cosmeticItem.update({
+                        where: { id: existing.id },
+                        data: {
+                            gpCost: item.gpCost,
+                            description: item.description,
+                            isActive: true,
+                        },
+                    })
+                    updated++
+                } else {
+                    skipped++
+                }
+                continue
             }
-            continue
+
+            // titleText가 없는 아이템은 undefined 대신 null로 명시 (DB 호환)
+            const { titleText, ...rest } = item as any
+            await prisma.cosmeticItem.create({
+                data: { ...rest, titleText: titleText ?? null, isActive: true }
+            })
+            created++
         }
 
-        await prisma.cosmeticItem.create({
-            data: { ...item, isActive: true }
+        return NextResponse.json({
+            ok: true,
+            deactivated: deactivated.count,
+            created,
+            updated,
+            skipped,
+            total: SEED_ITEMS.length,
+            message: `비활성화 ${deactivated.count}개 · 생성 ${created}개 · 업데이트 ${updated}개 · 스킵 ${skipped}개`,
         })
-        created++
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        const code = (err as any)?.code ?? null
+        console.error('[Cosmetics Seed] 시딩 실패:', message)
+        return NextResponse.json(
+            { error: message, code },
+            { status: 500 }
+        )
     }
-
-    return NextResponse.json({
-        ok: true,
-        deactivated: deactivated.count,
-        created,
-        updated,
-        skipped,
-        total: SEED_ITEMS.length,
-        message: `비활성화 ${deactivated.count}개 · 생성 ${created}개 · 업데이트 ${updated}개 · 스킵 ${skipped}개`,
-    })
 }
 
 export async function GET() {
