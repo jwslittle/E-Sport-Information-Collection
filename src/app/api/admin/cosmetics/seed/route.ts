@@ -24,6 +24,7 @@ const DEPRECATED_NAMES = [
     'T1 로고', 'GEN.G 로고', 'HLE 로고', 'KT 로고',   // 팀 로고 스티커
     'T1 프레임', 'GEN.G 프레임',                        // 팀 로고 프레임
     'T1 본진',                                          // 팀 브랜딩 배경
+    '가챠 중독',                                        // 운영 정책상 제거
 ]
 
 const SEED_ITEMS = [

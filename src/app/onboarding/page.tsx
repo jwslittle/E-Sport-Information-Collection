@@ -148,7 +148,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <p className="text-center text-xs text-zinc-700 mt-4">
-                    E-Sport SuperTeam — LCK 팬 커뮤니티
+                    E-Sport Information Collection — LCK 팬 커뮤니티
                 </p>
             </div>
         </div>

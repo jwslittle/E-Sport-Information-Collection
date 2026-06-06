@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: '개인정보처리방침 | E-Sport SuperTeam',
-    description: 'E-Sport SuperTeam 개인정보처리방침',
+    title: '개인정보처리방침 | E-Sport Information Collection',
+    description: 'E-Sport Information Collection 개인정보처리방침',
 }
 
 export default function PrivacyPage() {
-    const lastUpdated = '2026년 6월 6일 (3차 개정)'
+    const lastUpdated = '2026년 6월 6일 (4차 개정)'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
                 {/* ✅ H-13 수정: 활동 데이터 수집 항목 상세 명시 (PIPA 제15조) */}
                 <section>
                     <h2 className="text-base font-bold text-white mb-3">1. 수집하는 개인정보</h2>
-                    <p className="mb-2">E-Sport SuperTeam(이하 "서비스")은 Google 로그인을 통해 다음 정보를 수집합니다:</p>
+                    <p className="mb-2">E-Sport Information Collection(이하 "서비스")은 Google 로그인을 통해 다음 정보를 수집합니다:</p>
 
                     <p className="font-medium text-zinc-300 mt-3 mb-1">■ Google 계정 정보 (최초 로그인 시 수집)</p>
                     <ul className="ml-4 space-y-1 list-disc text-zinc-400">
@@ -110,6 +110,11 @@ export default function PrivacyPage() {
                                     <td className="py-2">미국</td>
                                 </tr>
                                 <tr className="border-b border-zinc-800">
+                                    <td className="py-2 pr-4">LangChain, Inc. (LangSmith)</td>
+                                    <td className="py-2 pr-4">AI 채팅 트레이싱·모니터링</td>
+                                    <td className="py-2">미국</td>
+                                </tr>
+                                <tr className="border-b border-zinc-800">
                                     <td className="py-2 pr-4">Functional Software Inc. (Sentry)</td>
                                     <td className="py-2 pr-4">서비스 오류 모니터링 및 에러 로그 수집</td>
                                     <td className="py-2">미국</td>
@@ -125,6 +130,8 @@ export default function PrivacyPage() {
                     <p className="mt-2 text-zinc-500 text-xs">
                         * OpenAI에는 사용자가 AI 채팅창에 직접 입력한 내용만 전송됩니다.
                           이름, 이메일 등 계정 정보는 전송되지 않습니다.<br />
+                        * LangSmith(LangChain)에는 AI 분석가 질문 내용이 모니터링 목적으로 전송됩니다.
+                          비활성화(LANGCHAIN_TRACING_V2=false) 시 전송되지 않습니다.<br />
                         * Sentry에는 서비스 오류 발생 시 에러 내용 및 요청 정보가 전송됩니다.
                           사용자가 직접 입력한 개인정보는 전송되지 않습니다.<br />
                         * Upstash에는 API 남용 방지를 위한 요청 횟수 추적 목적으로 요청 IP가 일시 저장됩니다.
@@ -144,6 +151,7 @@ export default function PrivacyPage() {
                         <li>Neon Inc. — SOC 2 인증, 데이터 암호화</li>
                         <li>Cloudinary Ltd. — ISO 27001 인증, GDPR 준수</li>
                         <li>OpenAI LLC — API 데이터 처리 계약(DPA) 적용</li>
+                        <li>LangChain, Inc. (LangSmith) — 개인정보 처리 계약(DPA) 적용</li>
                         <li>Functional Software Inc. (Sentry) — SOC 2 Type 2 인증, GDPR 준수</li>
                         <li>Upstash Inc. — SOC 2 인증, GDPR 준수</li>
                     </ul>
