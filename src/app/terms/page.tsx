@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: '이용약관 | E-Sport Information Collection',
-    description: 'E-Sport Information Collection 이용약관',
+    title: '이용약관 | E-Sport SuperTeam',
+    description: 'E-Sport SuperTeam 이용약관',
 }
 
 export default function TermsPage() {
-    const lastUpdated = '2026년 6월 5일'
+    const lastUpdated = '2026년 6월 6일'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -19,7 +19,7 @@ export default function TermsPage() {
                 <section>
                     <h2 className="text-base font-bold text-white mb-3">1. 서비스 소개</h2>
                     <p>
-                        E-Sport Information Collection(이하 "서비스")은 LCK(League Champions Korea) 팬을 위한
+                        E-Sport SuperTeam(이하 "서비스")은 LCK(League Champions Korea) 팬을 위한
                         비상업적 팬 프로젝트입니다. 경기 예측, 퀴즈, 팀 정보, 커뮤니티 기능을 제공합니다.
                     </p>
                 </section>
@@ -120,7 +120,7 @@ export default function TermsPage() {
 
                 <div className="pt-6 border-t border-zinc-800 text-xs text-zinc-600">
                     <p>
-                        E-Sport Information Collection은 Riot Games의 공식 서비스가 아닙니다.
+                        E-Sport SuperTeam은 Riot Games의 공식 서비스가 아닙니다.
                         Riot Games는 본 서비스를 보증하거나 후원하지 않습니다.
                     </p>
                 </div>

@@ -99,13 +99,13 @@ export async function GET() {
         })
 
         const systemPrompt = `당신은 LCK(리그 오브 레전드 챔피언스 코리아) 전문 분석가입니다.
-주어진 경기 일정/결과를 바탕으로 판타지 리그 참가자에게 유용한 팁을 한 문장으로 제공하세요.
+주어진 경기 일정/결과를 바탕으로 LCK 팬에게 유용한 관전 인사이트를 한 문장으로 제공하세요.
 특정 선수나 팀의 강점을 언급하고, 전문적이면서 친근한 톤으로 한국어로 작성하세요.
-예시: "이번 T1전에서는 제우스의 탑 캐리력이 기대되니, 탑 라이너 슬롯에 주목해보세요."`
+예시: "이번 T1전에서는 제우스의 솔로 캐리력이 기대되니, 탑 라인 지표를 주목해보세요."`
 
         const response = await chat.invoke([
             new SystemMessage(systemPrompt),
-            new HumanMessage(`${matchContext}\n\n판타지 리그 참가자를 위한 한 문장 팁을 제공해주세요.`)
+            new HumanMessage(`${matchContext}\n\nLCK 팬을 위한 한 문장 경기 인사이트를 제공해주세요.`)
         ])
 
         const tip = response.content.toString().trim()
@@ -119,6 +119,6 @@ export async function GET() {
 
     } catch (error) {
         console.error('AI Briefing Error:', error)
-        return NextResponse.json({ tip: "LCK 판타지 리그에 오신 것을 환영합니다! 나만의 드림팀을 구성해보세요." })
+        return NextResponse.json({ tip: "LCK e스포츠의 세계에 오신 것을 환영합니다! 경기 예측과 퀴즈로 실력을 겨뤄보세요." })
     }
 }

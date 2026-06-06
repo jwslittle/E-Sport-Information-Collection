@@ -51,8 +51,9 @@ export async function GET(req: Request) {
         }))
     }
 
-    // 기본: GP 기준 글로벌 랭킹
+    // 기본: GP 기준 글로벌 랭킹 (ADMIN 제외 — 테스트 GP가 랭킹 오염 방지)
     const users = await prisma.user.findMany({
+        where: { role: { not: 'ADMIN' } },
         select: {
             id: true, name: true, image: true, gp: true, role: true,
             profile: { select: { displayTitle: true } },

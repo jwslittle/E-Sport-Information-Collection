@@ -252,8 +252,9 @@ export async function GET(req: Request) {
                 const live = await loadLiveStats(type, lookupKey)
                 data = data.concat(live)
             }
-        } else if ((year === '2026' || !year) && !has2026Json && (year === '2026')) {
+        } else if (year === '2026' && !has2026Json) {
             // 2026 단일 선택 & JSON 없음 → DB 라이브
+            // ✅ Q-2 수정: 이전 조건 `(!year)` 은 `(year === '2026')` 과 AND라 dead code였음
             data = await loadLiveStats(type, lookupKey)
         } else {
             data = loadStats(year || '2025', type, lookupKey)

@@ -55,8 +55,13 @@ export async function GET() {
                 })
                 const userMap = new Map(users.map(u => [u.id, u]))
 
-                return withAccuracy.map((r, i) => ({
-                    rank: i + 1,
+                // ✅ C-3 수정: 동점 처리 — leaderboard API와 동일한 방식
+                let currentRank = 0
+                let prevAccuracy: number | null = null
+                return withAccuracy.map((r, i) => {
+                    if (r.accuracy !== prevAccuracy) { currentRank = i + 1; prevAccuracy = r.accuracy }
+                    return {
+                    rank: currentRank,
                     userId: r.userId,
                     userName: userMap.get(r.userId)?.name ?? '익명',
                     image: userMap.get(r.userId)?.image ?? null,
@@ -65,7 +70,8 @@ export async function GET() {
                     accuracy: r.accuracy,
                     gpEarned: r.gpEarned,
                     isMe: r.userId === session.user.id,
-                }))
+                }
+                })
             }),
 
             // 3. 오늘의 퀴즈 참여자 수

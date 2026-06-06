@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-    title: '개인정보처리방침 | E-Sport Information Collection',
-    description: 'E-Sport Information Collection 개인정보처리방침',
+    title: '개인정보처리방침 | E-Sport SuperTeam',
+    description: 'E-Sport SuperTeam 개인정보처리방침',
 }
 
 export default function PrivacyPage() {
-    const lastUpdated = '2026년 6월 5일 (2차 개정)'
+    const lastUpdated = '2026년 6월 6일 (3차 개정)'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
                 {/* ✅ H-13 수정: 활동 데이터 수집 항목 상세 명시 (PIPA 제15조) */}
                 <section>
                     <h2 className="text-base font-bold text-white mb-3">1. 수집하는 개인정보</h2>
-                    <p className="mb-2">E-Sport Information Collection(이하 "서비스")은 Google 로그인을 통해 다음 정보를 수집합니다:</p>
+                    <p className="mb-2">E-Sport SuperTeam(이하 "서비스")은 Google 로그인을 통해 다음 정보를 수집합니다:</p>
 
                     <p className="font-medium text-zinc-300 mt-3 mb-1">■ Google 계정 정보 (최초 로그인 시 수집)</p>
                     <ul className="ml-4 space-y-1 list-disc text-zinc-400">
@@ -119,11 +119,6 @@ export default function PrivacyPage() {
                                     <td className="py-2 pr-4">API 요청 빈도 제한(Rate Limiting) 처리</td>
                                     <td className="py-2">미국</td>
                                 </tr>
-                                <tr>
-                                    <td className="py-2 pr-4">LangChain Inc. (LangSmith)</td>
-                                    <td className="py-2 pr-4">AI 채팅 서비스 품질 모니터링 (개발·운영 환경)</td>
-                                    <td className="py-2">미국</td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -132,9 +127,7 @@ export default function PrivacyPage() {
                           이름, 이메일 등 계정 정보는 전송되지 않습니다.<br />
                         * Sentry에는 서비스 오류 발생 시 에러 내용 및 요청 정보가 전송됩니다.
                           사용자가 직접 입력한 개인정보는 전송되지 않습니다.<br />
-                        * Upstash에는 API 남용 방지를 위한 요청 횟수 추적 목적으로 요청 IP가 일시 저장됩니다.<br />
-                        * LangSmith에는 AI 채팅 서비스 개선 목적으로 입력 메시지 및 AI 응답이 전송될 수 있습니다.
-                          개인 식별 정보(이름, 이메일)는 포함되지 않으며, 운영 환경에서 비활성화 가능합니다.
+                        * Upstash에는 API 남용 방지를 위한 요청 횟수 추적 목적으로 요청 IP가 일시 저장됩니다.
                     </p>
                 </section>
 
@@ -153,7 +146,6 @@ export default function PrivacyPage() {
                         <li>OpenAI LLC — API 데이터 처리 계약(DPA) 적용</li>
                         <li>Functional Software Inc. (Sentry) — SOC 2 Type 2 인증, GDPR 준수</li>
                         <li>Upstash Inc. — SOC 2 인증, GDPR 준수</li>
-                        <li>LangChain Inc. (LangSmith) — GDPR 준수, 데이터 처리 계약(DPA) 적용</li>
                     </ul>
                     <p className="mt-2 text-zinc-500 text-xs">
                         이전 목적: 서비스 제공 및 운영 유지.<br />

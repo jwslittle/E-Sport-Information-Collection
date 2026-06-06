@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { SEASON_OPTIONS } from '@/lib/config/season'
 
 export const dynamic = 'force-dynamic'
 
@@ -138,8 +139,9 @@ export async function POST() {
 
     // ──────────────────────────────────────────────────────────────
     // 2. 시즌 팀 전적 기반 문항 (상위 승수 팀)
+    // ✅ Q-1 수정: SEASON_OPTIONS에서 자동으로 가져옴 (시즌 전환 시 season.ts만 수정하면 됨)
     // ──────────────────────────────────────────────────────────────
-    const seasons = ['2026-SPLIT2', '2026-SPLIT1', '2025-SUMMER']
+    const seasons = SEASON_OPTIONS.map(s => s.value)
     for (const season of seasons) {
         const seasonLabel = season.replace('-SPLIT', ' Split ').replace('-SUMMER', ' Summer').replace('-SPRING', ' Spring ')
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { updateQuestProgress } from '@/lib/quest-utils'
 
 /**
  * 완료된 경기의 예측을 자동 정산하고 GP 지급
@@ -70,6 +71,15 @@ async function autoProcess(userId: string) {
                     })
                 }
             })
+
+            // ✅ C-2 수정: 퀘스트 진행도 업데이트 (cron/prediction-process.service와 동일한 로직)
+            // 트랜잭션 성공 후 fire-and-forget — 여기서 처리하지 않으면 cron이 isProcessed:true로
+            // 스킵하여 퀘스트가 영구적으로 업데이트되지 않음
+            if (winnerCorrect) {
+                updateQuestProgress(pred.userId, 'PREDICT_CORRECT').catch(() => {})
+            } else {
+                updateQuestProgress(pred.userId, 'PREDICT_WRONG').catch(() => {})
+            }
 
             gpTotal += gpEarned
         } catch (err) {
