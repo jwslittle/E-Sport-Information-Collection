@@ -10,6 +10,7 @@ import prisma from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: Request, { params }: { params: Promise<{ userId: string }> }) {
+    try {
     const session = await getServerSession(authOptions)
     const myId = (session?.user as any)?.id
     const { userId } = await params
@@ -102,4 +103,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ userId: 
             likeCount: p._count.likes,
         })),
     })
+    } catch (error) {
+        console.error('[GET /api/users/[userId]] Error:', error)
+        return NextResponse.json({ error: '프로필을 불러올 수 없습니다.' }, { status: 500 })
+    }
 }

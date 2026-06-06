@@ -41,9 +41,9 @@ export const DATA_SOURCES = [
         type: "JSON",
     },
     {
-        name: "Leaguepedia API",
-        url: "https://lol.fandom.com/api.php",
-        description: "Community wiki API. Good for historical match results, roster changes, and tournament info. Requires parsing MediaWiki format.",
+        name: "LoL Esports API (현재 사용 중)",
+        url: "https://esports-api.lolesports.com/persisted/gw",
+        description: "Riot Games 공식 e스포츠 데이터 API. LCK 경기 일정, 결과, 팀 정보를 제공합니다. x-api-key 헤더 필요. 비상업적 팬 프로젝트용으로만 사용.",
         type: "API",
     },
     {

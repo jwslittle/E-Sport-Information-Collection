@@ -1,6 +1,7 @@
 /**
  * POST /api/users/onboard — 최초 로그인 시 닉네임 설정
  * 닉네임을 User.name에 저장하고 isOnboarded = true로 설정
+ * ✅ PIPA 제15조: termsAgreed=true 전달 시 termsAgreedAt(동의 시각)을 DB에 기록
  */
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     const userId = session.user.id
 
     const body = await req.json().catch(() => ({}))
-    const { nickname } = body as { nickname?: string }
+    const { nickname, termsAgreed } = body as { nickname?: string; termsAgreed?: boolean }
 
     if (!nickname?.trim()) {
         return NextResponse.json({ error: '닉네임을 입력해주세요.' }, { status: 400 })
@@ -48,9 +49,14 @@ export async function POST(req: Request) {
     }
 
     // 닉네임 저장 + 온보딩 완료 처리
+    // ✅ PIPA 제15조: termsAgreed=true면 동의 시각 기록 (법적 증거 보존)
     await prisma.user.update({
         where: { id: userId },
-        data: { name: trimmed, isOnboarded: true },
+        data: {
+            name: trimmed,
+            isOnboarded: true,
+            ...(termsAgreed ? { termsAgreedAt: new Date() } : {}),
+        },
     })
 
     return NextResponse.json({ success: true, nickname: trimmed })

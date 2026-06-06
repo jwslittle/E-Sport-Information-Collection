@@ -49,6 +49,7 @@ model User {
   image         String?
   role          String    @default("USER") // USER, ADMIN
   isOnboarded   Boolean   @default(false) // 최초 로그인 후 닉네임 설정 완료 여부
+  termsAgreedAt DateTime?              // ✅ PIPA 제15조: 약관 동의 시각 기록 (신규 회원 온보딩 시 저장)
 
   // Game Data
   gp              Int       @default(100) // Game Points

@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from 'sonner'
-import { Loader2, UserCheck, Sparkles } from 'lucide-react'
+import { Loader2, UserCheck, Sparkles, AlertCircle } from 'lucide-react'
 
 // 허용 문자: 한글, 영문, 숫자, 언더스코어 (2~15자)
 const NICKNAME_REGEX = /^[가-힣a-zA-Z0-9_]{2,15}$/
@@ -28,18 +29,30 @@ export default function OnboardingPage() {
     const [nickname, setNickname] = useState(googleName)
     const [submitting, setSubmitting] = useState(false)
 
+    // ✅ PIPA 제15조: 온보딩 단계에서 약관 동의 재확인 및 DB 저장
+    const [termsAgreed, setTermsAgreed] = useState(false)
+    const [ageConfirmed, setAgeConfirmed] = useState(false)
+    const [showTermsError, setShowTermsError] = useState(false)
+
     const validationResult = validate(nickname)
     const isValid = validationResult === 'ok'
     const errorMsg = validationResult && validationResult !== 'ok' ? validationResult : null
 
     const handleSubmit = async () => {
         if (!isValid) return
+
+        // 약관 미동의 시 차단
+        if (!termsAgreed || !ageConfirmed) {
+            setShowTermsError(true)
+            return
+        }
+
         setSubmitting(true)
         try {
             const res = await fetch('/api/users/onboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nickname: nickname.trim() }),
+                body: JSON.stringify({ nickname: nickname.trim(), termsAgreed: true }),
             })
             const data = await res.json()
 
@@ -92,6 +105,46 @@ export default function OnboardingPage() {
 
                     <hr className="border-zinc-800" />
 
+                    {/* ✅ PIPA 제15조 — 약관 동의 (신규 가입 시 DB에 동의 시각 저장) */}
+                    <div className="space-y-3 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                        <p className="text-xs text-zinc-400 font-medium">서비스 이용 약관 동의 (필수)</p>
+
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={termsAgreed}
+                                onChange={e => { setTermsAgreed(e.target.checked); setShowTermsError(false) }}
+                                className="mt-0.5 h-4 w-4 rounded border-zinc-600 accent-yellow-500 cursor-pointer"
+                            />
+                            <span className="text-xs text-zinc-300 leading-relaxed group-hover:text-white transition-colors">
+                                <Link href="/terms" className="text-yellow-400 hover:text-yellow-300 underline" target="_blank">이용약관</Link>
+                                {' '}및{' '}
+                                <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300 underline" target="_blank">개인정보처리방침</Link>
+                                에 동의합니다.
+                            </span>
+                        </label>
+
+                        {/* ✅ PIPA 제22조의2 — 만 14세 미만 가입 차단 */}
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={ageConfirmed}
+                                onChange={e => { setAgeConfirmed(e.target.checked); setShowTermsError(false) }}
+                                className="mt-0.5 h-4 w-4 rounded border-zinc-600 accent-yellow-500 cursor-pointer"
+                            />
+                            <span className="text-xs text-zinc-300 leading-relaxed group-hover:text-white transition-colors">
+                                만 14세 이상입니다.
+                            </span>
+                        </label>
+
+                        {showTermsError && (
+                            <div className="flex items-center gap-2 text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg p-2">
+                                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                약관에 동의하셔야 가입이 가능합니다.
+                            </div>
+                        )}
+                    </div>
+
                     {/* 안내문 */}
                     <div className="space-y-1.5">
                         <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -118,7 +171,7 @@ export default function OnboardingPage() {
                         {/* 에러 or 글자수 */}
                         <div className="flex items-center justify-between">
                             <span className={`text-xs ${errorMsg ? 'text-red-400' : 'text-zinc-600'}`}>
-                                {errorMsg ?? ' '}
+                                {errorMsg ?? ' '}
                             </span>
                             <span className="text-xs text-zinc-600">
                                 {nickname.length} / 15
@@ -136,7 +189,7 @@ export default function OnboardingPage() {
                     {/* 시작 버튼 */}
                     <Button
                         onClick={handleSubmit}
-                        disabled={!isValid || submitting}
+                        disabled={!isValid || !termsAgreed || !ageConfirmed || submitting}
                         className="w-full h-12 text-base font-bold bg-yellow-500 hover:bg-yellow-600 text-black disabled:opacity-40"
                     >
                         {submitting ? (
