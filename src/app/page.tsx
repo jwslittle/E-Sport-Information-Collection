@@ -19,6 +19,8 @@ interface UpcomingMatch {
     id: string
     team1: string
     team2: string
+    team1Name: string | null
+    team2Name: string | null
     team1Logo: string | null
     team2Logo: string | null
     scheduledAt: string | null
@@ -372,14 +374,17 @@ function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) 
 
             {/* 팀1 */}
             <div className="flex items-center gap-2 flex-1 justify-end">
-                <span className="font-black text-sm" style={{ color: t1Color ?? '#fff' }}>{match.team1}</span>
+                {/* 표시 이름: team1Name(풀네임) 우선, 없으면 team1 코드 fallback */}
+                <span className="font-black text-sm" style={{ color: t1Color ?? '#fff' }}>
+                    {match.team1Name || match.team1}
+                </span>
                 {match.team1Logo && !t1Err ? (
-                    <img src={match.team1Logo} alt={match.team1} className="w-8 h-8 object-contain"
+                    <img src={match.team1Logo} alt={match.team1Name || match.team1} className="w-8 h-8 object-contain"
                         onError={() => setT1Err(true)} />
                 ) : (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
                         style={{ background: (t1Color ?? '#71717a') + '22', color: t1Color ?? '#71717a', border: `1.5px solid ${t1Color ?? '#71717a'}` }}>
-                        {match.team1.slice(0, 3)}
+                        {(match.team1Name || match.team1).slice(0, 3)}
                     </div>
                 )}
             </div>
@@ -390,15 +395,18 @@ function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) 
             {/* 팀2 */}
             <div className="flex items-center gap-2 flex-1">
                 {match.team2Logo && !t2Err ? (
-                    <img src={match.team2Logo} alt={match.team2} className="w-8 h-8 object-contain"
+                    <img src={match.team2Logo} alt={match.team2Name || match.team2} className="w-8 h-8 object-contain"
                         onError={() => setT2Err(true)} />
                 ) : (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
                         style={{ background: (t2Color ?? '#71717a') + '22', color: t2Color ?? '#71717a', border: `1.5px solid ${t2Color ?? '#71717a'}` }}>
-                        {match.team2.slice(0, 3)}
+                        {(match.team2Name || match.team2).slice(0, 3)}
                     </div>
                 )}
-                <span className="font-black text-sm" style={{ color: t2Color ?? '#fff' }}>{match.team2}</span>
+                {/* 표시 이름: team2Name(풀네임) 우선, 없으면 team2 코드 fallback */}
+                <span className="font-black text-sm" style={{ color: t2Color ?? '#fff' }}>
+                    {match.team2Name || match.team2}
+                </span>
             </div>
 
             {/* 예측 버튼 */}

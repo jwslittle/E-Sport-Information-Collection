@@ -117,6 +117,10 @@ export async function syncCurrentSeason(
                     syncedAt: new Date(),
                 },
                 update: {
+                    // ✅ TBD → 팀 확정 시 코드/이름/로고 모두 갱신
+                    // (이전: team1/team2 코드가 update에 없어 TBD가 영구 잔류하는 버그)
+                    team1: matchData.team1,
+                    team2: matchData.team2,
                     team1Name: matchData.team1Name,
                     team2Name: matchData.team2Name,
                     team1Logo: matchData.team1Logo,
@@ -124,6 +128,8 @@ export async function syncCurrentSeason(
                     team1Score: matchData.team1Score,
                     team2Score: matchData.team2Score,
                     winner: matchData.winner,
+                    bestOf: matchData.bestOf,
+                    scheduledAt: matchData.scheduledAt,
                     status: matchData.status,
                     completedAt: matchData.completedAt,
                     syncedAt: new Date(),
