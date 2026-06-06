@@ -49,31 +49,37 @@ export async function proxy(req: NextRequest) {
     if (path.startsWith("/api/")) {
         // Cron 엔드포인트는 CRON_SECRET으로 자체 인증 — Rate Limiting 제외
         if (!path.startsWith("/api/cron/") && !path.startsWith("/api/auth/")) {
-            const { general, strict } = getLimiters()
+            try {
+                const { general, strict } = getLimiters()
 
-            // AI 채팅은 더 엄격하게 제한
-            const limiter = path.startsWith("/api/chat") ? strict : general
+                // AI 채팅은 더 엄격하게 제한
+                const limiter = path.startsWith("/api/chat") ? strict : general
 
-            if (limiter) {
-                const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
-                    ?? req.headers.get("x-real-ip")
-                    ?? "anonymous"
+                if (limiter) {
+                    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+                        ?? req.headers.get("x-real-ip")
+                        ?? "anonymous"
 
-                const { success, limit, remaining, reset } = await limiter.limit(`${ip}`)
+                    const { success, limit, remaining, reset } = await limiter.limit(`${ip}`)
 
-                if (!success) {
-                    return NextResponse.json(
-                        { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
-                        {
-                            status: 429,
-                            headers: {
-                                "X-RateLimit-Limit": String(limit),
-                                "X-RateLimit-Remaining": String(remaining),
-                                "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
-                            },
-                        }
-                    )
+                    if (!success) {
+                        return NextResponse.json(
+                            { error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+                            {
+                                status: 429,
+                                headers: {
+                                    "X-RateLimit-Limit": String(limit),
+                                    "X-RateLimit-Remaining": String(remaining),
+                                    "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+                                },
+                            }
+                        )
+                    }
                 }
+            } catch (e) {
+                // ✅ Upstash 연결 실패 시 미들웨어 크래시 방지 — 레이트리밋 우회 후 요청 통과
+                // 미들웨어가 죽으면 모든 API가 "Internal Server Error"를 반환하므로 반드시 catch 필요
+                console.error('[Rate Limit] Upstash 연결 실패, 레이트리밋 비활성화:', e)
             }
         }
         return NextResponse.next()
