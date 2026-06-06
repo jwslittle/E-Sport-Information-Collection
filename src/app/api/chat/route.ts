@@ -20,6 +20,17 @@ const INJECTION_PATTERNS = [
     /roleplay\s+as/i,
 ]
 
+// ── 판타지 리그 패턴 (서비스 종료 — e스포츠 키워드 여부와 무관하게 항상 차단) ──
+const FANTASY_PATTERNS = [
+    /판타지\s*(리그|팀|선수|포인트|팀편성|draft)/i,
+    /가상\s*(선수|팀)/,
+    /\b(NGD|VTX|IFN|SSK|NWV|SFX|BTN|FGN|CDR|AKT)\b/,  // 가상 팀 코드
+    /\b(Blaze|Echo|Sniper|Phantom|Viper|Storm|Frost|Cipher|Aurora|Neon)\b.*선수/i,
+    /salary\s*cap|샐러리\s*캡/i,
+    /판타지.*포인트|포인트.*판타지/,
+    /팀\s*편성.*판타지|판타지.*팀\s*편성/,
+]
+
 // ── 명백히 무관한 주제 패턴 ─────────────────────────────────────────────────
 // e스포츠 키워드가 하나라도 있으면 AI에게 위임 — 경계 케이스는 시스템 프롬프트가 처리
 const OFF_TOPIC_PATTERNS = [
@@ -31,7 +42,8 @@ const OFF_TOPIC_PATTERNS = [
     /법률|변호사|소송|판결/,
     /연애|사랑|이성|소개팅/,
 ]
-const ESPORTS_KEYWORDS = /게임|esport|e스포츠|lck|lol|리그|선수|팀|판타지|경기|챔피언|포지션|미드|정글|원딜|서폿|탑|gp|포인트|통계|kda|cs/i
+// 판타지 관련 키워드는 ESPORTS_KEYWORDS에서 제외 — 판타지 질문이 우회되지 않도록
+const ESPORTS_KEYWORDS = /esport|e스포츠|lck|lol|리그|선수|팀|경기|챔피언|포지션|미드|정글|원딜|서폿|탑|통계|kda|cs|gp/i
 
 export async function POST(req: NextRequest) {
     try {
@@ -79,15 +91,23 @@ export async function POST(req: NextRequest) {
         // 2-A. 프롬프트 인젝션 차단
         if (INJECTION_PATTERNS.some(p => p.test(userText))) {
             return NextResponse.json(
-                { error: '허용되지 않는 요청 형식입니다. e스포츠/판타지 리그 관련 질문만 가능합니다.' },
+                { error: '허용되지 않는 요청 형식입니다. LCK e스포츠 관련 질문만 가능합니다.' },
                 { status: 400 }
             )
         }
 
-        // 2-B. 명백히 무관한 주제 차단 — 티켓 낭비 방지
+        // 2-B. 판타지 리그 차단 (서비스 종료 — 다른 검사보다 우선 적용)
+        if (FANTASY_PATTERNS.some(p => p.test(userText))) {
+            return NextResponse.json(
+                { error: '현재 판타지 리그 기능은 운영되지 않습니다. LCK 경기 정보 및 통계 관련 질문을 이용해주세요.' },
+                { status: 400 }
+            )
+        }
+
+        // 2-C. 명백히 무관한 주제 차단 — 티켓 낭비 방지
         if (OFF_TOPIC_PATTERNS.some(p => p.test(userText)) && !ESPORTS_KEYWORDS.test(userText)) {
             return NextResponse.json(
-                { error: 'AI 분석가는 e스포츠 및 판타지 리그 관련 질문에만 답변할 수 있습니다.' },
+                { error: 'AI 분석가는 LCK e스포츠 관련 질문에만 답변할 수 있습니다.' },
                 { status: 400 }
             )
         }
