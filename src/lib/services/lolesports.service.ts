@@ -187,6 +187,37 @@ export function getSeasonKeyFromDate(startTime: string): string {
 }
 
 /**
+ * 현재 진행 중인 LCK 경기 조회 (실시간 세트 스코어 포함)
+ *
+ * getLive 엔드포인트는 라이브 이벤트가 없으면 404를 반환할 수 있음 → 빈 배열 반환
+ */
+export async function fetchLiveLckMatches(): Promise<LoLEsportsEvent[]> {
+    if (!API_KEY) return []
+
+    let res: Response
+    try {
+        res = await fetch(`${BASE_URL}/getLive?hl=ko-KR`, {
+            headers: { 'x-api-key': API_KEY },
+            next: { revalidate: 0 },
+            signal: AbortSignal.timeout(6000),
+        })
+    } catch {
+        // 타임아웃 또는 네트워크 오류 → 라이브 섹션 비표시
+        return []
+    }
+
+    // 라이브 경기 없으면 404 반환하는 API 스펙
+    if (res.status === 404 || res.status === 204) return []
+    if (!res.ok) return []
+
+    const json = await res.json()
+    const events: LoLEsportsEvent[] = json?.data?.schedule?.events ?? []
+
+    // LCK 리그 & inProgress 상태만 필터
+    return events.filter(e => e.league?.slug === 'lck' && e.state === 'inProgress')
+}
+
+/**
  * LoL Esports 이벤트를 DB 저장용 포맷으로 변환
  */
 export function transformEventToMatch(event: LoLEsportsEvent) {

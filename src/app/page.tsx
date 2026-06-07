@@ -28,6 +28,21 @@ interface UpcomingMatch {
     bestOf: number
 }
 
+interface LiveMatch {
+    id: string | null
+    externalId: string
+    team1: string
+    team2: string
+    team1Name: string | null
+    team2Name: string | null
+    team1Logo: string | null
+    team2Logo: string | null
+    team1Score: number
+    team2Score: number
+    bestOf: number
+    scheduledAt: string | null
+}
+
 interface PredictionStats {
     total: number
     processed: number
@@ -59,6 +74,7 @@ interface QuizAnswer {
 export default function Home() {
     const { data: session } = useSession()
     const [upcomingMatches, setUpcomingMatches] = useState<UpcomingMatch[]>([])
+    const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([])
     const [myStats, setMyStats] = useState<PredictionStats | null>(null)
     const [userGp, setUserGp] = useState<number | null>(null)
     const [loading, setLoading] = useState(true)
@@ -72,6 +88,22 @@ export default function Home() {
 
     useEffect(() => {
         const t = setInterval(() => setNow(new Date()), 60000)
+        return () => clearInterval(t)
+    }, [])
+
+    // 진행 중인 경기 폴링 (30초마다, 라이브 스코어 실시간 반영)
+    useEffect(() => {
+        const fetchLive = async () => {
+            try {
+                const res = await fetch('/api/lck/live')
+                const data = await res.json()
+                setLiveMatches(data.matches ?? [])
+            } catch {
+                // 실패 시 조용히 무시 — 라이브 섹션 미표시
+            }
+        }
+        fetchLive()
+        const t = setInterval(fetchLive, 30000)
         return () => clearInterval(t)
     }, [])
 
@@ -158,33 +190,59 @@ export default function Home() {
             {/* ─── 그리드 레이아웃 ──────────────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-                {/* 다가오는 경기 (2/3) */}
-                <div className="md:col-span-2 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-base font-bold text-white flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-yellow-500" />
-                            다가오는 경기
-                        </h2>
-                        <Link href="/matches" className="text-zinc-500 text-xs hover:text-white flex items-center gap-1 transition-colors">
-                            전체 보기 <ChevronRight className="w-3 h-3" />
-                        </Link>
-                    </div>
+                {/* 왼쪽 패널: 진행 중인 경기 + 다가오는 경기 (2/3) */}
+                <div className="md:col-span-2 space-y-5">
 
-                    {loading ? (
-                        <div className="space-y-2">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="h-20 bg-zinc-900 border border-zinc-800 rounded-xl animate-pulse" />
+                    {/* ── 진행 중인 경기 ────────────────────────────── */}
+                    {liveMatches.length > 0 && (
+                        <div className="space-y-3">
+                            <h2 className="text-base font-bold text-white flex items-center gap-2">
+                                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                                </span>
+                                진행 중인 경기
+                            </h2>
+                            {liveMatches.map(match => (
+                                <LiveMatchCard key={match.externalId} match={match} />
                             ))}
                         </div>
-                    ) : upcomingMatches.length === 0 ? (
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center text-zinc-600 text-sm">
-                            예정된 경기가 없습니다
-                        </div>
-                    ) : (
-                        upcomingMatches.map(match => (
-                            <UpcomingMatchCard key={match.id} match={match} now={now} />
-                        ))
                     )}
+
+                    {/* ── 다가오는 경기 ─────────────────────────────── */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-base font-bold text-white flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-yellow-500" />
+                                다가오는 경기
+                            </h2>
+                            <Link href="/matches" className="text-zinc-500 text-xs hover:text-white flex items-center gap-1 transition-colors">
+                                전체 보기 <ChevronRight className="w-3 h-3" />
+                            </Link>
+                        </div>
+
+                        {loading ? (
+                            <div className="space-y-2">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-20 bg-zinc-900 border border-zinc-800 rounded-xl animate-pulse" />
+                                ))}
+                            </div>
+                        ) : (() => {
+                            // 현재 라이브인 경기는 다가오는 경기 목록에서 제거
+                            const filtered = upcomingMatches.filter(m =>
+                                !liveMatches.some(l => l.team1 === m.team1 && l.team2 === m.team2)
+                            )
+                            return filtered.length === 0 ? (
+                                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center text-zinc-600 text-sm">
+                                    예정된 경기가 없습니다
+                                </div>
+                            ) : (
+                                filtered.slice(0, 3).map(match => (
+                                    <UpcomingMatchCard key={match.id} match={match} now={now} />
+                                ))
+                            )
+                        })()}
+                    </div>
                 </div>
 
                 {/* 사이드 패널 (1/3) */}
@@ -323,6 +381,112 @@ export default function Home() {
                 </a>
                 {' '}· Riot Games Fan Content Policy 준수
             </p>
+        </div>
+    )
+}
+
+// ─── 진행 중인 경기 카드 ────────────────────────────────────────────────
+
+function LiveMatchCard({ match }: { match: LiveMatch }) {
+    const [t1Err, setT1Err] = useState(false)
+    const [t2Err, setT2Err] = useState(false)
+
+    const t1Color = TEAM_COLORS[match.team1]
+    const t2Color = TEAM_COLORS[match.team2]
+    const t1Leading = match.team1Score > match.team2Score
+    const t2Leading = match.team2Score > match.team1Score
+
+    return (
+        <div className="relative bg-gradient-to-br from-red-950/30 via-zinc-900 to-zinc-900 border border-red-900/50 rounded-xl overflow-hidden">
+            {/* 상단 글로우 라인 */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+
+            <div className="p-4">
+                {/* 헤더: LIVE 뱃지 + BO */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                        </span>
+                        <span className="text-red-400 text-xs font-black tracking-widest">LIVE</span>
+                    </div>
+                    <span className="text-zinc-600 text-[10px]">BO{match.bestOf} · 세트 스코어</span>
+                </div>
+
+                {/* 팀 vs 스코어 vs 팀 */}
+                <div className="flex items-center gap-2">
+                    {/* Team 1 */}
+                    <div className="flex-1 flex flex-col items-center gap-2">
+                        {match.team1Logo && !t1Err ? (
+                            <img
+                                src={match.team1Logo}
+                                alt={match.team1Name ?? match.team1}
+                                className="w-14 h-14 object-contain drop-shadow-lg"
+                                onError={() => setT1Err(true)}
+                            />
+                        ) : (
+                            <div
+                                className="w-14 h-14 rounded-full flex items-center justify-center text-xs font-black"
+                                style={{ background: (t1Color ?? '#71717a') + '22', color: t1Color ?? '#71717a', border: `2px solid ${t1Color ?? '#71717a'}44` }}
+                            >
+                                {(match.team1Name ?? match.team1).slice(0, 3)}
+                            </div>
+                        )}
+                        <span className="font-black text-sm" style={{ color: t1Color ?? '#fff' }}>
+                            {match.team1Name ?? match.team1}
+                        </span>
+                    </div>
+
+                    {/* 스코어 */}
+                    <div className="flex items-center gap-1 px-2">
+                        <span className={cn(
+                            'text-5xl font-black tabular-nums transition-colors',
+                            t1Leading ? 'text-white' : 'text-zinc-600'
+                        )}>
+                            {match.team1Score}
+                        </span>
+                        <span className="text-zinc-700 text-3xl font-black mx-1">:</span>
+                        <span className={cn(
+                            'text-5xl font-black tabular-nums transition-colors',
+                            t2Leading ? 'text-white' : 'text-zinc-600'
+                        )}>
+                            {match.team2Score}
+                        </span>
+                    </div>
+
+                    {/* Team 2 */}
+                    <div className="flex-1 flex flex-col items-center gap-2">
+                        {match.team2Logo && !t2Err ? (
+                            <img
+                                src={match.team2Logo}
+                                alt={match.team2Name ?? match.team2}
+                                className="w-14 h-14 object-contain drop-shadow-lg"
+                                onError={() => setT2Err(true)}
+                            />
+                        ) : (
+                            <div
+                                className="w-14 h-14 rounded-full flex items-center justify-center text-xs font-black"
+                                style={{ background: (t2Color ?? '#71717a') + '22', color: t2Color ?? '#71717a', border: `2px solid ${t2Color ?? '#71717a'}44` }}
+                            >
+                                {(match.team2Name ?? match.team2).slice(0, 3)}
+                            </div>
+                        )}
+                        <span className="font-black text-sm" style={{ color: t2Color ?? '#fff' }}>
+                            {match.team2Name ?? match.team2}
+                        </span>
+                    </div>
+                </div>
+
+                {/* 하단: 업데이트 주기 안내 */}
+                <div className="mt-4 pt-3 border-t border-red-900/30 flex items-center justify-center gap-1.5 text-[10px] text-zinc-600">
+                    <span className="w-1 h-1 rounded-full bg-red-500/60 animate-pulse" />
+                    30초마다 자동 업데이트
+                    <Link href="/matches" className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-0.5">
+                        경기 상세 <ChevronRight className="w-3 h-3" />
+                    </Link>
+                </div>
+            </div>
         </div>
     )
 }
