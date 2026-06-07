@@ -256,11 +256,25 @@ export default function ProfilePage() {
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploadingImage}
                             title="프로필 사진 변경"
-                            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                            aria-label="프로필 사진 변경"
+                            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-not-allowed"
                         >
                             {uploadingImage
                                 ? <Loader2 className="w-6 h-6 text-white animate-spin" />
                                 : <Camera className="w-6 h-6 text-white" />
+                            }
+                        </button>
+                        {/* 모바일 전용 카메라 배지 — 항상 표시 (터치 디바이스에서 호버 불가) */}
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingImage}
+                            aria-label="프로필 사진 변경"
+                            className="sm:hidden absolute -bottom-1 -right-1 p-1.5 rounded-full bg-zinc-700 border-2 border-zinc-900 disabled:opacity-50 active:bg-zinc-600"
+                        >
+                            {uploadingImage
+                                ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                                : <Camera className="w-3.5 h-3.5 text-white" />
                             }
                         </button>
                         {profile.role === 'ADMIN' && (
