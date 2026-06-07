@@ -78,12 +78,20 @@ export async function updateQuestProgress(
 
     const completed: string[] = []
 
+    // N+1 방지: 루프 전에 해당 퀘스트들의 progress를 한 번에 조회
+    const allProgress = await prisma.userQuestProgress.findMany({
+        where: {
+            userId,
+            questId: { in: quests.map(q => q.id) },
+        },
+    })
+    // Map key: "questId-periodKey"
+    const progressMap = new Map(allProgress.map(p => [`${p.questId}-${p.periodKey}`, p]))
+
     for (const quest of quests) {
         const periodKey = getPeriodKey(quest.type)
 
-        const existing = await prisma.userQuestProgress.findUnique({
-            where: { userId_questId_periodKey: { userId, questId: quest.id, periodKey } },
-        })
+        const existing = progressMap.get(`${quest.id}-${periodKey}`) ?? null
 
         // 이미 완료된 퀘스트 스킵
         if (existing?.isCompleted) continue

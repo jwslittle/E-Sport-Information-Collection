@@ -15,9 +15,10 @@ export interface ProcessResult {
 }
 
 export async function processLckPredictions(fromCron = false): Promise<ProcessResult> {
-    // 완료됐지만 아직 미정산된 예측 조회
+    // 완료됐지만 아직 미정산된 예측 조회 (배치 처리: 한 번에 최대 500건)
     const unprocessed = await prisma.lckPrediction.findMany({
         where: { isProcessed: false },
+        take: 500,
         include: {
             match: {
                 select: {
