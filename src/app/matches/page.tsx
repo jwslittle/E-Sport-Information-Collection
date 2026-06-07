@@ -22,6 +22,7 @@ import {
 } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { CURRENT_SEASON, SEASON_OPTIONS } from '@/lib/config/season'
+import { fmtKST } from '@/lib/utils'
 
 // ─── 타입 ────────────────────────────────────────────────────────────
 
@@ -150,25 +151,6 @@ function resolveTeamCode(code: string, name: string | null): string {
     if (code && code !== 'TBD') return code
     if (!name || name === 'TBD') return 'TBD'
     return TEAM_NAME_TO_CODE[name] ?? TEAM_NAME_TO_CODE[name.toLowerCase()] ?? name.substring(0, 4).toUpperCase()
-}
-
-// ─── KST 날짜/시간 포매팅 ────────────────────────────────────────────────────
-// date-fns format()은 서버(UTC)·클라이언트(KST) 환경에 따라 다른 결과를 반환 →
-// hydration 불일치 및 잘못된 경기 시간 표시 방지를 위해 Intl.DateTimeFormat 명시 사용
-type FmtKSTMode = 'time' | 'date-short' | 'full'
-function fmtKST(date: Date, mode: FmtKSTMode): string {
-    const opts: Intl.DateTimeFormatOptions = mode === 'time'
-        ? { hour: '2-digit', minute: '2-digit', hour12: false }
-        : mode === 'date-short'
-            ? { month: '2-digit', day: '2-digit', weekday: 'short' }
-            : { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }
-    const p: Record<string, string> = {}
-    new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', ...opts })
-        .formatToParts(date)
-        .forEach(({ type, value }) => { p[type] = value })
-    if (mode === 'time')       return `${p.hour}:${p.minute}`
-    if (mode === 'date-short') return `${p.month}.${p.day} (${p.weekday})`
-    return `${p.year}.${p.month}.${p.day} (${p.weekday}) ${p.hour}:${p.minute}`
 }
 
 /** 플레이오프 라운드 이름 추출 */

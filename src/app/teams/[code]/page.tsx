@@ -6,13 +6,11 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, fmtKST } from '@/lib/utils'
 import {
     ChevronLeft, Trophy, TrendingUp, Target, Users,
     Calendar, Swords, BarChart2, Loader2
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 
@@ -222,7 +220,7 @@ export default function TeamDetailPage() {
                             <div key={m.id} className="flex items-center gap-3 text-sm">
                                 <span className="text-zinc-500 text-xs min-w-[80px]">
                                     {m.scheduledAt
-                                        ? format(new Date(m.scheduledAt), 'MM.dd (EEE) HH:mm', { locale: ko })
+                                        ? fmtKST(new Date(m.scheduledAt), 'datetime-short')
                                         : '미정'}
                                 </span>
                                 <TeamLogoSmall code={m.opponent} logoUrl={m.opponentLogo} />
@@ -406,10 +404,10 @@ function MatchRow({
             {/* 날짜 */}
             <div className="min-w-[72px] text-left">
                 <p className="text-xs text-zinc-500">
-                    {scheduled ? format(scheduled, 'MM.dd (EEE)', { locale: ko }) : '미정'}
+                    {scheduled ? fmtKST(scheduled, 'date-short') : '미정'}
                 </p>
                 <p className="text-[10px] text-zinc-700 font-mono">
-                    {scheduled ? format(scheduled, 'HH:mm') : ''}
+                    {scheduled ? fmtKST(scheduled, 'time') : ''}
                 </p>
             </div>
 
