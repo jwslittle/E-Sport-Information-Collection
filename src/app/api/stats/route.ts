@@ -197,6 +197,7 @@ async function loadLiveStats(type: 'team' | 'player', lookupKey: string): Promis
             include: { games: { include: { playerStats: true } } },
         } : {}),
         orderBy: { scheduledAt: 'asc' },
+        take: 500,
     })
 
     if (matches.length === 0) return []
@@ -228,7 +229,7 @@ export async function GET(req: Request) {
     const tournament  = searchParams.get('tournament') || 'all'
     const sort        = searchParams.get('sort')  || 'wins'
     const order       = searchParams.get('order') || 'desc'
-    const search      = searchParams.get('search') || ''
+    const search      = (searchParams.get('search') || '').slice(0, 50)
     const division    = searchParams.get('division') || '1'
 
     try {

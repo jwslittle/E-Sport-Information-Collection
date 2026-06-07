@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
             {
                 userAgent: '*',
                 allow: '/',
-                disallow: ['/admin/', '/api/'],
+                disallow: ['/admin/', '/api/', '/onboarding', '/auth/'],
             },
         ],
         sitemap: 'https://e-sport-information-collection.vercel.app/sitemap.xml',

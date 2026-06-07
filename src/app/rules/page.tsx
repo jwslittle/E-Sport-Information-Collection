@@ -113,11 +113,11 @@ export default function RulesPage() {
                                 <ul className="mt-2 text-sm space-y-2">
                                     <li className="flex justify-between">
                                         <span>승리 팀 예측 성공 시</span>
-                                        <span className="font-bold text-yellow-500">+50 GP</span>
+                                        <span className="font-bold text-yellow-500">+10 GP</span>
                                     </li>
                                     <li className="flex justify-between">
                                         <span>스코어까지 정확히 맞힌 경우</span>
-                                        <span className="font-bold text-yellow-500">+75 GP</span>
+                                        <span className="font-bold text-yellow-500">+30 GP</span>
                                     </li>
                                 </ul>
                             </div>
@@ -148,8 +148,8 @@ export default function RulesPage() {
                                         <Zap className="w-4 h-4" /> GP 획득 방법
                                     </h4>
                                     <ul className="text-sm space-y-1.5">
-                                        <li className="flex justify-between"><span>승부 예측 정답</span><span className="text-yellow-400">+50 GP</span></li>
-                                        <li className="flex justify-between"><span>스코어 예측 정답</span><span className="text-yellow-400">+75 GP</span></li>
+                                        <li className="flex justify-between"><span>승부 예측 정답</span><span className="text-yellow-400">+10 GP</span></li>
+                                        <li className="flex justify-between"><span>스코어 예측 정답</span><span className="text-yellow-400">+30 GP</span></li>
                                         <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+20 GP</span></li>
                                         <li className="flex justify-between"><span>퀘스트 완료</span><span className="text-yellow-400">+퀘스트별 상이</span></li>
                                     </ul>

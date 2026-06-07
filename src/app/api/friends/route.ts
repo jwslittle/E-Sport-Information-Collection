@@ -56,7 +56,8 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const userId = session.user.id
 
-    const { targetUserId } = await req.json()
+    let targetUserId: string | undefined
+    try { ({ targetUserId } = await req.json()) } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
     if (!targetUserId) return NextResponse.json({ error: 'targetUserId 필요' }, { status: 400 })
     if (userId === targetUserId) return NextResponse.json({ error: '자기 자신을 팔로우할 수 없습니다.' }, { status: 400 })
 
@@ -78,7 +79,8 @@ export async function DELETE(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const userId = session.user.id
 
-    const { targetUserId } = await req.json()
+    let targetUserId: string | undefined
+    try { ({ targetUserId } = await req.json()) } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
     if (!targetUserId) return NextResponse.json({ error: 'targetUserId 필요' }, { status: 400 })
 
     try {

@@ -313,7 +313,7 @@ function TicketTab({
                 </div>
             ) : (
                 <p className="text-zinc-600 text-sm text-center py-4">
-                    관리자가 아이템 시딩 후 표시됩니다.
+                    현재 준비 중입니다. 잠시 후 다시 확인해주세요.
                 </p>
             )}
         </div>

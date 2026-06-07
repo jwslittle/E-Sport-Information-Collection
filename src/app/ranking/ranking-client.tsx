@@ -218,15 +218,17 @@ function FriendSearch() {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<SearchUser[]>([])
     const [searching, setSearching] = useState(false)
+    const [searched, setSearched] = useState(false)
     const [following, setFollowing] = useState<Set<string>>(new Set())
 
     const handleSearch = useCallback(async () => {
         if (query.trim().length < 2) return
         setSearching(true)
+        setSearched(false)
         try {
             const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
             if (res.ok) setResults(await res.json())
-        } finally { setSearching(false) }
+        } finally { setSearching(false); setSearched(true) }
     }, [query])
 
     const handleFollow = async (user: SearchUser) => {
@@ -263,6 +265,10 @@ function FriendSearch() {
                     {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
             </div>
+
+            {searched && !searching && results.length === 0 && (
+                <p className="text-center text-zinc-500 text-sm py-4">검색 결과가 없습니다.</p>
+            )}
 
             {results.length > 0 && (
                 <div className="space-y-2">

@@ -18,7 +18,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { itemId, equip = true } = await req.json()
+    let itemId: string | undefined, equip = true
+    try { ({ itemId, equip = true } = await req.json()) } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
     if (!itemId) return NextResponse.json({ error: 'itemId required' }, { status: 400 })
 
     const userItem = await prisma.userCosmeticItem.findUnique({

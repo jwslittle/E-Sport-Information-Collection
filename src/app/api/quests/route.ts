@@ -98,7 +98,8 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const userId = session.user.id
 
-    const { questId } = await req.json()
+    let questId: string | undefined
+    try { ({ questId } = await req.json()) } catch { return NextResponse.json({ error: 'Invalid request body' }, { status: 400 }) }
     if (!questId) return NextResponse.json({ error: 'questId required' }, { status: 400 })
 
     const quest = await prisma.quest.findUnique({ where: { id: questId } })

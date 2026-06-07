@@ -29,8 +29,9 @@ export default function OnboardingPage() {
     const [nickname, setNickname] = useState('')
     const [submitting, setSubmitting] = useState(false)
 
-    // ✅ PIPA 제15조: 온보딩 단계에서 약관 동의 재확인 및 DB 저장
+    // ✅ PIPA 제22조: 이용약관·개인정보처리방침 동의를 별도 체크박스로 분리 (병합 동의 금지)
     const [termsAgreed, setTermsAgreed] = useState(false)
+    const [privacyAgreed, setPrivacyAgreed] = useState(false)
     const [ageConfirmed, setAgeConfirmed] = useState(false)
     const [showTermsError, setShowTermsError] = useState(false)
 
@@ -57,7 +58,7 @@ export default function OnboardingPage() {
         if (!isValid) return
 
         // 약관 미동의 시 차단
-        if (!termsAgreed || !ageConfirmed) {
+        if (!termsAgreed || !privacyAgreed || !ageConfirmed) {
             setShowTermsError(true)
             return
         }
@@ -120,10 +121,11 @@ export default function OnboardingPage() {
 
                     <hr className="border-zinc-800" />
 
-                    {/* ✅ PIPA 제15조 — 약관 동의 (신규 가입 시 DB에 동의 시각 저장) */}
+                    {/* ✅ PIPA 제22조 — 이용약관·개인정보처리방침 별도 동의 (병합 동의 금지) */}
                     <div className="space-y-3 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
-                        <p className="text-xs text-zinc-400 font-medium">서비스 이용 약관 동의 (필수)</p>
+                        <p className="text-xs text-zinc-400 font-medium">필수 동의 항목</p>
 
+                        {/* 이용약관 동의 */}
                         <label className="flex items-start gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
@@ -133,9 +135,21 @@ export default function OnboardingPage() {
                             />
                             <span className="text-xs text-zinc-300 leading-relaxed group-hover:text-white transition-colors">
                                 <Link href="/terms" className="text-yellow-400 hover:text-yellow-300 underline" target="_blank">이용약관</Link>
-                                {' '}및{' '}
-                                <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300 underline" target="_blank">개인정보처리방침</Link>
-                                에 동의합니다.
+                                에 동의합니다. (필수)
+                            </span>
+                        </label>
+
+                        {/* 개인정보처리방침 동의 — PIPA §22: 이용약관과 반드시 별도 동의 */}
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={privacyAgreed}
+                                onChange={e => { setPrivacyAgreed(e.target.checked); setShowTermsError(false) }}
+                                className="mt-0.5 h-4 w-4 rounded border-zinc-600 accent-yellow-500 cursor-pointer"
+                            />
+                            <span className="text-xs text-zinc-300 leading-relaxed group-hover:text-white transition-colors">
+                                <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300 underline" target="_blank">개인정보 수집·이용</Link>
+                                에 동의합니다. (필수)
                             </span>
                         </label>
 
@@ -148,14 +162,15 @@ export default function OnboardingPage() {
                                 className="mt-0.5 h-4 w-4 rounded border-zinc-600 accent-yellow-500 cursor-pointer"
                             />
                             <span className="text-xs text-zinc-300 leading-relaxed group-hover:text-white transition-colors">
-                                만 14세 이상입니다.
+                                만 14세 이상입니다. (필수)
+                                <span className="block text-zinc-500 mt-0.5">만 14세 미만은 법정대리인(부모님)의 동의가 필요합니다.</span>
                             </span>
                         </label>
 
                         {showTermsError && (
                             <div className="flex items-center gap-2 text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg p-2">
                                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                                약관에 동의하셔야 가입이 가능합니다.
+                                모든 필수 항목에 동의하셔야 가입이 가능합니다.
                             </div>
                         )}
                     </div>
@@ -204,7 +219,7 @@ export default function OnboardingPage() {
                     {/* 시작 버튼 */}
                     <Button
                         onClick={handleSubmit}
-                        disabled={!isValid || !termsAgreed || !ageConfirmed || submitting}
+                        disabled={!isValid || !termsAgreed || !privacyAgreed || !ageConfirmed || submitting}
                         className="w-full h-12 text-base font-bold bg-yellow-500 hover:bg-yellow-600 text-black disabled:opacity-40"
                     >
                         {submitting ? (

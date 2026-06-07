@@ -107,18 +107,31 @@ export async function updateQuestProgress(
             continue
         }
 
-        const newProgress = Math.min((existing?.progress ?? 0) + amount, quest.targetCount)
-        const isCompleted = newProgress >= quest.targetCount
-
-        await prisma.userQuestProgress.upsert({
+        // ✅ 동시성 안전: DB 레벨 원자적 증분으로 경쟁 조건 방지
+        // 클라이언트에서 progress를 계산하던 방식(read → compute → write)은
+        // 동시 요청이 같은 값을 읽어 중복 완료 이벤트가 발생하는 문제가 있었음
+        const row = await prisma.userQuestProgress.upsert({
             where: { userId_questId_periodKey: { userId, questId: quest.id, periodKey } },
-            create: { userId, questId: quest.id, periodKey, progress: newProgress, isCompleted },
-            // updateMany 대신 update 사용 — isCompleted 재확인은 isClaimed 보호 레이어에서 처리
-            update: { progress: newProgress, isCompleted },
+            create: { userId, questId: quest.id, periodKey, progress: amount, isCompleted: false },
+            update: { progress: { increment: amount } },  // ← DB 레벨 원자적 증분
         })
 
-        if (isCompleted && !existing?.isCompleted) {
-            completed.push(quest.id)
+        // ✅ 완료 처리를 updateMany 조건부 업데이트로 안전하게 처리
+        // isCompleted: false 조건 덕분에 동시 요청 중 단 하나만 성공(count > 0)
+        if (row.progress >= quest.targetCount) {
+            const claim = await prisma.userQuestProgress.updateMany({
+                where: {
+                    userId,
+                    questId: quest.id,
+                    periodKey,
+                    progress: { gte: quest.targetCount },
+                    isCompleted: false,
+                },
+                data: { isCompleted: true },
+            })
+            if (claim.count > 0) {
+                completed.push(quest.id)
+            }
         }
     }
 

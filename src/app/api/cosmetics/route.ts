@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     if (type) where.type = type
 
     const [items, owned] = await Promise.all([
-        prisma.cosmeticItem.findMany({ where, orderBy: [{ rarity: 'desc' }, { gpCost: 'asc' }] }),
+        prisma.cosmeticItem.findMany({ where, orderBy: [{ rarity: 'desc' }, { gpCost: 'asc' }], take: 200 }),
         session?.user?.id
             ? prisma.userCosmeticItem.findMany({
                 where: { userId: session.user.id },

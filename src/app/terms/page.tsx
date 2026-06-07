@@ -48,7 +48,8 @@ export default function TermsPage() {
                     <ul className="ml-4 space-y-1 list-disc text-zinc-400">
                         <li>타인의 계정을 도용하거나 부정한 방법으로 GP를 획득하는 행위</li>
                         <li>서비스를 상업적 목적으로 이용하는 행위</li>
-                        <li>타인에게 혐오감을 주는 콘텐츠를 게시하는 행위</li>
+                        <li>타인에게 혐오감을 주거나 모욕, 명예훼손, 비방하는 콘텐츠를 게시하는 행위</li>
+                        <li>허위 사실을 유포하거나 타인의 개인정보를 침해하는 행위</li>
                         <li>서비스의 정상적인 운영을 방해하는 행위</li>
                     </ul>
                     {/* ✅ L-12 수정: 제재 결과 명시 */}
@@ -103,6 +104,18 @@ export default function TermsPage() {
                         >
                             Riot Games Fan Content Policy 확인 →
                         </a>
+                    </p>
+                </section>
+
+                <section>
+                    <h2 className="text-base font-bold text-white mb-3">6-1. 약관 변경</h2>
+                    <p>
+                        서비스 제공자는 관련 법령을 위반하지 않는 범위 내에서 약관을 변경할 수 있습니다.
+                        약관이 변경될 경우, 변경 사항은 서비스 내 공지 또는 이용약관 페이지를 통해 공지됩니다.
+                        변경된 약관의 적용일 이후에도 서비스를 계속 이용하시면 변경된 약관에 동의한 것으로 간주합니다.
+                    </p>
+                    <p className="mt-2 text-zinc-500 text-xs">
+                        중요한 변경 사항(개인정보 처리 방법, 이용 제한 등)의 경우 최소 7일 전에 사전 공지합니다.
                     </p>
                 </section>
 

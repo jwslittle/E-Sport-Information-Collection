@@ -182,6 +182,8 @@ export default function PrivacyPage() {
                     <h2 className="text-base font-bold text-white mb-3">7. 개인정보 보호책임자(CPO)</h2>
                     <div className="bg-zinc-900 rounded-lg p-4 text-zinc-400">
                         <p><span className="text-zinc-300 font-medium">이름:</span> 조우상</p>
+                        <p className="mt-1"><span className="text-zinc-300 font-medium">직책:</span> 개인정보보호책임자</p>
+                        <p className="mt-1"><span className="text-zinc-300 font-medium">소속:</span> 운영팀</p>
                         <p className="mt-1"><span className="text-zinc-300 font-medium">이메일:</span> jworks6365@gmail.com</p>
                         <p className="mt-1 text-xs text-zinc-600">
                             개인정보 관련 문의, 열람·정정·삭제 요청은 위 이메일로 연락 주세요.

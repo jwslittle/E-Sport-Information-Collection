@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     const status = searchParams.get('status') ?? undefined
     const team = searchParams.get('team') ?? undefined
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '100'), 500)
-    const offset = parseInt(searchParams.get('offset') ?? '0')
+    const offset = Math.max(0, Math.min(parseInt(searchParams.get('offset') ?? '0') || 0, 10000))
     const forceSync = searchParams.get('sync') === '1'
     const resetSync = searchParams.get('reset') === '1'
     // games=1 일 때만 게임 상세(playerStats) 포함 — 경기 탭 전용, 기본 생략으로 쿼리 최적화

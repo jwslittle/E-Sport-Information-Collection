@@ -11,6 +11,12 @@ export async function GET(
 ) {
     const { code } = await params
     const teamCode = code.toUpperCase()
+
+    // 팀 코드 형식 검증: 2~6자 영문·숫자만 허용
+    if (!/^[A-Z0-9]{2,6}$/.test(teamCode)) {
+        return NextResponse.json({ error: 'Invalid team code' }, { status: 400 })
+    }
+
     const { searchParams } = new URL(req.url)
     const season = searchParams.get('season') ?? '2026-SPLIT2'
 
