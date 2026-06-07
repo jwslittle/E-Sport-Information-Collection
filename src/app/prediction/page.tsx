@@ -273,7 +273,7 @@ export default function PredictionPage() {
 // ─── 통계 바 ────────────────────────────────────────────────────────────
 function StatsBar({ stats }: { stats: PredictionStats }) {
     return (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
                 {
                     label: '적중률', value: stats.processed > 0 ? `${stats.accuracy}%` : '-',

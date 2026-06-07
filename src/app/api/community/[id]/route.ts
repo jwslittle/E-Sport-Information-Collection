@@ -65,6 +65,39 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     })
 }
 
+// ─── PATCH ───────────────────────────────────────────────────────────────────
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { id } = await params
+    const userId = session.user.id
+
+    const body = await req.json().catch(() => ({}))
+    const { title, content } = body
+
+    if (!title?.trim() || !content?.trim()) {
+        return NextResponse.json({ error: '제목과 내용을 입력해주세요.' }, { status: 400 })
+    }
+    if (title.trim().length > 100) {
+        return NextResponse.json({ error: '제목은 100자 이내로 작성해주세요.' }, { status: 400 })
+    }
+    if (content.trim().length > 5000) {
+        return NextResponse.json({ error: '내용은 5000자 이내로 작성해주세요.' }, { status: 400 })
+    }
+
+    const post = await prisma.post.findUnique({ where: { id }, select: { authorId: true, isDeleted: true } })
+    if (!post || post.isDeleted) return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
+    if (post.authorId !== userId) {
+        return NextResponse.json({ error: '수정 권한이 없습니다.' }, { status: 403 })
+    }
+
+    await prisma.post.update({
+        where: { id },
+        data: { title: title.trim(), content: content.trim() },
+    })
+    return NextResponse.json({ success: true })
+}
+
 // ─── DELETE ───────────────────────────────────────────────────────────────────
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions)

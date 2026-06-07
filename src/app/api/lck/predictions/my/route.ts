@@ -129,7 +129,8 @@ export async function GET() {
                 }
             }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 100,
     })
 
     // 통계 계산

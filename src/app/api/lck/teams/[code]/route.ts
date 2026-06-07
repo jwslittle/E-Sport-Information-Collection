@@ -20,6 +20,7 @@ export async function GET(
             season: season === 'ALL' ? undefined : season,
             OR: [{ team1: teamCode }, { team2: teamCode }],
         },
+        take: 200,
         include: {
             games: {
                 include: {

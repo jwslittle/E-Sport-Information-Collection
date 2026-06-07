@@ -27,17 +27,18 @@ const MAIN_ROUTES = [
     { href: '/prediction', label: '예측',     icon: Target },
     { href: '/community',  label: '커뮤니티', icon: MessageSquare },
     { href: '/ranking',    label: '랭킹',     icon: TrendingUp },
+    { href: '/quiz',       label: '퀴즈',     icon: Brain },
     { href: '/info',       label: '통계',     icon: Database },
     { href: '/shop',       label: '상점',     icon: ShoppingBag },
 ]
 
 // ─── 모바일 바텀 네비 (5개 고정)
 const BOTTOM_ROUTES = [
-    { href: '/',           label: '홈',     icon: Home },
-    { href: '/matches',    label: '경기',   icon: Calendar },
-    { href: '/prediction', label: '예측',   icon: Target },
+    { href: '/',           label: '홈',       icon: Home },
+    { href: '/matches',    label: '경기',     icon: Calendar },
+    { href: '/prediction', label: '예측',     icon: Target },
     { href: '/community',  label: '커뮤니티', icon: MessageSquare },
-    { href: '/quiz',       label: '퀴즈',   icon: Brain },
+    { href: '/shop',       label: '상점',     icon: ShoppingBag },
 ]
 
 export function Navbar() {

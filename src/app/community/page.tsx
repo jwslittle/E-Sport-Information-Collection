@@ -186,7 +186,11 @@ export default function CommunityPage() {
                 setPosts(d.posts)
                 setTotal(d.total)
                 setTotalPages(d.totalPages)
+            } else {
+                toast.error('게시글 목록을 불러오지 못했습니다.')
             }
+        } catch {
+            toast.error('게시글 목록을 불러오는 중 오류가 발생했습니다.')
         } finally {
             setLoading(false)
         }

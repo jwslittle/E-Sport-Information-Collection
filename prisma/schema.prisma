@@ -87,6 +87,8 @@ model Follows {
   createdAt   DateTime @default(now())
 
   @@id([followerId, followingId])
+  // ✅ "나를 팔로우하는 사람" 조회 최적화 (followingId 풀스캔 방지)
+  @@index([followingId])
 }
 
 // --- Core Game Data Models ---
@@ -390,6 +392,8 @@ model UserDailyQuizAnswer {
   createdAt      DateTime  @default(now())
 
   @@unique([userId, dateKey]) // 하루에 한 번만
+  // ✅ 대시보드 오늘 퀴즈 참여자 수 집계 최적화 (dateKey 풀스캔 방지)
+  @@index([dateKey])
 }
 
 // Tracks the last time we synced from Leaguepedia

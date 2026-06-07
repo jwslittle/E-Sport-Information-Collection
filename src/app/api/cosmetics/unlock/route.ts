@@ -26,6 +26,7 @@ export async function POST(req: Request) {
 
     const item = await prisma.cosmeticItem.findUnique({ where: { id: itemId } })
     if (!item) return NextResponse.json({ error: 'Item not found' }, { status: 404 })
+    if (!item.isActive) return NextResponse.json({ error: '구매할 수 없는 아이템입니다.' }, { status: 400 })
     if (item.gpCost === 0) return NextResponse.json({ error: '이 아이템은 직접 구매할 수 없습니다.' }, { status: 400 })
 
     // ── AI_TICKET: 소모성 질의권 — 중복 구매 허용, aiQueryTickets 카운터 증가 ────

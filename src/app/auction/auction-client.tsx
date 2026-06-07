@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
-import { Timer, Gavel, User as UserIcon } from "lucide-react"
+import { toast } from "sonner"
+import { Timer, Gavel, User as UserIcon, Loader2 } from "lucide-react"
 
 interface Auction {
     id: string
@@ -33,7 +33,8 @@ export function AuctionClient() {
     const [auctions, setAuctions] = useState<Auction[]>([])
     const [loading, setLoading] = useState(true)
     const [bidAmount, setBidAmount] = useState<Record<string, number>>({})
-    const { toast } = useToast()
+    // 경매별 개별 로딩 상태 (연타 방지)
+    const [submitting, setSubmitting] = useState<string | null>(null)
 
     const fetchAuctions = async () => {
         try {
@@ -66,12 +67,11 @@ export function AuctionClient() {
                         return {
                             ...auction,
                             currentPrice: data.currentPrice,
-                            highestBidder: { name: 'New Bidder' } // We might need to fetch the name or just show 'New Bidder' temporarily
+                            highestBidder: { name: 'New Bidder' }
                         }
                     }
                     return auction
                 }))
-                // Optionally refresh full data to get bidder name
                 fetchAuctions()
             })
         } catch (e) {
@@ -88,14 +88,11 @@ export function AuctionClient() {
     const handleBid = async (auctionId: string, currentPrice: number) => {
         const amount = bidAmount[auctionId]
         if (!amount || amount <= currentPrice) {
-            toast({
-                title: "입찰 실패",
-                description: "현재 가격보다 높은 금액을 입력해주세요.",
-                variant: "destructive"
-            })
+            toast.error('현재 가격보다 높은 금액을 입력해주세요.')
             return
         }
 
+        setSubmitting(auctionId)
         try {
             const res = await fetch(`/api/auction/${auctionId}/bid`, {
                 method: 'POST',
@@ -106,20 +103,16 @@ export function AuctionClient() {
             const data = await res.json()
 
             if (res.ok) {
-                toast({
-                    title: "입찰 성공!",
-                    description: `${amount} 포인트로 입찰했습니다.`,
-                })
-                fetchAuctions() // Immediate refresh
+                toast.success(`${amount.toLocaleString()} 포인트로 입찰했습니다.`)
+                fetchAuctions()
             } else {
-                toast({
-                    title: "입찰 실패",
-                    description: data.error || "알 수 없는 오류가 발생했습니다.",
-                    variant: "destructive"
-                })
+                toast.error(data.error ?? '알 수 없는 오류가 발생했습니다.')
             }
         } catch (error) {
             console.error(error)
+            toast.error('입찰 중 오류가 발생했습니다.')
+        } finally {
+            setSubmitting(null)
         }
     }
 
@@ -190,8 +183,14 @@ export function AuctionClient() {
                                     value={bidAmount[auction.id] || ''}
                                     onChange={(e) => setBidAmount({ ...bidAmount, [auction.id]: parseInt(e.target.value) })}
                                 />
-                                <Button onClick={() => handleBid(auction.id, auction.currentPrice)} className="bg-yellow-600 hover:bg-yellow-700">
-                                    입찰
+                                <Button
+                                    onClick={() => handleBid(auction.id, auction.currentPrice)}
+                                    disabled={submitting === auction.id}
+                                    className="bg-yellow-600 hover:bg-yellow-700"
+                                >
+                                    {submitting === auction.id
+                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                        : '입찰'}
                                 </Button>
                             </div>
                         </div>

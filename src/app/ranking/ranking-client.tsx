@@ -162,7 +162,7 @@ function PredictionLeaderboardTab() {
                 setMyRank(d.myRank ?? null)
                 setTotal(d.total ?? 0)
             })
-            .catch(console.error)
+            .catch(err => { console.error(err); toast.error('예측 리더보드를 불러오지 못했습니다.') })
             .finally(() => setLoading(false))
     }, [])
 
@@ -306,7 +306,7 @@ export function RankingClient() {
         fetch('/api/ranking?type=global')
             .then(r => r.json())
             .then(d => setGpRankings(Array.isArray(d) ? d : []))
-            .catch(console.error)
+            .catch(err => { console.error(err); toast.error('GP 랭킹을 불러오지 못했습니다.') })
             .finally(() => setLoading(false))
     }, [])
 

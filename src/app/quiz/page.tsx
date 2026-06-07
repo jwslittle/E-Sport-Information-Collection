@@ -94,6 +94,7 @@ export default function QuizPage() {
             }
         } catch (e) {
             console.error(e)
+            toast.error('퀴즈를 불러오는 중 오류가 발생했습니다.')
         } finally {
             setLoading(false)
         }

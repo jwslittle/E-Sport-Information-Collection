@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-    const lastUpdated = '2026년 6월 6일 (4차 개정)'
+    const lastUpdated = '2026년 6월 7일 (5차 개정)'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -37,6 +37,12 @@ export default function PrivacyPage() {
                         <li>퀘스트 달성 기록</li>
                         <li>팔로우·팔로잉 관계</li>
                         <li>서비스 이용 일시</li>
+                        <li>접속 IP 주소 (서비스 오류 로그 및 API 남용 방지 목적)</li>
+                    </ul>
+
+                    <p className="font-medium text-zinc-300 mt-3 mb-1">■ 쿠키 및 세션 정보 (서비스 이용 중 자동 생성)</p>
+                    <ul className="ml-4 space-y-1 list-disc text-zinc-400">
+                        <li>NextAuth.js 세션 쿠키 (로그인 상태 유지 목적, 브라우저 종료 시 만료)</li>
                     </ul>
 
                     <p className="mt-3 text-zinc-500">
@@ -196,6 +202,40 @@ export default function PrivacyPage() {
                         <li>개인정보 침해신고센터: privacy.kisa.or.kr (국번없이 118)</li>
                         <li>개인정보 분쟁조정위원회: www.kopico.go.kr (1833-6972)</li>
                     </ul>
+                </section>
+
+                {/* ✅ 쿠키 정책 추가 (PIPA 시행령 제14조의2) */}
+                <section>
+                    <h2 className="text-base font-bold text-white mb-3">9. 쿠키 정책</h2>
+                    <p className="mb-2">
+                        서비스는 로그인 상태 유지를 위해 세션 쿠키를 사용합니다.
+                    </p>
+                    <div className="mt-3 overflow-x-auto">
+                        <table className="w-full text-xs text-zinc-400 border-collapse">
+                            <thead>
+                                <tr className="border-b border-zinc-700">
+                                    <th className="text-left py-2 pr-4 text-zinc-300 font-medium">쿠키명</th>
+                                    <th className="text-left py-2 pr-4 text-zinc-300 font-medium">목적</th>
+                                    <th className="text-left py-2 text-zinc-300 font-medium">보존 기간</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr className="border-b border-zinc-800">
+                                    <td className="py-2 pr-4">next-auth.session-token</td>
+                                    <td className="py-2 pr-4">로그인 상태 유지 (세션 인증)</td>
+                                    <td className="py-2">브라우저 종료 시 또는 30일</td>
+                                </tr>
+                                <tr className="border-b border-zinc-800">
+                                    <td className="py-2 pr-4">next-auth.csrf-token</td>
+                                    <td className="py-2 pr-4">CSRF 공격 방지</td>
+                                    <td className="py-2">브라우저 세션 종료 시</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p className="mt-2 text-zinc-500 text-xs">
+                        브라우저 설정에서 쿠키를 비활성화할 수 있으나, 이 경우 로그인이 필요한 서비스 이용이 불가합니다.
+                    </p>
                 </section>
 
                 <div className="pt-6 border-t border-zinc-800 text-xs text-zinc-600">

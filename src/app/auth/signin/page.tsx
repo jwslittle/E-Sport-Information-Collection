@@ -28,20 +28,24 @@ export default function SignInPage() {
     const [showError, setShowError] = useState(false)
     const [loading, setLoading] = useState(false)
     const [authError, setAuthError] = useState<string | null>(null)
+    const [callbackUrl, setCallbackUrl] = useState('/')
 
     // NextAuth가 ?error= 쿼리 파라미터로 리다이렉트해 올 때 에러 표시
+    // callbackUrl은 동일-출처만 허용 (오픈 리다이렉트 방지)
     useEffect(() => {
         const params = new URLSearchParams(window.location.search)
         const err = params.get('error')
         if (err) {
             setAuthError(AUTH_ERROR_MESSAGES[err] ?? AUTH_ERROR_MESSAGES.Default)
         }
+        const cb = params.get('callbackUrl')
+        if (cb && cb.startsWith('/')) setCallbackUrl(cb)
     }, [])
 
     // 기존 회원 → 바로 Google 로그인
     const handleLogin = async () => {
         setLoading(true)
-        await signIn('google', { callbackUrl: '/' })
+        await signIn('google', { callbackUrl })
     }
 
     // 신규 회원 → 약관 동의 후 Google 회원가입
@@ -51,7 +55,7 @@ export default function SignInPage() {
             return
         }
         setLoading(true)
-        await signIn('google', { callbackUrl: '/' })
+        await signIn('google', { callbackUrl })
     }
 
     return (

@@ -60,14 +60,19 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     const isAdmin = (session?.user as any)?.role === 'ADMIN'
 
     const fetchPost = useCallback(async () => {
-        const [postRes, commentsRes] = await Promise.all([
-            fetch(`/api/community/${postId}`),
-            fetch(`/api/community/${postId}/comments`),
-        ])
-        if (postRes.ok) setPost(await postRes.json())
-        else router.push('/community')
-        if (commentsRes.ok) setComments(await commentsRes.json())
-        setLoadingPost(false)
+        try {
+            const [postRes, commentsRes] = await Promise.all([
+                fetch(`/api/community/${postId}`),
+                fetch(`/api/community/${postId}/comments`),
+            ])
+            if (postRes.ok) setPost(await postRes.json())
+            else router.push('/community')
+            if (commentsRes.ok) setComments(await commentsRes.json())
+        } catch {
+            toast.error('게시글을 불러오는 중 오류가 발생했습니다.')
+        } finally {
+            setLoadingPost(false)
+        }
     }, [postId, router])
 
     useEffect(() => { fetchPost() }, [fetchPost])

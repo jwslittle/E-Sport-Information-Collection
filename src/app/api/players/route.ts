@@ -12,6 +12,7 @@ export async function GET() {
                 team: { select: { code: true, name: true, primaryColor: true } },
             },
             orderBy: [{ position: 'asc' }, { basePrice: 'desc' }],
+            take: 200,
         })
         return NextResponse.json(players)
     } catch (error) {
