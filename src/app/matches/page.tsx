@@ -216,6 +216,8 @@ export default function MatchesPage() {
 // ─── 실제 LCK 탭 ─────────────────────────────────────────────────────
 
 function RealMatchTab() {
+    const { data: session } = useSession()
+    const isAdmin = (session?.user as any)?.role === 'ADMIN'
     const [matches, setMatches] = useState<LckMatch[]>([])
     const [loading, setLoading] = useState(true)
     const [syncing, setSyncing] = useState(false)
@@ -330,12 +332,17 @@ function RealMatchTab() {
                                 <p className="text-lg font-bold text-green-400">{completedCount}</p>
                                 <p className="text-[10px] text-zinc-500">완료</p>
                             </div>
-                            <div className="w-px h-8 bg-zinc-700" />
-                            <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing || loading}
-                                className="border-zinc-600 text-zinc-400 h-8">
-                                <RefreshCw className={`w-3 h-3 mr-1 ${syncing ? 'animate-spin' : ''}`} />
-                                {syncing ? '동기화...' : '동기화'}
-                            </Button>
+                            {/* ✅ 보안: 동기화 버튼은 어드민만 표시 */}
+                            {isAdmin && (
+                                <>
+                                    <div className="w-px h-8 bg-zinc-700" />
+                                    <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing || loading}
+                                        className="border-zinc-600 text-zinc-400 h-8">
+                                        <RefreshCw className={`w-3 h-3 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                                        {syncing ? '동기화...' : '동기화'}
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1345,7 +1352,8 @@ function PlayoffBracket({ matches, stageName }: { matches: LckMatch[]; stageName
                                 )}
                                 {m.status === 'SCHEDULED' && m.scheduledAt && (
                                     <p className="text-[10px] text-zinc-600">
-                                        {format(new Date(m.scheduledAt), 'HH:mm')}
+                                        {/* ✅ fmtKST: Vercel UTC 서버에서도 KST 시간 정확히 표시 */}
+                                        {fmtKST(new Date(m.scheduledAt), 'time')}
                                     </p>
                                 )}
                             </div>

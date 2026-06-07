@@ -144,11 +144,13 @@ export async function POST(req: NextRequest) {
             context = await getHistoricalContext(lastUserMsg.content)
         }
 
-        const history = messages.map((m: any) => {
-            if (m.role === 'user') return new HumanMessage(m.content)
-            if (m.role === 'assistant') return new AIMessage(m.content)
-            return new SystemMessage(m.content)
-        })
+        // ✅ 보안: 'user'/'assistant' 이외의 role 필터링 — system role 인젝션 차단
+        const history = messages
+            .filter((m: any) => m.role === 'user' || m.role === 'assistant')
+            .map((m: any) => {
+                if (m.role === 'user') return new HumanMessage(String(m.content ?? ''))
+                return new AIMessage(String(m.content ?? ''))
+            })
 
         const fullSystemPrompt = `${SYSTEM_PROMPT}\n\n${context}`
         const fullHistory = [new SystemMessage(fullSystemPrompt), ...history]

@@ -78,14 +78,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '이미 예측했습니다.' }, { status: 400 })
     }
 
-    const prediction = await prisma.lckPrediction.create({
-        data: {
-            userId,
-            matchId,
-            predictedWinner,
-            predictedScore: predictedScore || null,
+    let prediction
+    try {
+        prediction = await prisma.lckPrediction.create({
+            data: {
+                userId,
+                matchId,
+                predictedWinner,
+                predictedScore: predictedScore || null,
+            }
+        })
+    } catch (err: any) {
+        // ✅ P2002: 동시 요청으로 인한 중복 — 500 대신 409 반환
+        if (err?.code === 'P2002') {
+            return NextResponse.json({ error: '이미 예측했습니다.' }, { status: 409 })
         }
-    })
+        throw err
+    }
 
     // 퀘스트 진행도 업데이트 (fire-and-forget, 오류 무시)
     updateQuestProgress(userId, 'PREDICT').catch(() => {})

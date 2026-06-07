@@ -20,10 +20,12 @@ export async function POST(req: Request) {
     if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const userId = session.user.id
 
-    const { action, amount = 1 } = await req.json().catch(() => ({ action: '', amount: 1 }))
+    const { action } = await req.json().catch(() => ({ action: '' }))
     if (!action || !ACTION_QUEST_MAP[action]) {
         return NextResponse.json({ error: 'Unknown action', updated: 0 })
     }
+    // ✅ 보안: amount는 서버에서 1로 고정 — 클라이언트 조작으로 퀘스트 즉시 완료 불가
+    const amount = 1
 
     const completedQuests = await updateQuestProgress(userId, action, amount)
 

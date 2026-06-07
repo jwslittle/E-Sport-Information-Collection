@@ -3,11 +3,13 @@ import prisma from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { PlayerDetail } from './player-detail'
 
-type Props = { params: { id: string } }
+// ✅ Next.js 16: params는 Promise — await로 언래핑 필요
+type Props = { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const { id } = await params
     const player = await prisma.player.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: { team: true },
     })
     if (!player) return { title: '선수 없음 | E-Sport Information Collection' }
@@ -18,8 +20,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PlayerPage({ params }: Props) {
+    const { id } = await params
     const player = await prisma.player.findUnique({
-        where: { id: params.id },
+        where: { id },
         include: { team: true },
     })
     if (!player) notFound()

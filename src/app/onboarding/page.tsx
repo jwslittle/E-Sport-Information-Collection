@@ -22,8 +22,21 @@ function validate(value: string): string | null {
 }
 
 export default function OnboardingPage() {
-    const { data: session, update } = useSession()
+    const { data: session, update, status } = useSession()
     const router = useRouter()
+
+    // ✅ 비로그인 사용자가 /onboarding 직접 접근 시 로그인 페이지로 리다이렉트
+    if (status === 'unauthenticated') {
+        router.replace('/auth/signin')
+        return null
+    }
+    if (status === 'loading') {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-black">
+                <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
+            </div>
+        )
+    }
 
     const googleName = session?.user?.name ?? ''
     const [nickname, setNickname] = useState(googleName)

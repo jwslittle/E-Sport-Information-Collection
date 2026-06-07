@@ -123,6 +123,9 @@ export async function DELETE() {
     const userId = session.user.id
 
     try {
+        // ✅ PIPA 준수: SystemLog는 FK 관계가 없으므로 User 삭제 전 명시적 삭제
+        // (IP, userAgent 등 개인 식별 정보 포함 — 탈퇴 즉시 파기)
+        await prisma.systemLog.deleteMany({ where: { userId } })
         await prisma.user.delete({ where: { id: userId } })
         return NextResponse.json({ success: true })
     } catch (error) {

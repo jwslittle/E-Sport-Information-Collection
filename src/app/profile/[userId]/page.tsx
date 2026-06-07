@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -38,10 +38,11 @@ function timeAgo(dateStr: string) {
     catch { return dateStr }
 }
 
-export default function PublicProfilePage({ params }: { params: { userId: string } }) {
+// ✅ Next.js 16: 클라이언트 컴포넌트에서 React.use()로 params 언래핑
+export default function PublicProfilePage({ params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = use(params)
     const { data: session } = useSession()
     const router = useRouter()
-    const { userId } = params
 
     const [profile, setProfile] = useState<PublicProfile | null>(null)
     const [loading, setLoading] = useState(true)

@@ -54,7 +54,7 @@ function timeAgo(iso: string | null) {
 // ─── 메인 ───────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-    const { data: session } = useSession()
+    const { data: session, status } = useSession()
 
     // 로딩
     const [syncLoading,    setSyncLoading]    = useState(false)
@@ -103,7 +103,15 @@ export default function AdminPage() {
         if (isAdmin) loadStatus()
     }, [isAdmin, loadStatus])
 
-    if (session && !isAdmin) {
+    // ✅ 보안: 세션 로딩 중 어드민 UI가 잠깐 보이는 플래시 현상 차단
+    if (status === 'loading') {
+        return (
+            <div className="container mx-auto py-20 flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
+            </div>
+        )
+    }
+    if (!session || !isAdmin) {
         return <div className="container mx-auto py-20 text-center text-zinc-500">접근 권한이 없습니다.</div>
     }
 

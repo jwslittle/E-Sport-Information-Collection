@@ -29,24 +29,7 @@ export async function POST(req: Request) {
 
     const type = userItem.item.type
 
-    // 같은 타입의 기존 장착 해제 (타입당 1개만 장착)
-    await prisma.userCosmeticItem.updateMany({
-        where: {
-            userId: session.user.id,
-            isEquipped: true,
-            item: { type },
-        },
-        data: { isEquipped: false },
-    })
-
-    if (equip) {
-        await prisma.userCosmeticItem.update({
-            where: { userId_itemId: { userId: session.user.id, itemId } },
-            data: { isEquipped: true },
-        })
-    }
-
-    // UserProfile 업데이트 (빠른 조회용 denormalize)
+    // UserProfile 필드 결정
     const profileUpdate: any = {}
     if (type === 'TITLE') {
         profileUpdate.displayTitle = equip ? userItem.item.titleText : null
@@ -59,13 +42,29 @@ export async function POST(req: Request) {
         profileUpdate.equippedBackgroundId = equip ? itemId : null
     }
 
-    if (Object.keys(profileUpdate).length > 0) {
-        await prisma.userProfile.upsert({
-            where: { userId: session.user.id },
-            create: { userId: session.user.id, ...profileUpdate },
-            update: profileUpdate,
+    // ✅ 원자성: 3단계 쓰기를 트랜잭션으로 묶어 중간 실패 시 DB 불일치 방지
+    await prisma.$transaction(async (tx) => {
+        // 1. 같은 타입의 기존 장착 해제
+        await tx.userCosmeticItem.updateMany({
+            where: { userId: session.user.id, isEquipped: true, item: { type } },
+            data: { isEquipped: false },
         })
-    }
+        // 2. 새 아이템 장착 (equip=false면 전체 해제만)
+        if (equip) {
+            await tx.userCosmeticItem.update({
+                where: { userId_itemId: { userId: session.user.id, itemId } },
+                data: { isEquipped: true },
+            })
+        }
+        // 3. UserProfile 비정규화 필드 업데이트
+        if (Object.keys(profileUpdate).length > 0) {
+            await tx.userProfile.upsert({
+                where: { userId: session.user.id },
+                create: { userId: session.user.id, ...profileUpdate },
+                update: profileUpdate,
+            })
+        }
+    })
 
     return NextResponse.json({ success: true, equipped: equip })
 }

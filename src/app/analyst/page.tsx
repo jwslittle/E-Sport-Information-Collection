@@ -26,6 +26,9 @@ export default function AnalystPage() {
     const [tickets, setTickets]       = useState<number | null>(null)
     const [ticketsLoading, setTicketsLoading] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+    // ✅ AbortController: 컴포넌트 언마운트 시 진행 중인 스트리밍 요청 취소
+    const abortRef = useRef<AbortController | null>(null)
+    useEffect(() => () => { abortRef.current?.abort() }, [])
 
     // ── 질의권 수량 로드 ───────────────────────────────────────────────────────
     const fetchTickets = useCallback(async () => {
@@ -96,10 +99,16 @@ export default function AnalystPage() {
         setIsLoading(true)
 
         try {
+            // 이전 요청이 진행 중이면 취소
+            abortRef.current?.abort()
+            const controller = new AbortController()
+            abortRef.current = controller
+
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ messages: newMessages }),
+                signal: controller.signal,
             })
 
             if (!response.ok) {
@@ -122,14 +131,17 @@ export default function AnalystPage() {
                     const { done, value } = await reader.read()
                     if (done) break
                     assistantMessage += decoder.decode(value)
+                    // ✅ 상태 뮤테이션 수정: 마지막 메시지 객체도 새 객체로 교체
                     setMessages(prev => {
                         const updated = [...prev]
-                        updated[updated.length - 1].content = assistantMessage
+                        updated[updated.length - 1] = { ...updated[updated.length - 1], content: assistantMessage }
                         return updated
                     })
                 }
             }
         } catch (error: unknown) {
+            // AbortError는 정상 취소 — 오류 메시지 불필요
+            if (error instanceof Error && error.name === 'AbortError') return
             const msg = error instanceof Error ? error.message : '네트워크 오류가 발생했습니다.'
             setMessages(prev => [...prev, { role: 'assistant', content: `오류: ${msg}` }])
         } finally {
