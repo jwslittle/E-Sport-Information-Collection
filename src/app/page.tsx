@@ -91,7 +91,9 @@ export default function Home() {
         return () => clearInterval(t)
     }, [])
 
-    // 진행 중인 경기 폴링 (30초마다, 라이브 스코어 실시간 반영)
+    // 진행 중인 경기 폴링 (60초마다)
+    // — 서버 크론(/api/cron/live)이 1분마다 LoL Esports API를 호출해 DB를 갱신
+    // — 이 폴링은 DB 조회만 수행 (외부 API 호출 없음)
     useEffect(() => {
         const fetchLive = async () => {
             try {
@@ -99,11 +101,11 @@ export default function Home() {
                 const data = await res.json()
                 setLiveMatches(data.matches ?? [])
             } catch {
-                // 실패 시 조용히 무시 — 라이브 섹션 미표시
+                // 실패 시 조용히 무시 — 현재 상태 유지
             }
         }
         fetchLive()
-        const t = setInterval(fetchLive, 30000)
+        const t = setInterval(fetchLive, 60000)
         return () => clearInterval(t)
     }, [])
 
