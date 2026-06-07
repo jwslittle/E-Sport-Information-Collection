@@ -6,6 +6,11 @@
  * - 인증 불필요 (공개 정보)
  * - 클라이언트가 30초마다 폴링
  * - 배경에서 DB 상태/스코어도 갱신 (SCHEDULED → LIVE)
+ *
+ * ── 서버-사이드 인-메모리 캐시 (20초) ──────────────────────────────────
+ * 유저가 N명이어도 LoL Esports 외부 API 호출은 20초당 최대 1회로 고정.
+ * Vercel 람다 warm 인스턴스 재사용으로 캐시 공유됨.
+ * (cold start 시 캐시 미스 → 외부 API 1회 호출 후 재캐시)
  */
 
 import { NextResponse } from 'next/server'
@@ -14,13 +19,46 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+// ── 서버-사이드 캐시 ────────────────────────────────────────────────────
+interface CachedLivePayload {
+    matches: {
+        id: string | null
+        externalId: string
+        team1: string
+        team2: string
+        team1Name: string | null
+        team2Name: string | null
+        team1Logo: string | null
+        team2Logo: string | null
+        team1Score: number
+        team2Score: number
+        bestOf: number
+        scheduledAt: Date | null
+    }[]
+    liveCount: number
+    cachedAt: number
+}
+
+let liveCache: CachedLivePayload | null = null
+const CACHE_TTL_MS = 20_000 // 20초: 30초 폴링보다 짧게 설정해 항상 신선한 데이터 보장
+
 export async function GET() {
+    const now = Date.now()
+
+    // 캐시 유효하면 즉시 반환 (외부 API 호출 없음)
+    if (liveCache && now - liveCache.cachedAt < CACHE_TTL_MS) {
+        return NextResponse.json({
+            matches: liveCache.matches,
+            liveCount: liveCache.liveCount,
+        })
+    }
+
     try {
         const liveEvents = await fetchLiveLckMatches()
 
         if (liveEvents.length === 0) {
-            // 라이브 없음 → 혹시 DB에 LIVE 상태로 남아있는 경기가 있다면
-            // 다음 full sync 때 정리됨 (지금은 별도 처리 생략)
+            // 라이브 없음 → 캐시도 빈 배열로 갱신
+            liveCache = { matches: [], liveCount: 0, cachedAt: Date.now() }
             return NextResponse.json({ matches: [], liveCount: 0 })
         }
 
@@ -35,7 +73,7 @@ export async function GET() {
         })
         const idMap = new Map(dbRows.map(r => [r.externalId, r.id]))
 
-        // 배경 DB 업데이트: status = LIVE + 최신 세트 스코어 반영
+        // 배경 DB 업데이트: status = LIVE + 최신 세트 스코어 반영 (캐시 미스 타이밍에만 실행)
         Promise.all(
             transformed.map(m =>
                 prisma.lckRealMatch.updateMany({
@@ -63,6 +101,9 @@ export async function GET() {
             bestOf: m.bestOf,
             scheduledAt: m.scheduledAt,
         }))
+
+        // 캐시 갱신
+        liveCache = { matches, liveCount: matches.length, cachedAt: Date.now() }
 
         return NextResponse.json({ matches, liveCount: matches.length })
     } catch (err) {

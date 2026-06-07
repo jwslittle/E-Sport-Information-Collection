@@ -194,20 +194,30 @@ export default function Home() {
                 <div className="md:col-span-2 space-y-5">
 
                     {/* ── 진행 중인 경기 ────────────────────────────── */}
-                    {liveMatches.length > 0 && (
-                        <div className="space-y-3">
-                            <h2 className="text-base font-bold text-white flex items-center gap-2">
-                                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                                </span>
-                                진행 중인 경기
-                            </h2>
-                            {liveMatches.map(match => (
+                    <div className="space-y-3">
+                        <h2 className="text-base font-bold text-white flex items-center gap-2">
+                            <span className="relative flex h-2.5 w-2.5 shrink-0">
+                                {liveMatches.length > 0 ? (
+                                    <>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                                    </>
+                                ) : (
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-zinc-600" />
+                                )}
+                            </span>
+                            진행 중인 경기
+                        </h2>
+                        {liveMatches.length === 0 ? (
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 text-center text-zinc-600 text-sm">
+                                진행 중인 경기가 없습니다
+                            </div>
+                        ) : (
+                            liveMatches.map(match => (
                                 <LiveMatchCard key={match.externalId} match={match} />
-                            ))}
-                        </div>
-                    )}
+                            ))
+                        )}
+                    </div>
 
                     {/* ── 다가오는 경기 ─────────────────────────────── */}
                     <div className="space-y-3">
