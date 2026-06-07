@@ -19,8 +19,14 @@ export async function GET(req: Request) {
     const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
     const skip = (page - 1) * PAGE_SIZE
 
+    const VALID_CATEGORIES_GET = ['FREE', 'ANALYSIS', 'PREDICTION', 'INFO', 'ALL']
     const where: any = { isDeleted: false }
-    if (category && category !== 'ALL') where.category = category
+    if (category && category !== 'ALL') {
+        if (!VALID_CATEGORIES_GET.includes(category)) {
+            return NextResponse.json({ error: '유효하지 않은 카테고리입니다.' }, { status: 400 })
+        }
+        where.category = category
+    }
 
     const [posts, total] = await Promise.all([
         prisma.post.findMany({

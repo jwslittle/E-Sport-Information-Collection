@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -10,12 +10,33 @@ import { cn } from '@/lib/utils'
 
 type Mode = 'choose' | 'signup'
 
+// NextAuth 에러 코드 → 한국어 메시지 매핑
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+    OAuthSignin:           'Google 로그인 요청 중 오류가 발생했습니다. 다시 시도해주세요.',
+    OAuthCallback:         'Google 로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.',
+    OAuthCreateAccount:    '계정 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+    OAuthAccountNotLinked: '이 이메일로 이미 다른 방식으로 가입된 계정이 있습니다.',
+    SessionRequired:       '로그인이 필요한 페이지입니다.',
+    Callback:              '로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.',
+    Default:               '로그인 중 오류가 발생했습니다. 다시 시도해주세요.',
+}
+
 export default function SignInPage() {
     const [mode, setMode] = useState<Mode>('choose')
     const [agreed, setAgreed] = useState(false)
     const [ageConfirmed, setAgeConfirmed] = useState(false)
     const [showError, setShowError] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [authError, setAuthError] = useState<string | null>(null)
+
+    // NextAuth가 ?error= 쿼리 파라미터로 리다이렉트해 올 때 에러 표시
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const err = params.get('error')
+        if (err) {
+            setAuthError(AUTH_ERROR_MESSAGES[err] ?? AUTH_ERROR_MESSAGES.Default)
+        }
+    }, [])
 
     // 기존 회원 → 바로 Google 로그인
     const handleLogin = async () => {
@@ -51,6 +72,14 @@ export default function SignInPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
+
+                    {/* NextAuth 에러 배너 */}
+                    {authError && (
+                        <div className="flex items-start gap-2 text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-lg p-3">
+                            <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                            <span>{authError}</span>
+                        </div>
+                    )}
 
                     {/* ── 선택 화면 ─────────────────────────────────── */}
                     {mode === 'choose' && (

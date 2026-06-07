@@ -21,6 +21,7 @@ export async function GET(req: Request) {
         const following = await prisma.follows.findMany({
             where: { followerId: session.user.id },
             select: { followingId: true },
+            take: 200,
         })
         const ids = [session.user.id, ...following.map(f => f.followingId)]
 
@@ -31,6 +32,7 @@ export async function GET(req: Request) {
                 profile: { select: { displayTitle: true } },
             },
             orderBy: { gp: 'desc' },
+            take: 200,
         })
 
         // ✅ 동점 처리: 같은 GP면 같은 랭크 부여

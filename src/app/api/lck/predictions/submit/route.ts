@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
     }
     const userId = session.user.id as string
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
+    if (!body) return NextResponse.json({ error: '요청 본문이 올바르지 않습니다.' }, { status: 400 })
     const { matchId, predictedWinner, predictedScore } = body
 
     if (!matchId || !predictedWinner) {

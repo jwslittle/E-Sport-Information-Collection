@@ -11,6 +11,7 @@ import { updateQuestProgress } from '@/lib/quest-utils'
 async function autoProcess(userId: string) {
     const unprocessed = await prisma.lckPrediction.findMany({
         where: { userId, isProcessed: false },
+        take: 200,
         include: {
             match: {
                 select: {

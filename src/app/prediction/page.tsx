@@ -439,9 +439,13 @@ function MatchCard({
                 {/* 팀 매치업 */}
                 <div className="flex items-center justify-between">
                     {/* 팀1 */}
-                    <div
+                    <button
+                        type="button"
+                        aria-label={`${r1.display} 선택`}
+                        aria-pressed={selectedWinner === r1.code}
+                        disabled={!!prediction || isCutoff}
                         className={cn(
-                            'flex flex-col items-center gap-2 flex-1 p-3 rounded-xl cursor-pointer transition-all border-2',
+                            'flex flex-col items-center gap-2 flex-1 p-3 rounded-xl cursor-pointer transition-all border-2 disabled:cursor-default',
                             !prediction && !isCutoff
                                 ? selectedWinner === r1.code
                                     ? 'border-yellow-500 bg-yellow-500/10'
@@ -458,7 +462,7 @@ function MatchCard({
                             <p className="font-black text-white text-sm">{r1.code !== r1.display ? r1.code : r1.display}</p>
                             <p className="text-zinc-500 text-[11px]">{r1.display !== r1.code ? r1.display : match.team1Name}</p>
                         </div>
-                    </div>
+                    </button>
 
                     {/* VS */}
                     <div className="flex flex-col items-center px-3">
@@ -469,9 +473,13 @@ function MatchCard({
                     </div>
 
                     {/* 팀2 */}
-                    <div
+                    <button
+                        type="button"
+                        aria-label={`${r2.display} 선택`}
+                        aria-pressed={selectedWinner === r2.code}
+                        disabled={!!prediction || isCutoff}
                         className={cn(
-                            'flex flex-col items-center gap-2 flex-1 p-3 rounded-xl cursor-pointer transition-all border-2',
+                            'flex flex-col items-center gap-2 flex-1 p-3 rounded-xl cursor-pointer transition-all border-2 disabled:cursor-default',
                             !prediction && !isCutoff
                                 ? selectedWinner === r2.code
                                     ? 'border-yellow-500 bg-yellow-500/10'
@@ -488,7 +496,7 @@ function MatchCard({
                             <p className="font-black text-white text-sm">{r2.code !== r2.display ? r2.code : r2.display}</p>
                             <p className="text-zinc-500 text-[11px]">{r2.display !== r2.code ? r2.display : match.team2Name}</p>
                         </div>
-                    </div>
+                    </button>
                 </div>
 
                 {/* 예측 완료 상태 */}

@@ -20,6 +20,7 @@ export async function GET() {
         // 내가 팔로우하는 유저
         prisma.follows.findMany({
             where: { followerId: userId },
+            take: 200,
             include: {
                 following: {
                     select: {
@@ -32,6 +33,7 @@ export async function GET() {
         // 나를 팔로우하는 유저
         prisma.follows.findMany({
             where: { followingId: userId },
+            take: 200,
             include: {
                 follower: {
                     select: {
