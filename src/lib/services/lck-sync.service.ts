@@ -3,16 +3,16 @@
  * LoL Esports API → PostgreSQL (캐싱)
  *
  * 캐시 정책:
- *  - 기본: 4시간마다 자동 동기화
- *  - 오류 시: 30분 후 재시도
+ *  - 기본: 30분마다 자동 동기화 (cron-job.org 30분 크론과 동기화)
+ *  - 오류 시: 10분 후 재시도
  */
 
 import prisma from '@/lib/prisma'
 import { fetchLckCurrentSeason, transformEventToMatch, getSeasonKeyFromDate } from './lolesports.service'
 import { CURRENT_SEASON } from '@/lib/config/season'
 
-const STALE_HOURS = 4
-const ERROR_RETRY_MINUTES = 30
+const STALE_HOURS = 0.5          // 30분 (크론 주기와 일치)
+const ERROR_RETRY_MINUTES = 10
 
 export interface SyncResult {
     synced: boolean
