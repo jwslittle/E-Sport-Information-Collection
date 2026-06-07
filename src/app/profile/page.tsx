@@ -142,6 +142,15 @@ export default function ProfilePage() {
         }
     }
 
+    // ✅ BUG-7 수정: 취소 시 편집 필드를 원래 값으로 복원
+    const handleCancelEdit = () => {
+        setEditing(false)
+        setEditNickname(profile?.name ?? '')
+        setEditTeam(profile?.profile?.favoriteTeam ?? '')
+        setEditBio(profile?.profile?.bio ?? '')
+        setNicknameError(null)
+    }
+
     const handleSave = async () => {
         // 닉네임 클라이언트 검증
         const trimmedNick = editNickname.trim()
@@ -275,7 +284,7 @@ export default function ProfilePage() {
                                 size="sm"
                                 variant="outline"
                                 className="border-zinc-700 text-zinc-400 hover:text-white shrink-0"
-                                onClick={() => setEditing(e => !e)}
+                                onClick={() => editing ? handleCancelEdit() : setEditing(true)}
                             >
                                 <Pencil className="w-3.5 h-3.5 mr-1" />
                                 {editing ? '취소' : '편집'}
@@ -371,7 +380,7 @@ export default function ProfilePage() {
 
                                 {/* 저장 */}
                                 <div className="flex gap-2 justify-end">
-                                    <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="text-zinc-500">
+                                    <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="text-zinc-500">
                                         <X className="w-3.5 h-3.5 mr-1" />취소
                                     </Button>
                                     <Button size="sm" onClick={handleSave} disabled={saving}

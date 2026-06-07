@@ -8,9 +8,13 @@ import * as Sentry from '@sentry/nextjs'
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions)
 
-    const isAdmin = (session?.user as any)?.role === 'ADMIN'
-    if (!isAdmin) {
+    // ✅ HTTP 상태 코드 수정: 비로그인 → 401, 로그인했지만 권한 없음 → 403
+    if (!session?.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const isAdmin = (session.user as any)?.role === 'ADMIN'
+    if (!isAdmin) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // ✅ 이중 확인: RESET_SECRET 환경변수 필수 — 우발적 실행 방지

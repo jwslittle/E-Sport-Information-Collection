@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -110,6 +111,7 @@ const POSITION_KO: Record<string, string> = {
 // ─── 메인 페이지 ─────────────────────────────────────────────────────────────
 
 export default function TeamDetailPage() {
+    const { data: session } = useSession()
     const params = useParams()
     const code = (params.code as string ?? '').toUpperCase()
     const [data, setData] = useState<TeamData | null>(null)
@@ -119,14 +121,15 @@ export default function TeamDetailPage() {
 
     const colors = LCK_COLORS[code] ?? { text: 'text-zinc-400', bg: 'bg-zinc-800', border: 'border-zinc-700' }
 
-    // CHECK_HISTORY 퀘스트 — 팀 상세 방문 시 1회 트리거
+    // ✅ BUG-5 수정: 로그인 사용자만 퀘스트 API 호출 (미로그인 시 401 낭비 방지)
     useEffect(() => {
+        if (!session) return
         fetch('/api/quests/progress', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'CHECK_HISTORY' }),
         }).catch(() => {})
-    }, [])
+    }, [session])
 
     useEffect(() => {
         if (!code) return

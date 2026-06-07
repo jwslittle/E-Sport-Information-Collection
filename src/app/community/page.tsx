@@ -63,6 +63,15 @@ function WriteDialog({ open, onClose, onCreated }: {
     const [category, setCategory] = useState('FREE')
     const [submitting, setSubmitting] = useState(false)
 
+    // ✅ BUG-10 수정: 다이얼로그 열릴 때 입력 필드 초기화 (이전 미완성 내용 잔류 방지)
+    useEffect(() => {
+        if (open) {
+            setTitle('')
+            setContent('')
+            setCategory('FREE')
+        }
+    }, [open])
+
     const handleSubmit = async () => {
         if (!title.trim() || !content.trim()) {
             toast.error('제목과 내용을 입력해주세요.')

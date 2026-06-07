@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -151,6 +152,25 @@ function resolveTeamCode(code: string, name: string | null): string {
     return TEAM_NAME_TO_CODE[name] ?? TEAM_NAME_TO_CODE[name.toLowerCase()] ?? name.substring(0, 4).toUpperCase()
 }
 
+// ─── KST 날짜/시간 포매팅 ────────────────────────────────────────────────────
+// date-fns format()은 서버(UTC)·클라이언트(KST) 환경에 따라 다른 결과를 반환 →
+// hydration 불일치 및 잘못된 경기 시간 표시 방지를 위해 Intl.DateTimeFormat 명시 사용
+type FmtKSTMode = 'time' | 'date-short' | 'full'
+function fmtKST(date: Date, mode: FmtKSTMode): string {
+    const opts: Intl.DateTimeFormatOptions = mode === 'time'
+        ? { hour: '2-digit', minute: '2-digit', hour12: false }
+        : mode === 'date-short'
+            ? { month: '2-digit', day: '2-digit', weekday: 'short' }
+            : { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }
+    const p: Record<string, string> = {}
+    new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', ...opts })
+        .formatToParts(date)
+        .forEach(({ type, value }) => { p[type] = value })
+    if (mode === 'time')       return `${p.hour}:${p.minute}`
+    if (mode === 'date-short') return `${p.month}.${p.day} (${p.weekday})`
+    return `${p.year}.${p.month}.${p.day} (${p.weekday}) ${p.hour}:${p.minute}`
+}
+
 /** 플레이오프 라운드 이름 추출 */
 function extractPlayoffRound(m: LckMatch): string {
     const dn = m.displayName ?? ''
@@ -163,19 +183,22 @@ function extractPlayoffRound(m: LckMatch): string {
 // ─── 메인 페이지 ─────────────────────────────────────────────────────
 
 export default function MatchesPage() {
+    const { data: session } = useSession()
     const [now, setNow] = useState(new Date())
     useEffect(() => {
         const t = setInterval(() => setNow(new Date()), 60000)
         return () => clearInterval(t)
     }, [])
 
+    // ✅ BUG-10 수정: 로그인 사용자만 퀘스트 API 호출
     useEffect(() => {
+        if (!session) return
         fetch('/api/quests/progress', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'CHECK_MATCH' }),
         }).catch(() => {})
-    }, [])
+    }, [session])
 
     return (
         <div className="min-h-screen bg-black text-white pb-20">
@@ -197,7 +220,7 @@ export default function MatchesPage() {
                     <div className="text-right">
                         <div className="text-xs text-zinc-500">현재 시간</div>
                         <div className="text-lg font-mono text-yellow-500">
-                            {format(now, 'yyyy.MM.dd (EEE) HH:mm', { locale: ko })}
+                            {fmtKST(now, 'full')}
                         </div>
                     </div>
                 </div>
@@ -286,7 +309,8 @@ function RealMatchTab() {
     const byDay: Record<string, LckMatch[]> = {}
     for (const m of weekMatches) {
         const d = m.scheduledAt ? new Date(m.scheduledAt) : new Date()
-        const dayKey = format(d, 'MM.dd (EEE)', { locale: ko })
+        // ✅ EDGE-6 수정: KST 기준 날짜로 그룹화 (Vercel UTC 서버 → 한국 시간 경계 오류 방지)
+        const dayKey = fmtKST(d, 'date-short')
         byDay[dayKey] = byDay[dayKey] ?? []
         byDay[dayKey].push(m)
     }
@@ -570,12 +594,13 @@ function RealMatchCard({ match }: { match: LckMatch }) {
                             <div className="flex flex-col items-start min-w-[90px] gap-1 shrink-0">
                                 {scheduledDate && (
                                     <span className="text-sm text-zinc-300 font-semibold">
-                                        {format(scheduledDate, 'MM.dd (EEE)', { locale: ko })}
+                                        {/* ✅ EDGE-6 수정: KST 기준 날짜 표시 */}
+                                        {fmtKST(scheduledDate, 'date-short')}
                                     </span>
                                 )}
                                 {scheduledDate && (
                                     <span className="text-xs text-zinc-600 font-mono">
-                                        {format(scheduledDate, 'HH:mm')} KST
+                                        {fmtKST(scheduledDate, 'time')} KST
                                     </span>
                                 )}
                                 {isLive && (
@@ -1095,6 +1120,8 @@ function LeagueStandings({ matches }: { matches: LckMatch[] }) {
             { code: m.team1, name: m.team1Name, logo: m.team1Logo, won: m.winner === m.team1 },
             { code: m.team2, name: m.team2Name, logo: m.team2Logo, won: m.winner === m.team2 },
         ].forEach(({ code, name, logo, won }) => {
+            // ✅ BUG-13 수정: TBD 코드는 순위표에서 제외 (아직 확정되지 않은 팀)
+            if (!code || code === 'TBD') return
             if (!teamMap[code]) teamMap[code] = { code, name, logo, wins: 0, losses: 0, form: [] }
             if (won) { teamMap[code].wins++; teamMap[code].form.push('W') }
             else { teamMap[code].losses++; teamMap[code].form.push('L') }

@@ -357,7 +357,8 @@ function MatchCard({
     const [expanded, setExpanded] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const msLeft = useCutdownLeft(match.scheduledAt)
-    const isCutoff = msLeft !== null ? msLeft <= 0 : !match.scheduledAt
+    // ✅ BUG-7 수정: scheduledAt이 null이면 마감 여부 미정 → false (미정 경기에 "예측 마감" 표시 방지)
+    const isCutoff = msLeft !== null ? msLeft <= 0 : false
 
     const submitPrediction = async () => {
         if (!selectedWinner) return

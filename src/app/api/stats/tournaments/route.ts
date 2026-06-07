@@ -20,6 +20,12 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Year is required' }, { status: 400 })
     }
 
+    // ✅ 수정: 문자열 비교 대신 정수 변환 후 비교 (문자열 "999" >= "2026" 오작동 방지)
+    const yearNum = parseInt(year, 10)
+    if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+        return NextResponse.json({ error: 'Invalid year' }, { status: 400 })
+    }
+
     try {
         const filePath = path.join(HISTORY_DIR, `stats_${year}.json`)
 
@@ -30,7 +36,7 @@ export async function GET(req: Request) {
         }
 
         // 2026+ JSON 없음 → DB에서 실시간 조회 (season별 표준명 반환)
-        if (year >= '2026') {
+        if (yearNum >= 2026) {
             // season 코드 → 읽기 쉬운 이름
             const SEASON_LABELS: Record<string, string> = {
                 'SPLIT1': 'Spring', 'SPLIT2': 'Summer', 'SPLIT3': 'Fall',
@@ -38,7 +44,7 @@ export async function GET(req: Request) {
                 'CUP': 'Cup', 'WORLDS': 'Worlds',
             }
             const seasons = await prisma.lckRealMatch.findMany({
-                where: { season: { startsWith: year } },
+                where: { season: { startsWith: String(yearNum) } },
                 select: { season: true },
                 distinct: ['season'],
                 orderBy: { scheduledAt: 'asc' },

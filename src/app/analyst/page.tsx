@@ -75,13 +75,18 @@ export default function AnalystPage() {
         )
     }
 
+    // ── isAdmin/hasTicket — handleSubmit보다 먼저 선언 (클로저 접근 보장)
+    const isAdmin   = (session.user as any)?.role === 'ADMIN'
+    const hasTicket = tickets === null || tickets > 0
+
     // ── 메시지 전송 ───────────────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!input.trim() || isLoading) return
 
         // 질의권 클라이언트 사전 체크 (서버에서도 검사함)
-        if (tickets !== null && tickets < 1) return
+        // ✅ BUG-14 수정: 관리자는 질의권 없어도 사용 가능
+        if (!isAdmin && tickets !== null && tickets < 1) return
 
         const userMessage = input.trim()
         const newMessages = [...messages, { role: 'user' as const, content: userMessage }]
@@ -131,9 +136,6 @@ export default function AnalystPage() {
             setIsLoading(false)
         }
     }
-
-    const hasTicket = tickets === null || tickets > 0
-    const isAdmin   = (session.user as any)?.role === 'ADMIN'
 
     return (
         <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] flex flex-col gap-4">

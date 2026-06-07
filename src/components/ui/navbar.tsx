@@ -46,13 +46,15 @@ export function Navbar() {
     const [gp, setGp] = useState<number | null>(null)
     const isAdmin = (session?.user as any)?.role === 'ADMIN'
 
-    // GP 실시간 표시
+    // ✅ BUG-9 수정: AbortController로 경로 변경 시 이전 fetch 취소 (race condition 방지)
     useEffect(() => {
         if (!session) { setGp(null); return }
-        fetch('/api/users/me')
+        const controller = new AbortController()
+        fetch('/api/users/me', { signal: controller.signal })
             .then(r => r.json())
             .then(d => { if (d.gp !== undefined) setGp(d.gp) })
-            .catch(() => {})
+            .catch(e => { if (e.name !== 'AbortError') console.error('[Navbar] GP fetch error:', e) })
+        return () => controller.abort()
     }, [session, pathname]) // pathname 변경 시마다 갱신
 
     // 하위 경로 → 부모 탭 매핑 (팀 상세 페이지 등)

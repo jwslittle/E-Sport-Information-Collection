@@ -35,7 +35,11 @@ export function DashboardClient() {
 
     useEffect(() => {
         fetch('/api/dashboard')
-            .then(r => r.json())
+            .then(r => {
+                // ✅ r.ok 체크: 오류 응답 시 JSON 파싱 시도 스킵
+                if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                return r.json()
+            })
             .then(d => setStats(d))
             .catch(console.error)
             .finally(() => setLoading(false))

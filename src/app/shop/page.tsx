@@ -397,11 +397,12 @@ export default function ShopPage() {
             if (res.ok) {
                 const item = items.find(i => i.id === itemId)
                 toast.success(equip ? `"${item?.name}" 장착!` : '장착 해제됨')
+                // ✅ BUG-8 수정: type이 undefined이면 같은 타입 해제 로직 스킵
                 const type = item?.type
                 setItems(prev => prev.map(i =>
                     i.id === itemId
                         ? { ...i, equipped: equip }
-                        : (i.type === type && equip ? { ...i, equipped: false } : i)
+                        : (type !== undefined && i.type === type && equip ? { ...i, equipped: false } : i)
                 ))
             } else {
                 toast.error(d.error ?? '장착 실패')
