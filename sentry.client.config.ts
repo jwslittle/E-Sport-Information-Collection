@@ -9,6 +9,9 @@ Sentry.init({
     // 프로덕션에서만 활성화
     enabled: process.env.NODE_ENV === "production",
 
+    // PIPA 개인정보 보호: IP, 사용자 정보 자동 수집 비활성화
+    sendDefaultPii: false,
+
     // 에러 필터링: 무시할 에러 패턴
     ignoreErrors: [
         // 네트워크 관련 (사용자 환경 문제)
@@ -19,4 +22,16 @@ Sentry.init({
         "NEXT_NOT_FOUND",
         "NEXT_REDIRECT",
     ],
+
+    beforeSend(event) {
+        if (event.request?.headers) {
+            delete event.request.headers["authorization"]
+            delete event.request.headers["cookie"]
+        }
+        if (event.user) {
+            delete event.user.email
+            delete event.user.ip_address
+        }
+        return event
+    },
 })

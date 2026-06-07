@@ -34,22 +34,15 @@ export async function PATCH(req: Request) {
         bio?: string
     }
 
-    // ── 프로필 사진 변경 처리 ──────────────────────────────────────────────
-    let updatedImage: string | undefined
-    if (image !== undefined) {
-        // Cloudinary URL만 허용 (외부 URL 주입 방지)
-        if (image && !image.startsWith('https://res.cloudinary.com/')) {
-            return NextResponse.json({ error: '유효하지 않은 이미지 URL입니다.' }, { status: 400 })
-        }
-        await prisma.user.update({
-            where: { id: userId },
-            data: { image: image || null },
-        })
-        updatedImage = image || undefined
+    // ── 유효성 검사 (쓰기 전 전부 완료) ────────────────────────────────────
+
+    // 프로필 사진: Cloudinary URL만 허용 (외부 URL 주입 방지)
+    if (image !== undefined && image && !image.startsWith('https://res.cloudinary.com/')) {
+        return NextResponse.json({ error: '유효하지 않은 이미지 URL입니다.' }, { status: 400 })
     }
 
-    // ── 닉네임 변경 처리 ─────────────────────────────────────────────────
-    let updatedName: string | undefined
+    // 닉네임 형식 검사
+    let trimmedNickname: string | undefined
     if (nickname !== undefined) {
         const trimmed = nickname.trim()
         if (!trimmed) {
@@ -61,7 +54,7 @@ export async function PATCH(req: Request) {
                 { status: 400 }
             )
         }
-        // 중복 닉네임 체크 (본인 제외)
+        // 중복 닉네임 체크 (본인 제외) — 읽기 전용이므로 트랜잭션 밖에서 수행
         const existing = await prisma.user.findFirst({
             where: { name: trimmed, id: { not: userId } },
             select: { id: true },
@@ -72,14 +65,10 @@ export async function PATCH(req: Request) {
                 { status: 409 }
             )
         }
-        await prisma.user.update({
-            where: { id: userId },
-            data: { name: trimmed },
-        })
-        updatedName = trimmed
+        trimmedNickname = trimmed
     }
 
-    // ── 프로필(팀·바이오) 변경 처리 ─────────────────────────────────────
+    // 팀 코드 검사
     const profileData: Record<string, string | null> = {}
     if (favoriteTeam !== undefined) {
         if (favoriteTeam && !(LCK_TEAMS as readonly string[]).includes(favoriteTeam)) {
@@ -91,22 +80,37 @@ export async function PATCH(req: Request) {
         profileData.bio = bio.slice(0, 100) || null  // 100자 제한
     }
 
-    if (Object.keys(profileData).length > 0) {
-        await prisma.userProfile.upsert({
-            where: { userId },
-            create: { userId, ...profileData },
-            update: profileData,
-        })
-    }
-
     if (nickname === undefined && image === undefined && Object.keys(profileData).length === 0) {
         return NextResponse.json({ error: '변경할 내용이 없습니다.' }, { status: 400 })
     }
 
+    // ── 원자적 다중 쓰기 ($transaction) ─────────────────────────────────
+    await prisma.$transaction(async (tx) => {
+        if (image !== undefined) {
+            await tx.user.update({
+                where: { id: userId },
+                data: { image: image || null },
+            })
+        }
+        if (trimmedNickname !== undefined) {
+            await tx.user.update({
+                where: { id: userId },
+                data: { name: trimmedNickname },
+            })
+        }
+        if (Object.keys(profileData).length > 0) {
+            await tx.userProfile.upsert({
+                where: { userId },
+                create: { userId, ...profileData },
+                update: profileData,
+            })
+        }
+    })
+
     return NextResponse.json({
         success: true,
-        ...(updatedName  ? { nickname: updatedName }  : {}),
-        ...(updatedImage ? { image: updatedImage }     : {}),
+        ...(trimmedNickname         ? { nickname: trimmedNickname }         : {}),
+        ...(image !== undefined && image ? { image }                        : {}),
     })
 }
 

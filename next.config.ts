@@ -39,6 +39,10 @@ const securityHeaders = [
             "base-uri 'self'",
             // 폼 제출 대상 제한
             "form-action 'self' https://accounts.google.com",
+            // 클릭재킹 방지 (X-Frame-Options 보완 — CSP 레벨)
+            "frame-ancestors 'none'",
+            // HTTP → HTTPS 자동 업그레이드
+            "upgrade-insecure-requests",
         ].join('; '),
     },
 ]

@@ -25,7 +25,16 @@ export default function OnboardingPage() {
     const { data: session, update, status } = useSession()
     const router = useRouter()
 
-    // ✅ 비로그인 사용자가 /onboarding 직접 접근 시 로그인 페이지로 리다이렉트
+    // ✅ Rules of Hooks: 모든 Hook을 조건부 반환 이전에 선언 (렌더마다 동일한 순서 보장)
+    const [nickname, setNickname] = useState('')
+    const [submitting, setSubmitting] = useState(false)
+
+    // ✅ PIPA 제15조: 온보딩 단계에서 약관 동의 재확인 및 DB 저장
+    const [termsAgreed, setTermsAgreed] = useState(false)
+    const [ageConfirmed, setAgeConfirmed] = useState(false)
+    const [showTermsError, setShowTermsError] = useState(false)
+
+    // ✅ 조건부 반환은 모든 Hook 선언 이후에
     if (status === 'unauthenticated') {
         router.replace('/auth/signin')
         return null
@@ -39,13 +48,6 @@ export default function OnboardingPage() {
     }
 
     const googleName = session?.user?.name ?? ''
-    const [nickname, setNickname] = useState(googleName)
-    const [submitting, setSubmitting] = useState(false)
-
-    // ✅ PIPA 제15조: 온보딩 단계에서 약관 동의 재확인 및 DB 저장
-    const [termsAgreed, setTermsAgreed] = useState(false)
-    const [ageConfirmed, setAgeConfirmed] = useState(false)
-    const [showTermsError, setShowTermsError] = useState(false)
 
     const validationResult = validate(nickname)
     const isValid = validationResult === 'ok'

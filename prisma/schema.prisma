@@ -122,6 +122,8 @@ model Player {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@unique([name, teamId])
 }
 
 // --- User Gameplay Models (판타지 팀 제거됨) ---

@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const RESET_SECRET = process.env.RESET_SECRET
     if (!RESET_SECRET) {
         return NextResponse.json(
-            { error: 'RESET_SECRET 환경변수가 설정되지 않았습니다. Vercel 대시보드에서 설정하세요.' },
+            { error: 'Internal Server Error' },
             { status: 500 }
         )
     }

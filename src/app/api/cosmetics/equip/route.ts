@@ -45,8 +45,13 @@ export async function POST(req: Request) {
     // ✅ 원자성: 3단계 쓰기를 트랜잭션으로 묶어 중간 실패 시 DB 불일치 방지
     await prisma.$transaction(async (tx) => {
         // 1. 같은 타입의 기존 장착 해제
+        // ✅ Prisma v5: updateMany의 where에 관계 필터 미지원 → itemId IN [...] 방식 사용
+        const typeItemIds = (await tx.cosmeticItem.findMany({
+            where: { type },
+            select: { id: true },
+        })).map(i => i.id)
         await tx.userCosmeticItem.updateMany({
-            where: { userId: session.user.id, isEquipped: true, item: { type } },
+            where: { userId: session.user.id, isEquipped: true, itemId: { in: typeItemIds } },
             data: { isEquipped: false },
         })
         // 2. 새 아이템 장착 (equip=false면 전체 해제만)
