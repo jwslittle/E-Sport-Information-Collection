@@ -9,75 +9,172 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Search, Sparkles, CalendarRange, Calendar, Trophy, Medal } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Search, Sparkles, CalendarRange, Calendar, Trophy, Medal, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const YEARS = ['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015', '2014']
+const POSITIONS = ['', 'TOP', 'JNG', 'MID', 'BOT', 'SUP']
+
+const POS_STYLE: Record<string, string> = {
+    TOP: 'bg-slate-800 text-slate-200 border-slate-500',
+    JNG: 'bg-emerald-950 text-emerald-300 border-emerald-700',
+    MID: 'bg-blue-950 text-blue-300 border-blue-700',
+    BOT: 'bg-orange-950 text-orange-300 border-orange-700',
+    SUP: 'bg-purple-950 text-purple-300 border-purple-700',
+}
+
+// ─── 보조 컴포넌트 ────────────────────────────────────────────────────────────
+
+function SortIcon({ col, sort, order }: { col: string; sort: string; order: 'asc' | 'desc' }) {
+    if (sort !== col) return <ChevronsUpDown className="w-3 h-3 opacity-20 inline ml-0.5 shrink-0" />
+    return order === 'asc'
+        ? <ChevronUp className="w-3 h-3 text-yellow-400 inline ml-0.5 shrink-0" />
+        : <ChevronDown className="w-3 h-3 text-yellow-400 inline ml-0.5 shrink-0" />
+}
+
+function WinBar({ wins, games }: { wins: number; games: number }) {
+    const pct = games > 0 ? (wins / games) * 100 : 0
+    const bar = pct >= 60 ? 'bg-green-400' : pct >= 50 ? 'bg-yellow-400' : 'bg-red-400'
+    const txt = pct >= 60 ? 'text-green-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'
+    return (
+        <div className="flex items-center gap-1.5 justify-end">
+            <span className={cn('font-semibold', txt)}>{pct.toFixed(0)}%</span>
+            <div className="w-10 h-1.5 bg-zinc-700 rounded-full overflow-hidden flex-shrink-0">
+                <div className={cn('h-full rounded-full', bar)} style={{ width: `${Math.min(pct, 100)}%` }} />
+            </div>
+        </div>
+    )
+}
+
+function KDA({ value }: { value: number }) {
+    const color = value >= 5 ? 'text-yellow-300' : value >= 3 ? 'text-green-400' : value >= 2 ? 'text-zinc-200' : 'text-zinc-400'
+    return <span className={cn('font-bold', color)}>{value.toFixed(2)}</span>
+}
+
+function PosBadge({ pos }: { pos: string }) {
+    const s = POS_STYLE[pos]
+    return s
+        ? <span className={cn('inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border', s)}>{pos}</span>
+        : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold border border-zinc-700 text-zinc-400">{pos}</span>
+}
+
+function SkeletonRows({ cols, rows = 8 }: { cols: number; rows?: number }) {
+    return (
+        <>
+            {Array.from({ length: rows }).map((_, i) => (
+                <TableRow key={i} className="animate-pulse border-zinc-800/50">
+                    {Array.from({ length: cols }).map((_, j) => (
+                        <TableCell key={j} className="py-2.5">
+                            <div className={cn('h-3.5 bg-zinc-800 rounded', j === 0 ? 'w-5 mx-auto' : j === 1 ? 'w-24' : 'w-full')} />
+                        </TableCell>
+                    ))}
+                </TableRow>
+            ))}
+        </>
+    )
+}
+
+/** 정렬 가능한 컬럼 헤더 + 툴팁 */
+function TH({
+    col, label, tip, sort, order, onSort,
+    right = true, className = '',
+}: {
+    col?: string; label: string; tip?: string
+    sort: string; order: 'asc' | 'desc'; onSort: (k: string) => void
+    right?: boolean; className?: string
+}) {
+    const active = !!col && sort === col
+    const cls = cn(
+        right ? 'text-right' : '',
+        col ? 'cursor-pointer select-none hover:text-yellow-400 transition-colors' : '',
+        active ? 'text-yellow-400' : '',
+        className,
+    )
+    const inner = (
+        <TableHead className={cls} onClick={col ? () => onSort(col) : undefined}>
+            <span className={cn('inline-flex items-center', right ? 'justify-end' : '')}>
+                {label}
+                {col && <SortIcon col={col} sort={sort} order={order} />}
+            </span>
+        </TableHead>
+    )
+    if (!tip) return inner
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>{inner}</TooltipTrigger>
+            <TooltipContent side="top" className="text-xs max-w-[180px] text-center">{tip}</TooltipContent>
+        </Tooltip>
+    )
+}
+
+// ─── 메인 페이지 ──────────────────────────────────────────────────────────────
 
 export default function InfoPage() {
-    const [activeTab, setActiveTab] = useState('team')
-    const [division, setDivision] = useState('1')
-    const [yearMode, setYearMode] = useState<'single' | 'range'>('single')
-    const [year, setYear] = useState('2025')
-    const [yearFrom, setYearFrom] = useState('2020')
-    const [yearTo, setYearTo] = useState('2025')
-    const [tournament, setTournament] = useState('all')
-    const [search, setSearch] = useState('')
-    const [sort, setSort] = useState('wins')
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-    const [data, setData] = useState<any[]>([])
-    const [loading, setLoading] = useState(false)
-    const [tournaments, setTournaments] = useState<string[]>([])
+    const [activeTab, setActiveTab]       = useState('team')
+    const [division, setDivision]         = useState('1')
+    const [yearMode, setYearMode]         = useState<'single' | 'range'>('single')
+    const [year, setYear]                 = useState('2025')
+    const [yearFrom, setYearFrom]         = useState('2020')
+    const [yearTo, setYearTo]             = useState('2025')
+    const [tournament, setTournament]     = useState('all')
+    const [search, setSearch]             = useState('')
+    const [sort, setSort]                 = useState('wins')
+    const [sortOrder, setSortOrder]       = useState<'asc' | 'desc'>('desc')
+    const [data, setData]                 = useState<any[]>([])
+    const [loading, setLoading]           = useState(false)
+    const [tournaments, setTournaments]   = useState<string[]>([])
+    const [position, setPosition]         = useState('')
+    const [limit, setLimit]               = useState(50)
 
-    // 챔피언 탭 상태
-    const [champPlayer, setChampPlayer] = useState('')
-    const [champData, setChampData] = useState<any[]>([])
+    // 챔피언 탭
+    const [champPlayer, setChampPlayer]   = useState('')
+    const [champData, setChampData]       = useState<any[]>([])
     const [champLoading, setChampLoading] = useState(false)
 
-    useEffect(() => { setData([]) }, [activeTab])
+    useEffect(() => { setData([]); setPosition('') }, [activeTab])
 
     // 토너먼트 목록
     useEffect(() => {
-        const fetchTournaments = async () => {
+        const run = async () => {
             const targetYear = yearMode === 'range' ? yearTo : year
             if (!targetYear) return
             try {
                 const res = await fetch(`/api/stats/tournaments?year=${targetYear}`)
-                if (res.ok) {
-                    let all: string[] = await res.json()
-                    const div2Regex = /LCK CL|LCKC|Challengers|NLB|\bCK\b|Academy|LDL|LCSA|CBLOLA|LJLCS|NACL|EU CS|NA CS|LSPL|ASCI|EUM|\bEM\b|BRCC|OCS|TCS|\bLFL\b|\bPRM\b|\bNLC\b|\bEBL\b|\bUL\b|\bLPLOL\b|\bPGN\b|\bHM\b|\bGLL\b|\bLIT\b/i
-                    if (division === '1') all = all.filter(t => !div2Regex.test(t))
-                    else                 all = all.filter(t =>  div2Regex.test(t))
-                    setTournaments(all)
-                    const korean = all.filter(t => /LCK|KeSPA|Korea/i.test(t))
-                    const summer = korean.find(t => /Summer|Split 2/i.test(t))
-                    const spring = korean.find(t => /Spring|Split 1/i.test(t))
-                    setTournament(summer || spring || korean[0] || 'all')
-                }
+                if (!res.ok) return
+                let all: string[] = await res.json()
+                const div2 = /LCK CL|LCKC|Challengers|NLB|\bCK\b|Academy|LDL|LCSA|CBLOLA|LJLCS|NACL|EU CS|NA CS|LSPL|ASCI|EUM|\bEM\b|BRCC|OCS|TCS|\bLFL\b|\bPRM\b|\bNLC\b|\bEBL\b|\bUL\b|\bLPLOL\b|\bPGN\b|\bHM\b|\bGLL\b|\bLIT\b/i
+                all = division === '1' ? all.filter(t => !div2.test(t)) : all.filter(t => div2.test(t))
+                setTournaments(all)
+                const korean = all.filter(t => /LCK|KeSPA|Korea/i.test(t))
+                const summer = korean.find(t => /Summer|Split 2/i.test(t))
+                const spring = korean.find(t => /Spring|Split 1/i.test(t))
+                setTournament(summer || spring || korean[0] || 'all')
             } catch { /* ignore */ }
         }
-        fetchTournaments()
+        run()
     }, [year, yearTo, yearMode, division])
 
     // 메인 통계 데이터
     useEffect(() => {
         if (activeTab === 'champion') return
-        const fetchData = async () => {
+        const run = async () => {
             setLoading(true)
             try {
-                const q: Record<string, string> = { type: activeTab, tournament, sort, order: sortOrder, search, division }
+                const q: Record<string, string> = { type: activeTab, tournament, sort, order: sortOrder, search, division, limit: String(limit) }
                 if (yearMode === 'range') { q.yearFrom = yearFrom; q.yearTo = yearTo }
                 else                       q.year = year
+                if (position && activeTab === 'player') q.position = position
                 const res  = await fetch(`/api/stats?${new URLSearchParams(q)}`)
                 const json = await res.json()
                 setData(Array.isArray(json) ? json : [])
             } catch { setData([]) }
             finally  { setLoading(false) }
         }
-        const id = setTimeout(fetchData, 300)
+        const id = setTimeout(run, 300)
         return () => clearTimeout(id)
-    }, [activeTab, year, yearFrom, yearTo, yearMode, tournament, sort, sortOrder, search, division])
+    }, [activeTab, year, yearFrom, yearTo, yearMode, tournament, sort, sortOrder, search, division, position, limit])
 
     // 챔피언 데이터
     const fetchChampions = useCallback(async () => {
@@ -85,8 +182,7 @@ export default function InfoPage() {
         try {
             const q: Record<string, string> = { limit: '20' }
             if (champPlayer.trim()) q.player = champPlayer.trim()
-            const catKey = tournament.startsWith('all') ? tournament + '_' + division : 'all_korea_1'
-            q.tournament = catKey
+            q.tournament = tournament.startsWith('all') ? tournament + '_' + division : 'all_korea_1'
             if (yearMode === 'range') { q.yearFrom = yearFrom; q.yearTo = yearTo }
             else                       q.year = year
             const res  = await fetch(`/api/stats/champions?${new URLSearchParams(q)}`)
@@ -104,341 +200,408 @@ export default function InfoPage() {
         if (sort === key) setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
         else { setSort(key); setSortOrder('desc') }
     }
-    const sortArrow = (key: string) => sort === key ? (sortOrder === 'asc' ? ' ↑' : ' ↓') : ''
 
     const koreanTournaments        = tournaments.filter(t => /LCK|KeSPA|Korea|NLB/i.test(t))
     const internationalTournaments = tournaments.filter(t => /World|MSI|Rift Rivals|Asian Games|Mid-Season|WLDs/i.test(t))
     const otherTournaments         = tournaments.filter(t => !koreanTournaments.includes(t) && !internationalTournaments.includes(t))
 
+    const thProps = { sort, order: sortOrder, onSort: handleSort }
+
     return (
-        <div className="container mx-auto p-4 space-y-6">
-            {/* 헤더 */}
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h1 className="text-3xl font-bold">정보 (Information)</h1>
-                    <div className="flex gap-2">
+        <TooltipProvider delayDuration={400}>
+            <div className="container mx-auto p-4 space-y-4">
+
+                {/* ─── 헤더 ── */}
+                <div className="flex items-start justify-between flex-wrap gap-3">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">LCK 통계</h1>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {division === '1' ? '1부 리그 (LCK)' : '2부 리그 (CL)'}{' · '}
+                            {yearMode === 'range'
+                                ? `${yearFrom}–${yearTo}년 통합`
+                                : `${year}년${year === '2026' ? ' · 진행 중' : year === '2025' ? ' · 최근 시즌' : ''}`
+                            }{' · '}
+                            {tournament === 'all' ? '전체 대회'
+                                : tournament === 'all_korea' ? '국내 통합'
+                                : tournament === 'all_intl' ? '국제 통합'
+                                : tournament}
+                        </p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
                         <Link href="/info/tournaments">
-                            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white text-xs gap-1.5">
+                            <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:text-white text-xs gap-1.5">
                                 <Trophy className="w-3.5 h-3.5 text-yellow-400" /> 대회 아카이브
                             </Button>
                         </Link>
                         <Link href="/info/records">
-                            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white text-xs gap-1.5">
+                            <Button variant="outline" size="sm" className="border-zinc-700 text-zinc-300 hover:text-white text-xs gap-1.5">
                                 <Medal className="w-3.5 h-3.5 text-orange-400" /> 역대 기록
                             </Button>
                         </Link>
                     </div>
                 </div>
-                <p className="text-muted-foreground text-sm">
-                    {division === '1' ? '1부 리그 (LCK/Intl)' : '2부 리그 (CL/Challengers)'}{' · '}
-                    {yearMode === 'range' ? `${yearFrom}~${yearTo} 통합` : `${year}${year === '2026' ? ' (진행 중)' : year === '2025' ? ' (최근)' : ''} 시즌`}{' · '}
-                    {tournament === 'all' ? '전체 통합' : tournament === 'all_korea' ? '국내 통합' : tournament === 'all_intl' ? '국제 통합' : tournament}
-                </p>
-            </div>
 
-            <Alert className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20">
-                <Sparkles className="h-4 w-4 text-purple-500" />
-                <AlertTitle className="text-purple-700 font-bold">AI 분석가에게 물어보세요!</AlertTitle>
-                <AlertDescription className="text-purple-600">
-                    "2025년 T1의 드래곤 제어율은?", "페이커의 챔피언 풀은?" 등 고급 통계에 대해 AI가 상세 분석해드립니다.
-                </AlertDescription>
-            </Alert>
+                {/* ─── AI 배너 ── */}
+                <Alert className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20 py-2.5">
+                    <Sparkles className="h-4 w-4 text-purple-400" />
+                    <AlertTitle className="text-purple-300 font-semibold text-sm">AI 분석가에게 물어보세요!</AlertTitle>
+                    <AlertDescription className="text-purple-400/80 text-xs">
+                        "2025년 T1의 드래곤 제어율은?", "페이커의 챔피언 풀은?" 등 자연어로 질문하면 AI가 상세 분석해드립니다.
+                    </AlertDescription>
+                </Alert>
 
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                        {/* 탭 */}
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-                            <TabsList>
-                                <TabsTrigger value="team">팀 기록</TabsTrigger>
-                                <TabsTrigger value="player">선수 기록</TabsTrigger>
-                                <TabsTrigger value="champion">챔피언 풀</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                {/* ─── 메인 카드 ── */}
+                <Card className="overflow-hidden border-zinc-800">
+                    <CardHeader className="pb-3 bg-zinc-900/40 border-b border-zinc-800/60">
+                        <div className="flex flex-col gap-3">
 
-                        {/* 필터 컨트롤 */}
-                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                            <Select value={division} onValueChange={setDivision}>
-                                <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">1부 (Tier 1)</SelectItem>
-                                    <SelectItem value="2">2부 (Tier 2)</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            {/* 탭 + 필터 */}
+                            <div className="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center">
+                                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                                    <TabsList className="bg-zinc-800/60 h-9">
+                                        <TabsTrigger value="team"     className="text-xs px-3">🏟 팀 통계</TabsTrigger>
+                                        <TabsTrigger value="player"   className="text-xs px-3">👤 선수 통계</TabsTrigger>
+                                        <TabsTrigger value="champion" className="text-xs px-3">⚔️ 챔피언 풀</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
 
-                            {/* 연도 모드 */}
-                            <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
-                                <button onClick={() => setYearMode('single')}
-                                    className={`flex items-center gap-1 px-3 py-1.5 text-xs transition-colors ${yearMode === 'single' ? 'bg-yellow-500/20 text-yellow-300' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                                    <Calendar className="w-3 h-3" />단일
-                                </button>
-                                <button onClick={() => setYearMode('range')}
-                                    className={`flex items-center gap-1 px-3 py-1.5 text-xs transition-colors ${yearMode === 'range' ? 'bg-yellow-500/20 text-yellow-300' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                                    <CalendarRange className="w-3 h-3" />기간
-                                </button>
+                                <div className="flex flex-wrap gap-2 items-center">
+                                    {/* 부 리그 */}
+                                    <Select value={division} onValueChange={setDivision}>
+                                        <SelectTrigger className="h-8 w-[110px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="1">1부 (LCK)</SelectItem>
+                                            <SelectItem value="2">2부 (CL)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+
+                                    {/* 연도 모드 토글 */}
+                                    <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden h-8">
+                                        <button onClick={() => setYearMode('single')}
+                                            className={cn('flex items-center gap-1 px-3 h-full text-xs transition-colors',
+                                                yearMode === 'single' ? 'bg-yellow-500/20 text-yellow-300' : 'text-zinc-500 hover:text-zinc-300')}>
+                                            <Calendar className="w-3 h-3" />단일
+                                        </button>
+                                        <button onClick={() => setYearMode('range')}
+                                            className={cn('flex items-center gap-1 px-3 h-full text-xs transition-colors',
+                                                yearMode === 'range' ? 'bg-yellow-500/20 text-yellow-300' : 'text-zinc-500 hover:text-zinc-300')}>
+                                            <CalendarRange className="w-3 h-3" />기간
+                                        </button>
+                                    </div>
+
+                                    {/* 연도 선택 */}
+                                    {yearMode === 'single' ? (
+                                        <Select value={year} onValueChange={setYear}>
+                                            <SelectTrigger className="h-8 w-[118px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                {YEARS.map(y => (
+                                                    <SelectItem key={y} value={y}>
+                                                        {y}{y === '2026' ? ' ▶ 진행 중' : y === '2025' ? ' ★ 최근' : ''}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <div className="flex items-center gap-1">
+                                            <Select value={yearFrom} onValueChange={setYearFrom}>
+                                                <SelectTrigger className="h-8 w-[80px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {YEARS.filter(y => y <= yearTo).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <span className="text-zinc-600 text-xs">–</span>
+                                            <Select value={yearTo} onValueChange={setYearTo}>
+                                                <SelectTrigger className="h-8 w-[80px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {YEARS.filter(y => y >= yearFrom).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+
+                                    {/* 대회 */}
+                                    <Select value={tournament} onValueChange={setTournament}>
+                                        <SelectTrigger className="h-8 w-[175px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">전체 통합</SelectItem>
+                                            {koreanTournaments.length > 0 && (
+                                                <SelectGroup>
+                                                    <SelectLabel>🇰🇷 국내 대회</SelectLabel>
+                                                    <SelectItem value="all_korea" className="text-blue-400 text-xs font-semibold">국내 통합</SelectItem>
+                                                    {koreanTournaments.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
+                                                </SelectGroup>
+                                            )}
+                                            {internationalTournaments.length > 0 && (
+                                                <SelectGroup>
+                                                    <SelectLabel>🌍 국제 대회</SelectLabel>
+                                                    <SelectItem value="all_intl" className="text-blue-400 text-xs font-semibold">국제 통합</SelectItem>
+                                                    {internationalTournaments.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
+                                                </SelectGroup>
+                                            )}
+                                            {otherTournaments.length > 0 && (
+                                                <SelectGroup>
+                                                    <SelectLabel>기타</SelectLabel>
+                                                    <SelectItem value="all_others" className="text-blue-400 text-xs font-semibold">기타 통합</SelectItem>
+                                                    {otherTournaments.map(t => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
+                                                </SelectGroup>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {/* 검색 */}
+                                    <div className="relative w-[155px]">
+                                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+                                        <Input
+                                            placeholder={activeTab === 'champion' ? '선수명...' : activeTab === 'team' ? '팀명 검색...' : '선수명 검색...'}
+                                            value={activeTab === 'champion' ? champPlayer : search}
+                                            onChange={e => activeTab === 'champion' ? setChampPlayer(e.target.value) : setSearch(e.target.value)}
+                                            onKeyDown={e => activeTab === 'champion' && e.key === 'Enter' && fetchChampions()}
+                                            className="h-8 pl-7 text-xs bg-zinc-900/60 border-zinc-700"
+                                        />
+                                    </div>
+
+                                    {/* 표시 수 */}
+                                    {activeTab !== 'champion' && (
+                                        <Select value={String(limit)} onValueChange={v => setLimit(Number(v))}>
+                                            <SelectTrigger className="h-8 w-[76px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="20">20개</SelectItem>
+                                                <SelectItem value="50">50개</SelectItem>
+                                                <SelectItem value="100">100개</SelectItem>
+                                                <SelectItem value="200">200개</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
                             </div>
 
-                            {yearMode === 'single' ? (
-                                <Select value={year} onValueChange={setYear}>
-                                    <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {YEARS.map(y => (
-                                            <SelectItem key={y} value={y}>
-                                                {y}{y === '2026' ? ' ▶ 진행 중' : y === '2025' ? ' (최근)' : ''}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <div className="flex items-center gap-1">
-                                    <Select value={yearFrom} onValueChange={setYearFrom}>
-                                        <SelectTrigger className="w-[90px]"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {YEARS.filter(y => y <= yearTo).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <span className="text-zinc-500 text-sm">~</span>
-                                    <Select value={yearTo} onValueChange={setYearTo}>
-                                        <SelectTrigger className="w-[90px]"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {YEARS.filter(y => y >= yearFrom).map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-
-                            <Select value={tournament} onValueChange={setTournament}>
-                                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">전체 통합 (All)</SelectItem>
-                                    {koreanTournaments.length > 0 && (
-                                        <SelectGroup>
-                                            <SelectLabel>국내 대회 (Korea)</SelectLabel>
-                                            <SelectItem value="all_korea" className="font-semibold text-blue-400">국내 통합</SelectItem>
-                                            {koreanTournaments.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                        </SelectGroup>
-                                    )}
-                                    {internationalTournaments.length > 0 && (
-                                        <SelectGroup>
-                                            <SelectLabel>국제 대회 (International)</SelectLabel>
-                                            <SelectItem value="all_intl" className="font-semibold text-blue-400">국제 통합</SelectItem>
-                                            {internationalTournaments.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                        </SelectGroup>
-                                    )}
-                                    {otherTournaments.length > 0 && (
-                                        <SelectGroup>
-                                            <SelectLabel>기타 (Others)</SelectLabel>
-                                            <SelectItem value="all_others" className="font-semibold text-blue-400">기타 통합</SelectItem>
-                                            {otherTournaments.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                                        </SelectGroup>
-                                    )}
-                                </SelectContent>
-                            </Select>
-
-                            {activeTab !== 'champion' ? (
-                                <div className="relative w-full md:w-[180px]">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="검색..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8" />
-                                </div>
-                            ) : (
-                                <div className="relative w-full md:w-[180px]">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="선수명..."
-                                        value={champPlayer}
-                                        onChange={e => setChampPlayer(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && fetchChampions()}
-                                        className="pl-8"
-                                    />
+                            {/* 포지션 필터 (선수 탭 전용) */}
+                            {activeTab === 'player' && (
+                                <div className="flex gap-1.5 flex-wrap items-center">
+                                    <span className="text-[11px] text-zinc-500 mr-0.5">포지션</span>
+                                    {POSITIONS.map(pos => {
+                                        const isActive = position === pos
+                                        const posStyle = pos ? POS_STYLE[pos] : null
+                                        return (
+                                            <button
+                                                key={pos || 'all'}
+                                                onClick={() => setPosition(pos)}
+                                                className={cn(
+                                                    'px-2.5 py-0.5 text-xs rounded border transition-all font-medium',
+                                                    isActive
+                                                        ? posStyle
+                                                            ? posStyle
+                                                            : 'bg-yellow-500/15 text-yellow-300 border-yellow-500/40'
+                                                        : 'text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-600'
+                                                )}>
+                                                {pos || '전체'}
+                                            </button>
+                                        )
+                                    })}
                                 </div>
                             )}
                         </div>
-                    </div>
-                </CardHeader>
+                    </CardHeader>
 
-                <CardContent>
-                    {activeTab === 'team' && (
-                        <TeamTable data={data} loading={loading} yearMode={yearMode}
-                            sort={sort} sortOrder={sortOrder} handleSort={handleSort} sortArrow={sortArrow} />
-                    )}
-                    {activeTab === 'player' && (
-                        <PlayerTable data={data} loading={loading} yearMode={yearMode}
-                            sort={sort} sortOrder={sortOrder} handleSort={handleSort} sortArrow={sortArrow} />
-                    )}
-                    {activeTab === 'champion' && (
-                        <ChampionTable data={champData} loading={champLoading}
-                            playerFilter={champPlayer} onSearch={fetchChampions} />
-                    )}
-                </CardContent>
-            </Card>
-        </div>
+                    <CardContent className="p-0">
+                        {activeTab === 'team' && (
+                            <TeamTable    data={data}      loading={loading}      yearMode={yearMode} {...thProps} />
+                        )}
+                        {activeTab === 'player' && (
+                            <PlayerTable  data={data}      loading={loading}      yearMode={yearMode} {...thProps} />
+                        )}
+                        {activeTab === 'champion' && (
+                            <ChampionTable data={champData} loading={champLoading} playerFilter={champPlayer} onSearch={fetchChampions} />
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </TooltipProvider>
     )
 }
 
-// ── 팀 통계 테이블 ──────────────────────────────────────────────────────────────
+// ─── 팀 통계 테이블 ───────────────────────────────────────────────────────────
 
-function TeamTable({ data, loading, yearMode, sort, sortOrder, handleSort, sortArrow }: {
-    data: any[]; loading: boolean; yearMode: string;
-    sort: string; sortOrder: string; handleSort: (k: string) => void; sortArrow: (k: string) => string
+function TeamTable({ data, loading, yearMode, sort, order, onSort }: {
+    data: any[]; loading: boolean; yearMode: string
+    sort: string; order: 'asc' | 'desc'; onSort: (k: string) => void
 }) {
-    const fmtPct = (v: number | null | undefined) =>
-        v == null ? '-' : `${(v * 100).toFixed(1)}%`
+    const fmtPct = (v: number | null | undefined) => v == null ? '-' : `${(v * 100).toFixed(1)}%`
     const fmtMin = (sec: number | null | undefined) => {
         if (!sec) return '-'
         return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`
     }
-    const gd15Color = (v: number | null | undefined) =>
-        v == null ? 'text-zinc-600' : v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-zinc-400'
+    const thP = { sort, order, onSort }
+    const cols = yearMode === 'range' ? 17 : 16
 
-    if (loading) return <div className="text-center py-10 text-zinc-500">로딩 중...</div>
     return (
-        <div className="rounded-md border overflow-x-auto">
+        <div className="overflow-x-auto">
             <Table className="text-sm min-w-[1300px]">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-8 text-center">#</TableHead>
-                        <TableHead className="cursor-pointer hover:text-yellow-400 min-w-[130px]" onClick={() => handleSort('name')}>팀명{sortArrow('name')}</TableHead>
+                    <TableRow className="bg-zinc-900/50 hover:bg-zinc-900/50 border-b border-zinc-800">
+                        <TableHead className="w-8 text-center text-zinc-500 text-xs">#</TableHead>
+                        <TH col="name"      label="팀명"       {...thP} right={false} className="min-w-[130px]" />
                         {yearMode === 'range' && <TableHead className="text-zinc-500 text-xs">연도</TableHead>}
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('wins')}>승{sortArrow('wins')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('losses')}>패{sortArrow('losses')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('winRate')}>승률{sortArrow('winRate')}</TableHead>
-                        <TableHead className="text-right text-zinc-400">G</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('kda')}>KDA{sortArrow('kda')}</TableHead>
-                        <TableHead className="text-right">K/G</TableHead>
-                        <TableHead className="text-right text-zinc-400">D/G</TableHead>
-                        <TableHead className="text-right text-zinc-400">A/G</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('damage')}>DMG/G{sortArrow('damage')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-blue-400" onClick={() => handleSort('duration')}>평균시간{sortArrow('duration')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-emerald-400" onClick={() => handleSort('blueSide')}>블루승률{sortArrow('blueSide')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-purple-400" onClick={() => handleSort('firstDragon')}>선드래곤{sortArrow('firstDragon')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-orange-400" onClick={() => handleSort('firstBaron')}>선바론{sortArrow('firstBaron')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-yellow-500" onClick={() => handleSort('goldDiff15')}>골드차@15{sortArrow('goldDiff15')}</TableHead>
+                        <TH col="wins"      label="승"        {...thP} />
+                        <TH col="losses"    label="패"        {...thP} />
+                        <TH col="winRate"   label="승률"      {...thP} tip="승리 / 총 경기수" />
+                        <TableHead className="text-right text-zinc-500 text-xs">G</TableHead>
+                        <TH col="kda"       label="KDA"       {...thP} tip="(킬+어시스트) / 데스" />
+                        <TableHead className="text-right text-zinc-400 text-xs">K/G</TableHead>
+                        <TableHead className="text-right text-zinc-400 text-xs">D/G</TableHead>
+                        <TableHead className="text-right text-zinc-400 text-xs">A/G</TableHead>
+                        <TH col="damage"    label="DMG/G"     {...thP} tip="게임당 평균 팀 총 피해량" />
+                        <TH col="duration"  label="평균시간"   {...thP} tip="게임 평균 소요 시간 (mm:ss)" className="text-blue-400" />
+                        <TH col="blueSide"  label="블루승률"   {...thP} tip="블루 진영에서의 승률" className="text-emerald-400" />
+                        <TH col="firstDragon" label="선드래곤" {...thP} tip="퍼스트 드래곤 획득률" className="text-purple-400" />
+                        <TH col="firstBaron"  label="선바론"   {...thP} tip="퍼스트 바론 획득률" className="text-orange-400" />
+                        <TH col="goldDiff15"  label="골드차@15" {...thP} tip="15분 기준 골드 차이 (양수=우세)" className="text-yellow-500" />
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {data.length === 0 ? (
-                        <TableRow><TableCell colSpan={17} className="text-center py-10 text-zinc-500">데이터가 없습니다.</TableCell></TableRow>
-                    ) : data.map((item: any, i: number) => {
-                        const g = item.games ?? (item.wins + item.losses)
-                        const kda = item.totalDeaths > 0
-                            ? ((item.totalKills + item.totalAssists) / item.totalDeaths).toFixed(2)
-                            : String(item.totalKills + item.totalAssists)
-                        const blueSideWr = item.blueSideGames > 0 ? item.blueSideWins / item.blueSideGames : null
-                        const gd15 = item.avgGoldDiff15
-                        return (
-                            <TableRow key={i} className="hover:bg-zinc-800/30">
-                                <TableCell className="text-center text-zinc-500">{i + 1}</TableCell>
-                                <TableCell className="font-semibold">
-                                    <Link href={`/info/team/${encodeURIComponent(item.teamName)}`} className="hover:text-yellow-400 transition-colors">{item.teamName}</Link>
-                                </TableCell>
-                                {yearMode === 'range' && <TableCell className="text-zinc-400 text-xs">{item.year}</TableCell>}
-                                <TableCell className="text-right text-green-400 font-bold">{item.wins}</TableCell>
-                                <TableCell className="text-right text-red-400">{item.losses}</TableCell>
-                                <TableCell className="text-right font-semibold">{g > 0 ? ((item.wins / g) * 100).toFixed(1) + '%' : '-'}</TableCell>
-                                <TableCell className="text-right text-zinc-400">{g}</TableCell>
-                                <TableCell className="text-right text-yellow-400 font-bold">{kda}</TableCell>
-                                <TableCell className="text-right">{g > 0 ? (item.totalKills / g).toFixed(1) : '-'}</TableCell>
-                                <TableCell className="text-right text-zinc-400">{g > 0 ? (item.totalDeaths / g).toFixed(1) : '-'}</TableCell>
-                                <TableCell className="text-right text-zinc-400">{g > 0 ? (item.totalAssists / g).toFixed(1) : '-'}</TableCell>
-                                <TableCell className="text-right">{g > 0 ? Math.round(item.totalDamage / g).toLocaleString() : '-'}</TableCell>
-                                <TableCell className="text-right text-blue-400">{fmtMin(item.avgGameLengthSeconds)}</TableCell>
-                                <TableCell className="text-right text-emerald-400">{fmtPct(blueSideWr)}</TableCell>
-                                <TableCell className="text-right text-purple-400">{fmtPct(item.firstDragonRate)}</TableCell>
-                                <TableCell className="text-right text-orange-400">{fmtPct(item.firstBaronRate)}</TableCell>
-                                <TableCell className={`text-right font-mono text-xs ${gd15Color(gd15)}`}>
-                                    {gd15 == null ? '-' : (gd15 >= 0 ? '+' : '') + gd15.toLocaleString()}
+                    {loading ? <SkeletonRows cols={cols} />
+                        : data.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={cols} className="text-center py-14">
+                                    <div className="flex flex-col items-center gap-2 text-zinc-600">
+                                        <Trophy className="w-8 h-8 opacity-30" />
+                                        <p className="text-sm">데이터가 없습니다</p>
+                                        <p className="text-xs">다른 시즌 또는 대회를 선택해보세요</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
-                        )
-                    })}
+                        ) : data.map((item: any, i: number) => {
+                            const g = item.games ?? (item.wins + item.losses)
+                            const kdaVal = item.totalDeaths > 0
+                                ? (item.totalKills + item.totalAssists) / item.totalDeaths
+                                : (item.totalKills + item.totalAssists)
+                            const blueSideWr = item.blueSideGames > 0 ? item.blueSideWins / item.blueSideGames : null
+                            const gd15 = item.avgGoldDiff15
+                            const gd15Color = gd15 == null ? 'text-zinc-600' : gd15 > 0 ? 'text-green-400' : gd15 < 0 ? 'text-red-400' : 'text-zinc-400'
+                            return (
+                                <TableRow key={i} className="hover:bg-zinc-800/25 border-zinc-800/50 transition-colors">
+                                    <TableCell className="text-center text-zinc-600 text-xs">{i + 1}</TableCell>
+                                    <TableCell className="font-semibold">
+                                        <Link href={`/info/team/${encodeURIComponent(item.teamName)}`} className="hover:text-yellow-400 transition-colors">
+                                            {item.teamName}
+                                        </Link>
+                                    </TableCell>
+                                    {yearMode === 'range' && <TableCell className="text-zinc-400 text-xs">{item.year}</TableCell>}
+                                    <TableCell className="text-right text-green-400 font-bold">{item.wins}</TableCell>
+                                    <TableCell className="text-right text-red-400">{item.losses}</TableCell>
+                                    <TableCell className="text-right"><WinBar wins={item.wins} games={g} /></TableCell>
+                                    <TableCell className="text-right text-zinc-400 text-xs">{g}</TableCell>
+                                    <TableCell className="text-right"><KDA value={kdaVal} /></TableCell>
+                                    <TableCell className="text-right">{g > 0 ? (item.totalKills   / g).toFixed(1) : '-'}</TableCell>
+                                    <TableCell className="text-right text-zinc-400">{g > 0 ? (item.totalDeaths  / g).toFixed(1) : '-'}</TableCell>
+                                    <TableCell className="text-right text-zinc-400">{g > 0 ? (item.totalAssists / g).toFixed(1) : '-'}</TableCell>
+                                    <TableCell className="text-right">{g > 0 ? Math.round(item.totalDamage / g).toLocaleString() : '-'}</TableCell>
+                                    <TableCell className="text-right text-blue-400">{fmtMin(item.avgGameLengthSeconds)}</TableCell>
+                                    <TableCell className="text-right text-emerald-400">{fmtPct(blueSideWr)}</TableCell>
+                                    <TableCell className="text-right text-purple-400">{fmtPct(item.firstDragonRate)}</TableCell>
+                                    <TableCell className="text-right text-orange-400">{fmtPct(item.firstBaronRate)}</TableCell>
+                                    <TableCell className={cn('text-right font-mono text-xs', gd15Color)}>
+                                        {gd15 == null ? '-' : (gd15 >= 0 ? '+' : '') + gd15.toLocaleString()}
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
                 </TableBody>
             </Table>
         </div>
     )
 }
 
-// ── 선수 통계 테이블 ─────────────────────────────────────────────────────────────
+// ─── 선수 통계 테이블 ─────────────────────────────────────────────────────────
 
-function PlayerTable({ data, loading, yearMode, sort, sortOrder, handleSort, sortArrow }: {
-    data: any[]; loading: boolean; yearMode: string;
-    sort: string; sortOrder: string; handleSort: (k: string) => void; sortArrow: (k: string) => string
+function PlayerTable({ data, loading, yearMode, sort, order, onSort }: {
+    data: any[]; loading: boolean; yearMode: string
+    sort: string; order: 'asc' | 'desc'; onSort: (k: string) => void
 }) {
-    const fmtPct = (v: number | null | undefined) =>
-        (!v && v !== 0) ? '-' : `${(v * 100).toFixed(1)}%`
+    const fmtPct = (v: number | null | undefined) => (!v && v !== 0) ? '-' : `${(v * 100).toFixed(1)}%`
+    const thP = { sort, order, onSort }
+    const cols = yearMode === 'range' ? 18 : 17
 
-    if (loading) return <div className="text-center py-10 text-zinc-500">로딩 중...</div>
     return (
-        <div className="rounded-md border overflow-x-auto">
+        <div className="overflow-x-auto">
             <Table className="text-sm min-w-[1500px]">
                 <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-8 text-center">#</TableHead>
-                        <TableHead className="cursor-pointer hover:text-yellow-400 min-w-[100px]" onClick={() => handleSort('name')}>선수{sortArrow('name')}</TableHead>
-                        <TableHead className="cursor-pointer hover:text-yellow-400" onClick={() => handleSort('position')}>POS{sortArrow('position')}</TableHead>
-                        <TableHead className="cursor-pointer hover:text-yellow-400 min-w-[100px]" onClick={() => handleSort('team')}>팀{sortArrow('team')}</TableHead>
+                    <TableRow className="bg-zinc-900/50 hover:bg-zinc-900/50 border-b border-zinc-800">
+                        <TableHead className="w-8 text-center text-zinc-500 text-xs">#</TableHead>
+                        <TH col="name"      label="선수"    {...thP} right={false} className="min-w-[100px]" />
+                        <TH col="position"  label="POS"    {...thP} right={false} tip="포지션" />
+                        <TH col="team"      label="팀"     {...thP} right={false} className="min-w-[90px]" />
                         {yearMode === 'range' && <TableHead className="text-zinc-500 text-xs">연도</TableHead>}
-                        <TableHead className="text-right">G</TableHead>
-                        <TableHead className="text-right text-green-400">W</TableHead>
-                        <TableHead className="text-right text-red-400">L</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('winRate')}>승률{sortArrow('winRate')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('kda')}>KDA{sortArrow('kda')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400" onClick={() => handleSort('damage')}>DPM{sortArrow('damage')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-cyan-400" onClick={() => handleSort('cspm')}>CSPM{sortArrow('cspm')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-yellow-300" onClick={() => handleSort('gpm')}>GPM{sortArrow('gpm')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-orange-400" onClick={() => handleSort('kp')}>KP%{sortArrow('kp')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-red-400" onClick={() => handleSort('dmgShare')}>DMG%{sortArrow('dmgShare')}</TableHead>
-                        <TableHead className="text-right cursor-pointer hover:text-yellow-400 text-emerald-400" onClick={() => handleSort('goldShare')}>GOLD%{sortArrow('goldShare')}</TableHead>
-                        <TableHead className="text-right text-blue-400">시야</TableHead>
-                        <TableHead className="text-right text-zinc-400 cursor-pointer hover:text-yellow-400" onClick={() => handleSort('penta')}>펜타{sortArrow('penta')}</TableHead>
+                        <TableHead className="text-right text-zinc-500 text-xs">G</TableHead>
+                        <TableHead className="text-right text-green-400 text-xs">W</TableHead>
+                        <TableHead className="text-right text-red-400 text-xs">L</TableHead>
+                        <TH col="winRate"   label="승률"   {...thP} tip="승리율" />
+                        <TH col="kda"       label="KDA"    {...thP} tip="(킬+어시스트) / 데스" />
+                        <TH col="damage"    label="DPM"    {...thP} tip="Damage Per Minute — 분당 피해량" />
+                        <TH col="cspm"      label="CSPM"   {...thP} tip="CS Per Minute — 분당 미니언/정글 처치수" className="text-cyan-400" />
+                        <TH col="gpm"       label="GPM"    {...thP} tip="Earned Gold Per Minute — 분당 획득 골드" className="text-yellow-300" />
+                        <TH col="kp"        label="KP%"    {...thP} tip="Kill Participation — 팀 킬 관여율" className="text-orange-400" />
+                        <TH col="dmgShare"  label="DMG%"   {...thP} tip="Damage Share — 팀 내 피해량 비중" className="text-red-400" />
+                        <TH col="goldShare" label="GOLD%"  {...thP} tip="Gold Share — 팀 내 골드 비중" className="text-emerald-400" />
+                        <TH                 label="시야"   {...thP} tip="Vision Score — 시야 제어 점수" className="text-blue-400" />
+                        <TH col="penta"     label="펜타"   {...thP} tip="펜타킬 횟수" className="text-zinc-400" />
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {data.length === 0 ? (
-                        <TableRow><TableCell colSpan={18} className="text-center py-10 text-zinc-500">데이터가 없습니다.</TableCell></TableRow>
-                    ) : data.map((item: any, i: number) => {
-                        const g  = item.games
-                        const wr = g > 0 ? ((item.wins / g) * 100).toFixed(0) + '%' : '-'
-                        return (
-                            <TableRow key={i} className="hover:bg-zinc-800/30">
-                                <TableCell className="text-center text-zinc-500">{i + 1}</TableCell>
-                                <TableCell className="font-semibold">
-                                    <Link href={`/info/player/${encodeURIComponent(item.playerName)}`} className="hover:text-yellow-400 transition-colors">{item.playerName}</Link>
+                    {loading ? <SkeletonRows cols={cols} />
+                        : data.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={cols} className="text-center py-14">
+                                    <div className="flex flex-col items-center gap-2 text-zinc-600">
+                                        <Trophy className="w-8 h-8 opacity-30" />
+                                        <p className="text-sm">데이터가 없습니다</p>
+                                        <p className="text-xs">다른 시즌, 대회 또는 포지션을 선택해보세요</p>
+                                    </div>
                                 </TableCell>
-                                <TableCell><Badge variant="outline" className="text-[10px] py-0">{item.position}</Badge></TableCell>
-                                <TableCell className="text-zinc-400 text-xs">{item.teamName}</TableCell>
-                                {yearMode === 'range' && <TableCell className="text-zinc-400 text-xs">{item.year}</TableCell>}
-                                <TableCell className="text-right">{g}</TableCell>
-                                <TableCell className="text-right text-green-400">{item.wins}</TableCell>
-                                <TableCell className="text-right text-red-400">{item.losses}</TableCell>
-                                <TableCell className="text-right">{wr}</TableCell>
-                                <TableCell className="text-right text-yellow-400 font-bold">{item.averageKDA?.toFixed(2) || '0.00'}</TableCell>
-                                <TableCell className="text-right">{Math.round(item.averageDPM || 0).toLocaleString()}</TableCell>
-                                <TableCell className="text-right text-cyan-400">{item.avgCSPM ? item.avgCSPM.toFixed(1) : '-'}</TableCell>
-                                <TableCell className="text-right text-yellow-300">{item.avgEarnedGPM ? Math.round(item.avgEarnedGPM) : '-'}</TableCell>
-                                <TableCell className="text-right text-orange-400">{fmtPct(item.avgKillParticipation)}</TableCell>
-                                <TableCell className="text-right text-red-400">{fmtPct(item.avgDamageShare)}</TableCell>
-                                <TableCell className="text-right text-emerald-400">{fmtPct(item.avgGoldShare)}</TableCell>
-                                <TableCell className="text-right text-blue-400">{item.averageVisionScore?.toFixed(1) || '-'}</TableCell>
-                                <TableCell className="text-right text-zinc-400">{item.pentakills || '-'}</TableCell>
                             </TableRow>
-                        )
-                    })}
+                        ) : data.map((item: any, i: number) => {
+                            const g = item.games
+                            return (
+                                <TableRow key={i} className="hover:bg-zinc-800/25 border-zinc-800/50 transition-colors">
+                                    <TableCell className="text-center text-zinc-600 text-xs">{i + 1}</TableCell>
+                                    <TableCell className="font-semibold">
+                                        <Link href={`/info/player/${encodeURIComponent(item.playerName)}`} className="hover:text-yellow-400 transition-colors">
+                                            {item.playerName}
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell><PosBadge pos={item.position} /></TableCell>
+                                    <TableCell className="text-zinc-400 text-xs">{item.teamName}</TableCell>
+                                    {yearMode === 'range' && <TableCell className="text-zinc-400 text-xs">{item.year}</TableCell>}
+                                    <TableCell className="text-right text-zinc-400 text-xs">{g}</TableCell>
+                                    <TableCell className="text-right text-green-400">{item.wins}</TableCell>
+                                    <TableCell className="text-right text-red-400">{item.losses}</TableCell>
+                                    <TableCell className="text-right"><WinBar wins={item.wins} games={g} /></TableCell>
+                                    <TableCell className="text-right"><KDA value={item.averageKDA ?? 0} /></TableCell>
+                                    <TableCell className="text-right">{Math.round(item.averageDPM || 0).toLocaleString()}</TableCell>
+                                    <TableCell className="text-right text-cyan-400">{item.avgCSPM ? item.avgCSPM.toFixed(1) : '-'}</TableCell>
+                                    <TableCell className="text-right text-yellow-300">{item.avgEarnedGPM ? Math.round(item.avgEarnedGPM) : '-'}</TableCell>
+                                    <TableCell className="text-right text-orange-400">{fmtPct(item.avgKillParticipation)}</TableCell>
+                                    <TableCell className="text-right text-red-400">{fmtPct(item.avgDamageShare)}</TableCell>
+                                    <TableCell className="text-right text-emerald-400">{fmtPct(item.avgGoldShare)}</TableCell>
+                                    <TableCell className="text-right text-blue-400">{item.averageVisionScore?.toFixed(1) || '-'}</TableCell>
+                                    <TableCell className="text-right text-zinc-400">{item.pentakills || '-'}</TableCell>
+                                </TableRow>
+                            )
+                        })}
                 </TableBody>
             </Table>
         </div>
     )
 }
 
-// ── 챔피언 풀 테이블 ─────────────────────────────────────────────────────────────
+// ─── 챔피언 풀 테이블 ─────────────────────────────────────────────────────────
 
 function ChampionTable({ data, loading, playerFilter, onSearch }: {
     data: any[]; loading: boolean; playerFilter: string; onSearch: () => void
 }) {
     const isPlayerView = Boolean(playerFilter.trim())
-    const fmtPct = (v: number | null | undefined) =>
-        (!v && v !== 0) ? '-' : `${(v * 100).toFixed(1)}%`
+    const fmtPct = (v: number | null | undefined) => (!v && v !== 0) ? '-' : `${(v * 100).toFixed(1)}%`
 
-    // 전체 뷰: 선수별 그룹핑
     const grouped: Record<string, any[]> = {}
     if (!isPlayerView) {
         for (const row of data) {
@@ -447,52 +610,60 @@ function ChampionTable({ data, loading, playerFilter, onSearch }: {
         }
     }
 
-    if (loading) return <div className="text-center py-10 text-zinc-500">로딩 중...</div>
-
     return (
-        <div className="space-y-3">
+        <div className="space-y-3 p-4">
             <div className="flex items-center gap-3 bg-zinc-900/60 border border-zinc-800 rounded-lg px-4 py-2.5">
                 <p className="text-xs text-zinc-400 flex-1">
                     {isPlayerView
-                        ? <>선수 <span className="text-yellow-400 font-bold">{playerFilter}</span>의 챔피언 풀 | 좌측 검색창에서 다른 선수 검색</>
-                        : '선수명 검색창에 이름을 입력해 특정 선수의 챔피언 풀을 확인하거나, 아래에서 전체 목록을 확인할 수 있습니다.'}
+                        ? <>선수 <span className="text-yellow-400 font-bold">{playerFilter}</span>의 챔피언 풀 · 좌측 검색창에서 다른 선수 검색</>
+                        : '검색창에 선수 이름을 입력하면 해당 선수의 챔피언별 상세 통계를 확인할 수 있습니다.'}
                 </p>
                 {isPlayerView && (
-                    <Button size="sm" variant="outline" className="text-xs h-7 border-zinc-700" onClick={onSearch}>다시 검색</Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7 border-zinc-700" onClick={onSearch}>
+                        다시 검색
+                    </Button>
                 )}
             </div>
 
-            {data.length === 0 ? (
-                <div className="text-center py-10 text-zinc-500">
-                    {playerFilter ? `'${playerFilter}' 선수 데이터를 찾을 수 없습니다.` : '데이터가 없습니다.'}
+            {loading ? (
+                <div className="overflow-x-auto rounded-md border border-zinc-800">
+                    <Table className="text-sm">
+                        <TableBody><SkeletonRows cols={6} rows={5} /></TableBody>
+                    </Table>
+                </div>
+            ) : data.length === 0 ? (
+                <div className="text-center py-14 flex flex-col items-center gap-2 text-zinc-600">
+                    <span className="text-4xl">⚔️</span>
+                    <p className="text-sm">{playerFilter ? `'${playerFilter}' 선수 데이터를 찾을 수 없습니다.` : '데이터가 없습니다.'}</p>
+                    <p className="text-xs">시즌 또는 대회를 변경해보세요</p>
                 </div>
             ) : isPlayerView ? (
-                <div className="rounded-md border overflow-x-auto">
+                <div className="rounded-md border border-zinc-800 overflow-x-auto">
                     <Table className="text-sm min-w-[640px]">
                         <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-8">#</TableHead>
+                            <TableRow className="bg-zinc-900/50 hover:bg-zinc-900/50 border-zinc-800">
+                                <TableHead className="w-8 text-zinc-500 text-xs">#</TableHead>
                                 <TableHead>챔피언</TableHead>
                                 <TableHead className="text-right">게임</TableHead>
                                 <TableHead className="text-right text-green-400">승</TableHead>
                                 <TableHead className="text-right text-red-400">패</TableHead>
                                 <TableHead className="text-right font-bold">승률</TableHead>
                                 <TableHead className="text-right text-yellow-400">KDA</TableHead>
-                                <TableHead className="text-right text-red-400">DPM</TableHead>
+                                <TableHead className="text-right">DPM</TableHead>
                                 <TableHead className="text-right text-cyan-400">CSPM</TableHead>
                                 <TableHead className="text-right text-orange-400">DMG%</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {data.map((c: any, i: number) => (
-                                <TableRow key={i} className="hover:bg-zinc-800/30">
-                                    <TableCell className="text-zinc-500">{i + 1}</TableCell>
+                                <TableRow key={i} className="hover:bg-zinc-800/25 border-zinc-800/50">
+                                    <TableCell className="text-zinc-500 text-xs">{i + 1}</TableCell>
                                     <TableCell className="font-semibold text-yellow-300">{c.champion}</TableCell>
                                     <TableCell className="text-right">{c.games}</TableCell>
                                     <TableCell className="text-right text-green-400">{c.wins}</TableCell>
                                     <TableCell className="text-right text-red-400">{c.losses}</TableCell>
-                                    <TableCell className="text-right font-bold">{c.games > 0 ? ((c.wins / c.games) * 100).toFixed(1) + '%' : '-'}</TableCell>
-                                    <TableCell className="text-right text-yellow-400 font-bold">{c.avgKDA?.toFixed(2) || '-'}</TableCell>
+                                    <TableCell className="text-right">{c.games > 0 ? <WinBar wins={c.wins} games={c.games} /> : '-'}</TableCell>
+                                    <TableCell className="text-right"><KDA value={c.avgKDA ?? 0} /></TableCell>
                                     <TableCell className="text-right">{c.avgDPM ? Math.round(c.avgDPM).toLocaleString() : '-'}</TableCell>
                                     <TableCell className="text-right text-cyan-400">{c.avgCSPM?.toFixed(1) || '-'}</TableCell>
                                     <TableCell className="text-right text-orange-400">{fmtPct(c.avgDmgShare)}</TableCell>
@@ -502,10 +673,10 @@ function ChampionTable({ data, loading, playerFilter, onSearch }: {
                     </Table>
                 </div>
             ) : (
-                <div className="rounded-md border overflow-x-auto">
+                <div className="rounded-md border border-zinc-800 overflow-x-auto">
                     <Table className="text-sm min-w-[700px]">
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="bg-zinc-900/50 hover:bg-zinc-900/50 border-zinc-800">
                                 <TableHead className="min-w-[100px]">선수</TableHead>
                                 <TableHead>챔피언 풀 (상위 5개)</TableHead>
                                 <TableHead className="text-right text-zinc-400">총 게임</TableHead>
@@ -513,9 +684,11 @@ function ChampionTable({ data, loading, playerFilter, onSearch }: {
                         </TableHeader>
                         <TableBody>
                             {Object.entries(grouped).slice(0, 60).map(([playerName, champs]: [string, any[]]) => (
-                                <TableRow key={playerName} className="hover:bg-zinc-800/30">
+                                <TableRow key={playerName} className="hover:bg-zinc-800/25 border-zinc-800/50">
                                     <TableCell className="font-semibold">
-                                        <Link href={`/info/player/${encodeURIComponent(playerName)}`} className="hover:text-yellow-400">{playerName}</Link>
+                                        <Link href={`/info/player/${encodeURIComponent(playerName)}`} className="hover:text-yellow-400 transition-colors">
+                                            {playerName}
+                                        </Link>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex gap-1.5 flex-wrap">
@@ -526,7 +699,7 @@ function ChampionTable({ data, loading, playerFilter, onSearch }: {
                                             ))}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right text-zinc-500">
+                                    <TableCell className="text-right text-zinc-500 text-xs">
                                         {champs.reduce((s: number, c: any) => s + c.games, 0)}
                                     </TableCell>
                                 </TableRow>

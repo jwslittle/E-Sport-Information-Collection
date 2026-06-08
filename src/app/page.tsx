@@ -376,7 +376,7 @@ export default function Home() {
                     { icon: <Target className="w-5 h-5" />, title: '승팀 예측', gp: '+10 GP', color: 'border-blue-800/40 bg-blue-500/5', iconColor: 'text-blue-400' },
                     { icon: <CheckCircle2 className="w-5 h-5" />, title: '스코어까지', gp: '+30 GP', color: 'border-green-800/40 bg-green-500/5', iconColor: 'text-green-400' },
                     { icon: <Brain className="w-5 h-5" />, title: '데일리 퀴즈', gp: '+15~20 GP', color: 'border-purple-800/40 bg-purple-500/5', iconColor: 'text-purple-400' },
-                    { icon: <Shield className="w-5 h-5" />, title: '퀘스트', gp: '+20~200 GP', color: 'border-orange-800/40 bg-orange-500/5', iconColor: 'text-orange-400' },
+                    { icon: <Shield className="w-5 h-5" />, title: '퀘스트', gp: '+5~1,000 GP', color: 'border-orange-800/40 bg-orange-500/5', iconColor: 'text-orange-400' },
                 ].map(item => (
                     <div key={item.title} className={cn('border rounded-xl p-4 text-center', item.color)}>
                         <div className={cn('flex justify-center mb-2', item.iconColor)}>{item.icon}</div>
