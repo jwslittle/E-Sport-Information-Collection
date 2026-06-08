@@ -129,9 +129,14 @@ export default function InfoPage() {
     const [limit, setLimit]               = useState(50)
 
     // 챔피언 탭
-    const [champPlayer, setChampPlayer]   = useState('')
-    const [champData, setChampData]       = useState<any[]>([])
-    const [champLoading, setChampLoading] = useState(false)
+    const [champPlayer, setChampPlayer]         = useState('')
+    const [champData, setChampData]             = useState<any[]>([])
+    const [champLoading, setChampLoading]       = useState(false)
+    const [champSort, setChampSort]             = useState('games')
+    const [champOrder, setChampOrder]           = useState<'asc' | 'desc'>('desc')
+    const [champViewMode, setChampViewMode]     = useState<'ranking' | 'cards'>('ranking')
+    const [champLimit, setChampLimit]           = useState(5)
+    const [champNameFilter, setChampNameFilter] = useState('')
 
     useEffect(() => { setData([]); setPosition('') }, [activeTab])
 
@@ -199,6 +204,11 @@ export default function InfoPage() {
     const handleSort = (key: string) => {
         if (sort === key) setSortOrder(o => o === 'asc' ? 'desc' : 'asc')
         else { setSort(key); setSortOrder('desc') }
+    }
+
+    const handleChampSort = (key: string) => {
+        if (champSort === key) setChampOrder(o => o === 'asc' ? 'desc' : 'asc')
+        else { setChampSort(key); setChampOrder('desc') }
     }
 
     const koreanTournaments        = tournaments.filter(t => /LCK|KeSPA|Korea|NLB/i.test(t))
@@ -400,6 +410,50 @@ export default function InfoPage() {
                                     })}
                                 </div>
                             )}
+
+                            {/* 챔피언 탭 전용 컨트롤 */}
+                            {activeTab === 'champion' && !champPlayer.trim() && (
+                                <div className="flex gap-2 flex-wrap items-center">
+                                    <span className="text-[11px] text-zinc-500">보기</span>
+                                    <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden h-7">
+                                        <button onClick={() => setChampViewMode('ranking')}
+                                            className={cn('flex items-center gap-1 px-2.5 h-full text-xs transition-colors',
+                                                champViewMode === 'ranking' ? 'bg-yellow-500/20 text-yellow-300' : 'text-zinc-500 hover:text-zinc-300')}>
+                                            📊 랭킹
+                                        </button>
+                                        <button onClick={() => setChampViewMode('cards')}
+                                            className={cn('flex items-center gap-1 px-2.5 h-full text-xs transition-colors',
+                                                champViewMode === 'cards' ? 'bg-yellow-500/20 text-yellow-300' : 'text-zinc-500 hover:text-zinc-300')}>
+                                            🃏 선수별
+                                        </button>
+                                    </div>
+                                    {champViewMode === 'ranking' && (
+                                        <div className="relative">
+                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500" />
+                                            <Input
+                                                placeholder="챔피언 검색..."
+                                                value={champNameFilter}
+                                                onChange={e => setChampNameFilter(e.target.value)}
+                                                className="h-7 pl-6 w-[130px] text-xs bg-zinc-900/60 border-zinc-700"
+                                            />
+                                        </div>
+                                    )}
+                                    {champViewMode === 'cards' && (
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[11px] text-zinc-500">챔피언</span>
+                                            <Select value={String(champLimit)} onValueChange={v => setChampLimit(Number(v))}>
+                                                <SelectTrigger className="h-7 w-[68px] text-xs bg-zinc-900/60 border-zinc-700"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="3">3개</SelectItem>
+                                                    <SelectItem value="5">5개</SelectItem>
+                                                    <SelectItem value="8">8개</SelectItem>
+                                                    <SelectItem value="10">10개</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </CardHeader>
 
@@ -411,7 +465,18 @@ export default function InfoPage() {
                             <PlayerTable  data={data}      loading={loading}      yearMode={yearMode} {...thProps} />
                         )}
                         {activeTab === 'champion' && (
-                            <ChampionTable data={champData} loading={champLoading} playerFilter={champPlayer} onSearch={fetchChampions} />
+                            <ChampionTable
+                                data={champData}
+                                loading={champLoading}
+                                playerFilter={champPlayer}
+                                onSearch={fetchChampions}
+                                champSort={champSort}
+                                champOrder={champOrder}
+                                onChampSort={handleChampSort}
+                                champViewMode={champViewMode}
+                                champLimit={champLimit}
+                                champNameFilter={champNameFilter}
+                            />
                         )}
                     </CardContent>
                 </Card>
@@ -596,72 +661,132 @@ function PlayerTable({ data, loading, yearMode, sort, order, onSort }: {
 
 // ─── 챔피언 풀 테이블 ─────────────────────────────────────────────────────────
 
-function ChampionTable({ data, loading, playerFilter, onSearch }: {
+function ChampionTable({
+    data, loading, playerFilter, onSearch,
+    champSort, champOrder, onChampSort,
+    champViewMode, champLimit, champNameFilter,
+}: {
     data: any[]; loading: boolean; playerFilter: string; onSearch: () => void
+    champSort: string; champOrder: 'asc' | 'desc'; onChampSort: (k: string) => void
+    champViewMode: 'ranking' | 'cards'; champLimit: number; champNameFilter: string
 }) {
     const isPlayerView = Boolean(playerFilter.trim())
     const fmtPct = (v: number | null | undefined) => (!v && v !== 0) ? '-' : `${(v * 100).toFixed(1)}%`
 
-    const grouped: Record<string, any[]> = {}
-    if (!isPlayerView) {
-        for (const row of data) {
-            if (!grouped[row.playerName]) grouped[row.playerName] = []
-            grouped[row.playerName].push(row)
-        }
+    const sortRows = useCallback((rows: any[]) => {
+        return [...rows].sort((a, b) => {
+            const dir = champOrder === 'asc' ? 1 : -1
+            const aWr = a.games > 0 ? a.wins / a.games : 0
+            const bWr = b.games > 0 ? b.wins / b.games : 0
+            switch (champSort) {
+                case 'games':    return (b.games - a.games) * dir
+                case 'winRate':  return (bWr - aWr) * dir
+                case 'kda':      return ((b.avgKDA ?? 0) - (a.avgKDA ?? 0)) * dir
+                case 'dpm':      return ((b.avgDPM ?? 0) - (a.avgDPM ?? 0)) * dir
+                case 'cspm':     return ((b.avgCSPM ?? 0) - (a.avgCSPM ?? 0)) * dir
+                case 'dmgShare': return ((b.avgDmgShare ?? 0) - (a.avgDmgShare ?? 0)) * dir
+                case 'champion': return (a.champion ?? '').localeCompare(b.champion ?? '') * dir
+                default:         return 0
+            }
+        })
+    }, [champSort, champOrder])
+
+    /** 게임 수에 따른 챔피언 텍스트 색상 (주력/숙련/기타) */
+    const champTextCls  = (g: number) => g >= 10 ? 'text-yellow-300 font-bold' : g >= 5 ? 'text-blue-300 font-semibold' : 'text-zinc-300'
+    /** 게임 수에 따른 챔피언 뱃지 배경 */
+    const champBadgeCls = (g: number) =>
+        g >= 10 ? 'bg-yellow-500/10 border-yellow-500/30' :
+        g >= 5  ? 'bg-blue-500/10  border-blue-500/30'   :
+                  'bg-zinc-800/50  border-zinc-700/50'
+
+    const thP = { sort: champSort, order: champOrder, onSort: onChampSort }
+
+    // ── 로딩 스켈레톤 ────────────────────────────────────────────────────────
+    if (loading) {
+        return (
+            <div className="p-4">
+                <div className="overflow-x-auto rounded-xl border border-zinc-800">
+                    <Table><TableBody><SkeletonRows cols={isPlayerView ? 8 : 9} rows={10} /></TableBody></Table>
+                </div>
+            </div>
+        )
     }
 
-    return (
-        <div className="space-y-3 p-4">
-            <div className="flex items-center gap-3 bg-zinc-900/60 border border-zinc-800 rounded-lg px-4 py-2.5">
-                <p className="text-xs text-zinc-400 flex-1">
-                    {isPlayerView
-                        ? <>선수 <span className="text-yellow-400 font-bold">{playerFilter}</span>의 챔피언 풀 · 좌측 검색창에서 다른 선수 검색</>
-                        : '검색창에 선수 이름을 입력하면 해당 선수의 챔피언별 상세 통계를 확인할 수 있습니다.'}
+    // ── 빈 상태 ──────────────────────────────────────────────────────────────
+    if (data.length === 0) {
+        return (
+            <div className="text-center py-16 flex flex-col items-center gap-3 text-zinc-600">
+                <span className="text-5xl opacity-30">⚔️</span>
+                <p className="text-sm font-medium">
+                    {playerFilter ? `'${playerFilter}' 선수 데이터를 찾을 수 없습니다.` : '챔피언 풀 데이터가 없습니다.'}
                 </p>
-                {isPlayerView && (
-                    <Button size="sm" variant="outline" className="text-xs h-7 border-zinc-700" onClick={onSearch}>
-                        다시 검색
-                    </Button>
-                )}
+                <p className="text-xs">시즌 또는 대회를 변경해보세요</p>
             </div>
+        )
+    }
 
-            {loading ? (
-                <div className="overflow-x-auto rounded-md border border-zinc-800">
-                    <Table className="text-sm">
-                        <TableBody><SkeletonRows cols={6} rows={5} /></TableBody>
-                    </Table>
+    // ── 선수 상세 뷰 ─────────────────────────────────────────────────────────
+    if (isPlayerView) {
+        const sorted     = sortRows(data)
+        const totalGames = sorted.reduce((s: number, c: any) => s + c.games, 0)
+        const mainChamps = sorted.filter((c: any) => c.games >= 10).length
+        return (
+            <div className="p-4 space-y-3">
+                {/* 선수 요약 헤더 */}
+                <div className="flex items-center justify-between bg-zinc-900/60 border border-zinc-800 rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 flex items-center justify-center text-base shrink-0">⚔️</div>
+                        <div>
+                            <p className="text-sm font-bold text-yellow-400">{playerFilter}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-xs text-zinc-500">챔피언 풀 <span className="text-zinc-300">{sorted.length}종</span></span>
+                                <span className="text-zinc-700">·</span>
+                                <span className="text-xs text-zinc-500">총 <span className="text-zinc-300">{totalGames}G</span></span>
+                                {mainChamps > 0 && (
+                                    <>
+                                        <span className="text-zinc-700">·</span>
+                                        <span className="text-[10px] text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded-full">주력 {mainChamps}종</span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="text-xs h-7 border-zinc-700 gap-1.5 shrink-0" onClick={onSearch}>
+                        <Search className="w-3 h-3" />다른 선수
+                    </Button>
                 </div>
-            ) : data.length === 0 ? (
-                <div className="text-center py-14 flex flex-col items-center gap-2 text-zinc-600">
-                    <span className="text-4xl">⚔️</span>
-                    <p className="text-sm">{playerFilter ? `'${playerFilter}' 선수 데이터를 찾을 수 없습니다.` : '데이터가 없습니다.'}</p>
-                    <p className="text-xs">시즌 또는 대회를 변경해보세요</p>
-                </div>
-            ) : isPlayerView ? (
-                <div className="rounded-md border border-zinc-800 overflow-x-auto">
-                    <Table className="text-sm min-w-[640px]">
+
+                {/* 정렬 가능한 상세 테이블 */}
+                <div className="rounded-xl border border-zinc-800 overflow-x-auto">
+                    <Table className="text-sm min-w-[720px]">
                         <TableHeader>
                             <TableRow className="bg-zinc-900/50 hover:bg-zinc-900/50 border-zinc-800">
-                                <TableHead className="w-8 text-zinc-500 text-xs">#</TableHead>
-                                <TableHead>챔피언</TableHead>
-                                <TableHead className="text-right">게임</TableHead>
-                                <TableHead className="text-right text-green-400">승</TableHead>
-                                <TableHead className="text-right text-red-400">패</TableHead>
-                                <TableHead className="text-right font-bold">승률</TableHead>
-                                <TableHead className="text-right text-yellow-400">KDA</TableHead>
-                                <TableHead className="text-right">DPM</TableHead>
-                                <TableHead className="text-right text-cyan-400">CSPM</TableHead>
-                                <TableHead className="text-right text-orange-400">DMG%</TableHead>
+                                <TableHead className="w-8 text-center text-zinc-600 text-xs">#</TableHead>
+                                <TH col="champion" label="챔피언"  {...thP} right={false} className="min-w-[130px]" />
+                                <TH col="games"    label="G"       {...thP} tip="게임 수 (많을수록 주력 챔피언)" />
+                                <TH col="winRate"  label="승률"    {...thP} tip="승리율" />
+                                <TH col="kda"      label="KDA"     {...thP} tip="평균 (킬+어시스트) / 데스" />
+                                <TH col="dpm"      label="DPM"     {...thP} tip="Damage Per Minute — 분당 피해량" />
+                                <TH col="cspm"     label="CSPM"    {...thP} tip="CS Per Minute — 분당 CS" className="text-cyan-400" />
+                                <TH col="dmgShare" label="DMG%"    {...thP} tip="팀 내 피해량 비중" className="text-orange-400" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {data.map((c: any, i: number) => (
-                                <TableRow key={i} className="hover:bg-zinc-800/25 border-zinc-800/50">
-                                    <TableCell className="text-zinc-500 text-xs">{i + 1}</TableCell>
-                                    <TableCell className="font-semibold text-yellow-300">{c.champion}</TableCell>
-                                    <TableCell className="text-right">{c.games}</TableCell>
-                                    <TableCell className="text-right text-green-400">{c.wins}</TableCell>
-                                    <TableCell className="text-right text-red-400">{c.losses}</TableCell>
+                            {sorted.map((c: any, i: number) => (
+                                <TableRow key={i} className="hover:bg-zinc-800/25 border-zinc-800/50 transition-colors">
+                                    <TableCell className="text-center text-zinc-600 text-xs">{i + 1}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border',
+                                                champBadgeCls(c.games), champTextCls(c.games)
+                                            )}>{c.champion}</span>
+                                            {c.games >= 10 && (
+                                                <span className="text-[9px] text-yellow-500 font-bold tracking-wide">주력</span>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right font-semibold">{c.games}</TableCell>
                                     <TableCell className="text-right">{c.games > 0 ? <WinBar wins={c.wins} games={c.games} /> : '-'}</TableCell>
                                     <TableCell className="text-right"><KDA value={c.avgKDA ?? 0} /></TableCell>
                                     <TableCell className="text-right">{c.avgDPM ? Math.round(c.avgDPM).toLocaleString() : '-'}</TableCell>
@@ -672,42 +797,145 @@ function ChampionTable({ data, loading, playerFilter, onSearch }: {
                         </TableBody>
                     </Table>
                 </div>
-            ) : (
-                <div className="rounded-md border border-zinc-800 overflow-x-auto">
-                    <Table className="text-sm min-w-[700px]">
+            </div>
+        )
+    }
+
+    // ── 랭킹 뷰 (플랫 정렬 테이블, 기본) ────────────────────────────────────
+    if (champViewMode === 'ranking') {
+        const filtered = champNameFilter.trim()
+            ? data.filter(r => r.champion?.toLowerCase().includes(champNameFilter.trim().toLowerCase()))
+            : data
+        const sorted = sortRows(filtered)
+
+        return (
+            <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2 px-1">
+                    <span className="text-xs text-zinc-500">
+                        총 <span className="text-zinc-300">{sorted.length}</span>개 챔피언-선수 조합
+                    </span>
+                    {champNameFilter.trim() && (
+                        <span className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full">
+                            &ldquo;{champNameFilter}&rdquo; 필터
+                        </span>
+                    )}
+                </div>
+                <div className="rounded-xl border border-zinc-800 overflow-x-auto">
+                    <Table className="text-sm min-w-[740px]">
                         <TableHeader>
                             <TableRow className="bg-zinc-900/50 hover:bg-zinc-900/50 border-zinc-800">
-                                <TableHead className="min-w-[100px]">선수</TableHead>
-                                <TableHead>챔피언 풀 (상위 5개)</TableHead>
-                                <TableHead className="text-right text-zinc-400">총 게임</TableHead>
+                                <TableHead className="w-8 text-center text-zinc-600 text-xs">#</TableHead>
+                                <TH col="champion" label="챔피언"  {...thP} right={false} className="min-w-[120px]" />
+                                <TableHead className="text-xs text-zinc-400">선수</TableHead>
+                                <TH col="games"    label="G"       {...thP} tip="게임 수" />
+                                <TH col="winRate"  label="승률"    {...thP} tip="승리율" />
+                                <TH col="kda"      label="KDA"     {...thP} tip="평균 KDA" />
+                                <TH col="dpm"      label="DPM"     {...thP} tip="분당 피해량" />
+                                <TH col="cspm"     label="CSPM"    {...thP} tip="분당 CS" className="text-cyan-400" />
+                                <TH col="dmgShare" label="DMG%"    {...thP} tip="팀 피해량 비중" className="text-orange-400" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {Object.entries(grouped).slice(0, 60).map(([playerName, champs]: [string, any[]]) => (
-                                <TableRow key={playerName} className="hover:bg-zinc-800/25 border-zinc-800/50">
-                                    <TableCell className="font-semibold">
-                                        <Link href={`/info/player/${encodeURIComponent(playerName)}`} className="hover:text-yellow-400 transition-colors">
-                                            {playerName}
+                            {sorted.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} className="text-center py-10 text-zinc-600 text-sm">
+                                        &lsquo;{champNameFilter}&rsquo; 챔피언을 찾을 수 없습니다
+                                    </TableCell>
+                                </TableRow>
+                            ) : sorted.slice(0, 300).map((c: any, i: number) => (
+                                <TableRow key={i} className="hover:bg-zinc-800/25 border-zinc-800/50 transition-colors">
+                                    <TableCell className="text-center text-zinc-600 text-xs">{i + 1}</TableCell>
+                                    <TableCell>
+                                        <span className={cn(
+                                            'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border',
+                                            champBadgeCls(c.games), champTextCls(c.games)
+                                        )}>{c.champion}</span>
+                                    </TableCell>
+                                    <TableCell className="text-xs">
+                                        <Link href={`/info/player/${encodeURIComponent(c.playerName)}`} className="text-zinc-300 hover:text-yellow-400 transition-colors">
+                                            {c.playerName}
                                         </Link>
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-1.5 flex-wrap">
-                                            {champs.slice(0, 5).map((c: any) => (
-                                                <span key={c.champion} className="text-[11px] bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded-full text-zinc-300">
-                                                    {c.champion} <span className="text-zinc-500">{c.games}G</span>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right text-zinc-500 text-xs">
-                                        {champs.reduce((s: number, c: any) => s + c.games, 0)}
-                                    </TableCell>
+                                    <TableCell className="text-right font-semibold">{c.games}</TableCell>
+                                    <TableCell className="text-right">{c.games > 0 ? <WinBar wins={c.wins} games={c.games} /> : '-'}</TableCell>
+                                    <TableCell className="text-right"><KDA value={c.avgKDA ?? 0} /></TableCell>
+                                    <TableCell className="text-right">{c.avgDPM ? Math.round(c.avgDPM).toLocaleString() : '-'}</TableCell>
+                                    <TableCell className="text-right text-cyan-400">{c.avgCSPM?.toFixed(1) || '-'}</TableCell>
+                                    <TableCell className="text-right text-orange-400">{fmtPct(c.avgDmgShare)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </div>
-            )}
+            </div>
+        )
+    }
+
+    // ── 선수별 카드 뷰 ───────────────────────────────────────────────────────
+    const grouped: Record<string, any[]> = {}
+    for (const row of data) {
+        if (!grouped[row.playerName]) grouped[row.playerName] = []
+        grouped[row.playerName].push(row)
+    }
+    const players = Object.entries(grouped)
+
+    return (
+        <div className="p-4 space-y-3">
+            <div className="px-1">
+                <span className="text-xs text-zinc-500">
+                    <span className="text-zinc-300">{players.length}</span>명 선수 · 각 상위 <span className="text-zinc-300">{champLimit}</span>개 챔피언 표시
+                </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {players.map(([playerName, champs]) => {
+                    const totalGames = champs.reduce((s: number, c: any) => s + c.games, 0)
+                    const display    = champs.slice(0, champLimit)
+                    return (
+                        <div key={playerName} className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors group">
+                            {/* 카드 헤더 */}
+                            <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800/60 bg-zinc-900/70">
+                                <Link
+                                    href={`/info/player/${encodeURIComponent(playerName)}`}
+                                    className="font-semibold text-sm hover:text-yellow-400 transition-colors">
+                                    {playerName}
+                                </Link>
+                                <span className="text-[10px] text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full tabular-nums">{totalGames}G</span>
+                            </div>
+                            {/* 챔피언 리스트 */}
+                            <div className="p-2 space-y-0.5">
+                                {display.map((c: any) => {
+                                    const wr     = c.games > 0 ? (c.wins / c.games) * 100 : 0
+                                    const barClr = wr >= 60 ? 'bg-green-400' : wr >= 50 ? 'bg-yellow-400' : 'bg-red-400'
+                                    const txtClr = wr >= 60 ? 'text-green-400' : wr >= 50 ? 'text-yellow-400' : 'text-red-400'
+                                    const kdaClr = (c.avgKDA ?? 0) >= 5 ? 'text-yellow-300' : (c.avgKDA ?? 0) >= 3 ? 'text-green-400' : 'text-zinc-500'
+                                    return (
+                                        <div key={c.champion} className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-zinc-800/50 transition-colors">
+                                            <span className={cn('text-[11px] min-w-[76px] truncate', champTextCls(c.games))}>
+                                                {c.champion}
+                                            </span>
+                                            <span className="text-[10px] text-zinc-600 w-5 text-right tabular-nums">{c.games}</span>
+                                            <div className="flex-1 flex items-center gap-1.5">
+                                                <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                                    <div className={cn('h-full rounded-full', barClr)} style={{ width: `${Math.min(wr, 100)}%` }} />
+                                                </div>
+                                                <span className={cn('text-[10px] w-8 text-right font-medium tabular-nums', txtClr)}>
+                                                    {wr.toFixed(0)}%
+                                                </span>
+                                            </div>
+                                            <span className={cn('text-[10px] w-7 text-right tabular-nums', kdaClr)}>
+                                                {c.avgKDA?.toFixed(1) ?? '-'}
+                                            </span>
+                                        </div>
+                                    )
+                                })}
+                                {champs.length > champLimit && (
+                                    <p className="text-[10px] text-zinc-600 text-center pt-1 pb-0.5">+{champs.length - champLimit}개 더</p>
+                                )}
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
         </div>
     )
 }
