@@ -23,19 +23,28 @@ export async function GET() {
             }),
 
             // 2. 예측 정확도 상위 5명 (최소 3경기 이상, isCorrect 기준)
+            // ✅ Prisma v5: take 사용 시 orderBy 필수
             prisma.lckPrediction.groupBy({
                 by: ['userId'],
                 where: { isProcessed: true },
                 _count: { _all: true },
                 _sum: { gpEarned: true },
+                orderBy: { _count: { _all: 'desc' } },
+                take: 1000,
             }).then(async (rows) => {
                 const filtered = rows.filter(r => r._count._all >= 3)
 
-                // 정답 수 집계
+                // 정답 수 집계 (filtered 유저만, 전체 테이블 스캔 방지)
                 const correctCounts = await prisma.lckPrediction.groupBy({
                     by: ['userId'],
-                    where: { isProcessed: true, isCorrect: true },
+                    where: {
+                        isProcessed: true,
+                        isCorrect: true,
+                        userId: { in: filtered.map(r => r.userId) },
+                    },
                     _count: { _all: true },
+                    orderBy: { _count: { _all: 'desc' } },
+                    take: 1000,
                 })
                 const correctMap = new Map(correctCounts.map(r => [r.userId, r._count._all]))
 

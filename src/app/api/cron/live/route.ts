@@ -31,7 +31,18 @@ import prisma from '@/lib/prisma'
 import { CURRENT_YEAR } from '@/lib/config/season'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30  // Vercel 최대 실행시간 (초)
+export const maxDuration = 30  // Vercel 설정상 최댓값 (Hobby 플랜 실제 한도: 10초)
+
+/**
+ * ✅ Vercel Hobby 10초 제한 방어: 지정 시간 내 완료 안 되면 에러 throw
+ * → 정산 실패해도 일일 크론(06:00 KST)이 안전망으로 재처리
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+    const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`[Timeout] ${label} exceeded ${ms}ms`)), ms)
+    )
+    return Promise.race([promise, timeout])
+}
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -67,13 +78,20 @@ export async function GET(req: Request) {
             console.log(`[Cron/Live] 경기 종료 감지 (DB LIVE: ${liveInDbCount}건) — 풀 동기화 + 즉시 예측 정산 실행`)
 
             // 1) 경기 결과 DB 반영 (LIVE → COMPLETED + winner 확정)
-            const syncResult = await syncCurrentSeason(CURRENT_YEAR, true)
+            // ✅ Hobby 10초 제한 고려: 동기화 5초, 정산 3초 budget 배분
+            const syncResult = await withTimeout(
+                syncCurrentSeason(CURRENT_YEAR, true),
+                5000, 'syncCurrentSeason'
+            )
             console.log(`[Cron/Live] 동기화 완료: ${syncResult.matchesUpserted}경기 갱신`)
 
             // 2) 즉시 예측 정산 — GP 지급
             let processResult = { processed: 0, gpAwarded: 0, skipped: 0 }
             try {
-                processResult = await processLckPredictions(true)
+                processResult = await withTimeout(
+                    processLckPredictions(true),
+                    3000, 'processLckPredictions'
+                )
                 console.log(
                     `[Cron/Live] 즉시 예측 정산 완료: ` +
                     `${processResult.processed}건 정산, ${processResult.gpAwarded} GP 지급, ` +

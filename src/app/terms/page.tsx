@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function TermsPage() {
-    const lastUpdated = '2026년 6월 6일'
+    const lastUpdated = '2026년 6월 8일'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">

@@ -315,7 +315,8 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
         title: '나만의 스타일',
         description: '상점에서 코스메틱 아이템을 처음으로 구매하세요.',
         type: 'ACHIEVEMENT',
-        category: 'COLLECTION',
+        // ✅ 버그 수정: 'COLLECTION' → 'GENERAL' (quests/route.ts 시딩 로직이 COLLECTION을 즉시 비활성화함)
+        category: 'GENERAL',
         icon: '🛍️',
         targetCount: 1,
         rewardGp: 100,
@@ -325,7 +326,8 @@ export const INITIAL_QUESTS: QuestSeedItem[] = [
         title: '수집가',
         description: '코스메틱 아이템을 5개 이상 보유하세요.',
         type: 'ACHIEVEMENT',
-        category: 'COLLECTION',
+        // ✅ 버그 수정: 'COLLECTION' → 'GENERAL' (quests/route.ts 시딩 로직이 COLLECTION을 즉시 비활성화함)
+        category: 'GENERAL',
         icon: '💎',
         targetCount: 5,
         rewardGp: 300,

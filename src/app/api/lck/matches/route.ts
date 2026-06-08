@@ -31,7 +31,9 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const season = searchParams.get('season') ?? DEFAULT_SEASON
     const status = searchParams.get('status') ?? undefined
-    const team = searchParams.get('team') ?? undefined
+    // ✅ team 파라미터 형식 검증 (영문 대문자+숫자, 2~10자) — SQL 인젝션·비정상 입력 방지
+    const teamRaw = searchParams.get('team')
+    const team = teamRaw && /^[A-Z0-9]{2,10}$/.test(teamRaw) ? teamRaw : undefined
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '100'), 500)
     const offset = Math.max(0, Math.min(parseInt(searchParams.get('offset') ?? '0') || 0, 10000))
     const forceSync = searchParams.get('sync') === '1'
@@ -63,8 +65,9 @@ export async function GET(req: Request) {
                     // 첫 로드이거나 강제 동기화 시 await
                     await syncCurrentSeason(CURRENT_YEAR, forceSync)
                 } else {
-                    // 이미 데이터 있으면 백그라운드 동기화
-                    syncCurrentSeason(CURRENT_YEAR, false).catch(console.error)
+                    // ✅ 서버리스 환경: fire-and-forget 금지 (함수 종료 전 DB 쓰기 유실 방지)
+                    // cron-job.org가 30분마다 동기화하므로 여기서는 await로 안전하게 처리
+                    await syncCurrentSeason(CURRENT_YEAR, false).catch(console.error)
                 }
             }
         }

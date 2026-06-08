@@ -14,6 +14,10 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const postId = (await params).id
 
+    // 삭제된 게시글의 댓글은 노출하지 않음
+    const post = await prisma.post.findUnique({ where: { id: postId, isDeleted: false }, select: { id: true } })
+    if (!post) return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
+
     const comments = await prisma.comment.findMany({
         where: { postId, isDeleted: false },
         orderBy: { createdAt: 'asc' },

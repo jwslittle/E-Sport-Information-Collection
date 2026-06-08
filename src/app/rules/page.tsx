@@ -161,7 +161,7 @@ export default function RulesPage() {
                                     <ul className="text-sm space-y-1.5">
                                         <li>코스메틱 아이템 구매 (칭호, 프레임 등)</li>
                                         <li>GP 기준 글로벌 랭킹</li>
-                                        <li>시즌 종료 시 상위 랭커 보상</li>
+                                        <li>시즌 종료 시 상위 랭커 보상 <span className="text-zinc-500 text-xs">(예정)</span></li>
                                     </ul>
                                 </div>
                             </div>

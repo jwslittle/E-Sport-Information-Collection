@@ -148,7 +148,15 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
         )
     }
 
-    if (!post) return null
+    if (!post) return (
+        <div className="max-w-3xl mx-auto py-20 px-4 text-center space-y-4">
+            <p className="text-zinc-400 text-lg">게시글을 찾을 수 없습니다.</p>
+            <p className="text-zinc-600 text-sm">삭제되었거나 존재하지 않는 게시글입니다.</p>
+            <Link href="/community" className="inline-block text-yellow-400 hover:text-yellow-300 text-sm underline">
+                커뮤니티로 돌아가기
+            </Link>
+        </div>
+    )
 
     return (
         <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">

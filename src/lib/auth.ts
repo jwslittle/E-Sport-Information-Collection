@@ -41,16 +41,17 @@ export const authOptions: NextAuthOptions = {
                     }
                 }
             } else if (token.id) {
-                // ✅ M-4 수정: 1시간마다 DB에서 role 재확인 (ADMIN 제거 반영)
+                // ✅ 1시간마다 DB에서 role + GP 재확인 (ADMIN 제거·GP 변동 반영)
                 const ONE_HOUR = 60 * 60 * 1000
                 const lastRefresh = (token.roleRefreshedAt as number) ?? 0
                 if (Date.now() - lastRefresh > ONE_HOUR) {
                     const dbUser = await prisma.user.findUnique({
                         where: { id: token.id as string },
-                        select: { role: true },
+                        select: { role: true, gp: true },
                     }).catch(() => null)
                     if (dbUser) {
                         token.role = dbUser.role
+                        token.points = dbUser.gp  // ✅ GP도 함께 갱신 (정산·퀘스트 후 stale 방지)
                         token.roleRefreshedAt = Date.now()
                     }
                 }

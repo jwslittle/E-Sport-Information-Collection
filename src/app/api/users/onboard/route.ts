@@ -63,13 +63,16 @@ export async function POST(req: Request) {
     }
 
     // 닉네임 저장 + 온보딩 완료 처리
-    // ✅ PIPA 제15조: termsAgreed=true면 동의 시각 기록 (법적 증거 보존)
+    // ✅ PIPA 제15조: termsAgreed=true면 이용약관 동의 시각 기록
+    // ✅ PIPA 제22조: privacyAgreed=true면 개인정보처리방침 동의 시각 기록 (법적 증거 보존)
+    const now = new Date()
     await prisma.user.update({
         where: { id: userId },
         data: {
             name: trimmed,
             isOnboarded: true,
-            ...(termsAgreed ? { termsAgreedAt: new Date() } : {}),
+            ...(termsAgreed ? { termsAgreedAt: now } : {}),
+            ...(privacyAgreed ? { privacyAgreedAt: now } : {}),
         },
     })
 

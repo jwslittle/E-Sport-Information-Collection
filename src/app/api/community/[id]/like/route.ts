@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const userId = session.user.id
     const postId = (await params).id
 
-    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } })
+    const post = await prisma.post.findUnique({ where: { id: postId, isDeleted: false }, select: { id: true } })
     if (!post) return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
 
     const existing = await prisma.postLike.findUnique({

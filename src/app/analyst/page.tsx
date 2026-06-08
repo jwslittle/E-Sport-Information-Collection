@@ -234,7 +234,7 @@ export default function AnalystPage() {
                             <Link href="/shop" className="underline text-yellow-400 hover:text-yellow-300">
                                 상점에서 구매
                             </Link>
-                            하면 바로 이용 가능합니다. (1장 = 50 GP)
+                            하면 바로 이용 가능합니다.
                         </p>
                     )}
 

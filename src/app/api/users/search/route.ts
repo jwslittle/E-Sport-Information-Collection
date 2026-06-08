@@ -16,6 +16,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const q = searchParams.get('q')?.trim()
     if (!q || q.length < 2) return NextResponse.json([])
+    if (q.length > 50) return NextResponse.json({ error: '검색어는 50자 이내로 입력해주세요.' }, { status: 400 })
 
     const users = await prisma.user.findMany({
         where: {

@@ -117,7 +117,7 @@ export default function PrivacyPage() {
                                 </tr>
                                 <tr className="border-b border-zinc-800">
                                     <td className="py-2 pr-4">LangChain, Inc. (LangSmith)</td>
-                                    <td className="py-2 pr-4">AI 채팅 트레이싱·모니터링</td>
+                                    <td className="py-2 pr-4">AI 채팅 트레이싱·모니터링 <span className="text-zinc-600">(현재 비활성화)</span></td>
                                     <td className="py-2">미국</td>
                                 </tr>
                                 <tr className="border-b border-zinc-800">
@@ -136,8 +136,8 @@ export default function PrivacyPage() {
                     <p className="mt-2 text-zinc-500 text-xs">
                         * OpenAI에는 사용자가 AI 채팅창에 직접 입력한 내용만 전송됩니다.
                           이름, 이메일 등 계정 정보는 전송되지 않습니다.<br />
-                        * LangSmith(LangChain)에는 AI 분석가 질문 내용이 모니터링 목적으로 전송됩니다.
-                          비활성화(LANGCHAIN_TRACING_V2=false) 시 전송되지 않습니다.<br />
+                        * LangSmith(LangChain): 현재 비활성화 상태입니다(LANGCHAIN_TRACING_V2=false).
+                          AI 채팅 내용이 LangSmith로 전송되지 않습니다.<br />
                         * Sentry에는 서비스 오류 발생 시 에러 내용 및 요청 정보가 전송됩니다.
                           사용자가 직접 입력한 개인정보는 전송되지 않습니다.<br />
                         * Upstash에는 API 남용 방지를 위한 요청 횟수 추적 목적으로 요청 IP가 일시 저장됩니다.

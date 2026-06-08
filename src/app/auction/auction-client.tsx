@@ -37,6 +37,8 @@ export function AuctionClient() {
     const [bidAmount, setBidAmount] = useState<Record<string, number>>({})
     // 경매별 개별 로딩 상태 (연타 방지)
     const [submitting, setSubmitting] = useState<string | null>(null)
+    // ✅ 1초 카운트다운: tick이 바뀔 때마다 리렌더 → formatTimeLeft가 최신 시각 사용
+    const [, setTick] = useState(0)
     // Pusher 채널 ref (cleanup용)
     const channelRef = useRef<any>(null)
 
@@ -51,6 +53,12 @@ export function AuctionClient() {
             setLoading(false)
         }
     }
+
+    // ✅ 1초 카운트다운 인터벌 (컴포넌트 언마운트 시 자동 정리)
+    useEffect(() => {
+        const countdown = setInterval(() => setTick(t => t + 1), 1000)
+        return () => clearInterval(countdown)
+    }, [])
 
     // Real-time updates with Pusher + Polling fallback
     useEffect(() => {
@@ -128,13 +136,16 @@ export function AuctionClient() {
         }
     }
 
+    // ✅ formatTimeLeft: tick 상태 변경마다 재호출되어 실시간 카운트다운 표시
     const formatTimeLeft = (endTime: string) => {
         const diff = new Date(endTime).getTime() - new Date().getTime()
-        if (diff <= 0) return "종료됨"
+        if (diff <= 0) return '종료됨'
         const hours = Math.floor(diff / (1000 * 60 * 60))
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
         const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-        return `${hours}h ${minutes}m ${seconds}s`
+        if (hours > 0) return `${hours}시간 ${minutes}분 ${seconds}초`
+        if (minutes > 0) return `${minutes}분 ${seconds}초`
+        return `${seconds}초`
     }
 
     if (loading) return <div className="text-center py-12 text-zinc-500">로딩 중...</div>

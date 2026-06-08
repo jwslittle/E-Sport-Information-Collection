@@ -55,7 +55,7 @@ export async function POST(req: Request) {
             )
         }
 
-        // 파일 크기 검증
+        // 파일 크기 검증 (버퍼 읽기 전 조기 거부)
         if (file.size > MAX_FILE_SIZE) {
             return NextResponse.json(
                 { error: '파일 크기는 5MB 이하여야 합니다.' },
@@ -66,6 +66,20 @@ export async function POST(req: Request) {
         // File → Buffer
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
+
+        // ✅ Magic bytes 검증 — 클라이언트가 Content-Type 헤더를 조작해도 실제 파일 바이트로 재검증
+        // JPG: FF D8 FF | PNG: 89 50 4E 47 | WebP: 52 49 46 46 ... 57 45 42 50
+        const isJpeg = buffer.length >= 3 && buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF
+        const isPng  = buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47
+        const isWebp = buffer.length >= 12
+            && buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46
+            && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+        if (!isJpeg && !isPng && !isWebp) {
+            return NextResponse.json(
+                { error: '파일 형식이 유효하지 않습니다. JPG, PNG, WebP 파일만 업로드 가능합니다.' },
+                { status: 400 }
+            )
+        }
 
         // Cloudinary 업로드
         const uploadResult = await new Promise<{ secure_url: string; public_id: string }>(
