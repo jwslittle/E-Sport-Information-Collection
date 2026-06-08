@@ -14,11 +14,13 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 100)
 
     // 유저별 예측 집계 (최대 1000명 — 대규모 데이터 보호)
+    // Prisma v5: take 사용 시 orderBy 필수
     const aggregated = await prisma.lckPrediction.groupBy({
         by: ['userId'],
         where: { isProcessed: true },
         _count: { id: true },
         _sum: { gpEarned: true },
+        orderBy: { _count: { id: 'desc' } },
         take: 1000,
     })
 
