@@ -515,13 +515,19 @@ function MatchCard({
                         {selectedWinner ? (
                             <div className="space-y-3">
                                 {/* 스코어 예측 (옵션) */}
-                                {match.bestOf === 3 && (
+                                {(match.bestOf === 3 || match.bestOf === 5) && (
                                     <div>
                                         <p className="text-xs text-zinc-400 mb-2 text-center">
                                             스코어 예측 (선택, 맞추면 +20 GP 추가)
                                         </p>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {['2:0', '2:1'].map(score => (
+                                        <div className={cn(
+                                            'gap-2',
+                                            match.bestOf === 5 ? 'grid grid-cols-3' : 'grid grid-cols-2'
+                                        )}>
+                                            {(match.bestOf === 5
+                                                ? ['3:0', '3:1', '3:2']
+                                                : ['2:0', '2:1']
+                                            ).map(score => (
                                                 <button
                                                     key={score}
                                                     onClick={() => setSelectedScore(prev => prev === score ? null : score)}

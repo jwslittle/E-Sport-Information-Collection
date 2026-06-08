@@ -280,6 +280,13 @@ async function loadLiveStats(type: 'team' | 'player', lookupKey: string): Promis
 
 export const dynamic = 'force-dynamic'
 
+/** year 파라미터 검증: 4자리 정수 2014~2026 또는 null/'all' 허용 */
+function isValidYear(y: string | null): boolean {
+    if (!y || y === 'all') return true
+    const n = Number(y)
+    return Number.isInteger(n) && n >= 2014 && n <= 2026 && String(n) === y
+}
+
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const type        = (searchParams.get('type') || 'team') as 'team' | 'player'
@@ -291,6 +298,11 @@ export async function GET(req: Request) {
     const order       = searchParams.get('order') || 'desc'
     const search      = (searchParams.get('search') || '').slice(0, 50)
     const division    = searchParams.get('division') || '1'
+
+    // ─── year 범위 검증 (경로 탐색 방지) ───────────────────────────────────
+    if (!isValidYear(year) || !isValidYear(yearFrom) || !isValidYear(yearTo)) {
+        return NextResponse.json({ error: 'Invalid year parameter' }, { status: 400 })
+    }
 
     try {
         // ── 1. lookupKey 구성 ────────────────────────────────────────

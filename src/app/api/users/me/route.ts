@@ -36,9 +36,17 @@ export async function PATCH(req: Request) {
 
     // ── 유효성 검사 (쓰기 전 전부 완료) ────────────────────────────────────
 
-    // 프로필 사진: Cloudinary URL만 허용 (외부 URL 주입 방지)
-    if (image !== undefined && image && !image.startsWith('https://res.cloudinary.com/')) {
-        return NextResponse.json({ error: '유효하지 않은 이미지 URL입니다.' }, { status: 400 })
+    // 프로필 사진: Cloudinary URL만 허용 — hostname 검증으로 우회 방지
+    // (e.g. https://res.cloudinary.com.evil.com/ 같은 서브도메인 공격 차단)
+    if (image !== undefined && image) {
+        try {
+            const u = new URL(image)
+            if (u.protocol !== 'https:' || u.hostname !== 'res.cloudinary.com') {
+                return NextResponse.json({ error: '유효하지 않은 이미지 URL입니다.' }, { status: 400 })
+            }
+        } catch {
+            return NextResponse.json({ error: '유효하지 않은 이미지 URL입니다.' }, { status: 400 })
+        }
     }
 
     // 닉네임 형식 검사
@@ -85,27 +93,39 @@ export async function PATCH(req: Request) {
     }
 
     // ── 원자적 다중 쓰기 ($transaction) ─────────────────────────────────
-    await prisma.$transaction(async (tx) => {
-        if (image !== undefined) {
-            await tx.user.update({
-                where: { id: userId },
-                data: { image: image || null },
-            })
+    try {
+        await prisma.$transaction(async (tx) => {
+            if (image !== undefined) {
+                await tx.user.update({
+                    where: { id: userId },
+                    data: { image: image || null },
+                })
+            }
+            if (trimmedNickname !== undefined) {
+                await tx.user.update({
+                    where: { id: userId },
+                    data: { name: trimmedNickname },
+                })
+            }
+            if (Object.keys(profileData).length > 0) {
+                await tx.userProfile.upsert({
+                    where: { userId },
+                    create: { userId, ...profileData },
+                    update: profileData,
+                })
+            }
+        })
+    } catch (error: any) {
+        // P2002: unique constraint violation (닉네임 중복 — race condition)
+        if (error?.code === 'P2002') {
+            return NextResponse.json(
+                { error: '이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.' },
+                { status: 409 }
+            )
         }
-        if (trimmedNickname !== undefined) {
-            await tx.user.update({
-                where: { id: userId },
-                data: { name: trimmedNickname },
-            })
-        }
-        if (Object.keys(profileData).length > 0) {
-            await tx.userProfile.upsert({
-                where: { userId },
-                create: { userId, ...profileData },
-                update: profileData,
-            })
-        }
-    })
+        console.error('Profile update error:', error)
+        return NextResponse.json({ error: '프로필 업데이트 중 오류가 발생했습니다.' }, { status: 500 })
+    }
 
     return NextResponse.json({
         success: true,

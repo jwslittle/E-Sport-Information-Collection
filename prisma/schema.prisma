@@ -320,6 +320,9 @@ model LckPlayerGameStat {
   createdAt   DateTime @default(now())
 
   @@unique([gameId, playerName])
+  @@index([gameId])
+  @@index([playerName])
+  @@index([team])
 }
 
 // ─────────────────────────────────────────────

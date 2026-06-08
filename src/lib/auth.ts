@@ -59,11 +59,11 @@ export const authOptions: NextAuthOptions = {
             // 세션 업데이트 시 안전한 필드만 반영 (role·id 변조 방지)
             if (trigger === "update" && session) {
                 const safe: Record<string, unknown> = {}
-                // 허용 목록: name, picture(image), points, isOnboarded만 클라이언트에서 갱신 가능
+                // 허용 목록: name, picture(image), isOnboarded만 클라이언트에서 갱신 가능
+                // ⚠️ points는 클라이언트에서 갱신 불가 — DB 직접 조회 경로로만 갱신
                 if (typeof session.user?.name === 'string') safe.name = session.user.name
                 // Next-Auth 토큰 규약: 이미지는 token.picture에 저장됨
                 if (typeof session.user?.image === 'string') safe.picture = session.user.image
-                if (typeof session.user?.points === 'number') safe.points = session.user.points
                 if (typeof session.user?.isOnboarded === 'boolean') safe.isOnboarded = session.user.isOnboarded
                 // gachaLevel은 스키마 미구현 — 추후 추가 시 여기서 허용
                 return { ...token, ...safe }

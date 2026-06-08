@@ -19,11 +19,11 @@ export function Footer() {
                 <div className="mb-4 text-center">
                     <p className="text-xs text-zinc-600 leading-relaxed max-w-3xl mx-auto">
                         E-Sport Information Collection isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games or anyone officially
-                        involved in producing or managing League of Legends or Valorant. League of Legends, Valorant, and all associated properties
+                        involved in producing or managing League of Legends. League of Legends and all associated properties
                         are trademarks or registered trademarks of <strong>Riot Games, Inc.</strong>
                     </p>
                     <p className="text-xs text-zinc-700 mt-1 max-w-3xl mx-auto">
-                        본 서비스는 Riot Games의 공식 서비스가 아니며, Riot Games와 무관한 팬 제작 콘텐츠입니다. 리그 오브 레전드, 발로란트 및 관련 모든 재산권은 Riot Games, Inc.에 귀속됩니다.
+                        본 서비스는 Riot Games의 공식 서비스가 아니며, Riot Games와 무관한 팬 제작 콘텐츠입니다. 리그 오브 레전드 및 관련 모든 재산권은 Riot Games, Inc.에 귀속됩니다.
                     </p>
                 </div>
 

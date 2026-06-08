@@ -60,7 +60,7 @@ const FRAMES = [
     { name: '골드 프레임',     rarity: 'RARE',      gpCost: 2000, description: '금빛으로 빛나는 프레임',      imageUrl: '/frames/gold.png' },
     { name: '다이아몬드 프레임', rarity: 'EPIC',    gpCost: 5000, description: '다이아몬드처럼 빛나는 프레임', imageUrl: '/frames/diamond.png' },
     { name: '챌린저 프레임',   rarity: 'LEGENDARY', gpCost: 0,    condition: 'TOP_1_RANK',         description: '시즌 1위 달성 시 지급',     imageUrl: '/frames/challenger.png' },
-    { name: 'LCK 공식 프레임', rarity: 'EPIC',      gpCost: 0,    condition: 'SEASON_PARTICIPANT', description: '시즌 참가 기념 프레임',     imageUrl: '/frames/lck.png' },
+    { name: '시즌 기념 프레임', rarity: 'EPIC',      gpCost: 0,    condition: 'SEASON_PARTICIPANT', description: '시즌 참가 기념 프레임',     imageUrl: '/frames/lck.png' },
 ]
 
 // ─── 배경 (BACKGROUND) ───────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ const PLAYER_CARD_SKINS = [
     { name: '홀로그램 카드', rarity: 'RARE',     gpCost: 2000, description: '홀로그램 효과가 적용된 카드', imageUrl: '/card-skins/hologram.png' },
     { name: '네온 카드',    rarity: 'EPIC',      gpCost: 5000, description: '네온 빛으로 빛나는 카드',    imageUrl: '/card-skins/neon.png' },
     { name: '황금 카드',    rarity: 'LEGENDARY', gpCost: 8000, description: '황금으로 도금된 카드',       imageUrl: '/card-skins/gold.png' },
-    { name: 'LCK 공식 카드', rarity: 'EPIC',     gpCost: 0,    condition: 'LCK_SEASON_REWARD', description: 'LCK 공식 시즌 보상 카드 디자인', imageUrl: '/card-skins/lck-official.png' },
+    { name: '시즌 보상 카드', rarity: 'EPIC',     gpCost: 0,    condition: 'LCK_SEASON_REWARD', description: '시즌 보상 카드 디자인', imageUrl: '/card-skins/lck-official.png' },
 ]
 
 // ─── 아바타 (AVATAR) ─────────────────────────────────────────────────────────

@@ -48,9 +48,9 @@ export async function POST(req: NextRequest) {
     let quizAnswer: { id: string }
     try {
         quizAnswer = await prisma.$transaction(async (tx) => {
-            // 트랜잭션 내부에서 중복 확인 (race condition 방지)
-            const existing = await tx.userDailyQuizAnswer.findFirst({
-                where: { userId, dateKey },
+            // 트랜잭션 내부에서 중복 확인 (race condition 방지) — findUnique로 @@unique 인덱스 활용
+            const existing = await tx.userDailyQuizAnswer.findUnique({
+                where: { userId_dateKey: { userId, dateKey } },
             })
             if (existing) throw new Error('ALREADY_ANSWERED')
 

@@ -174,10 +174,12 @@ export default function CommunityPage() {
     const [page, setPage] = useState(1)
     const [category, setCategory] = useState('ALL')
     const [loading, setLoading] = useState(true)
+    const [hasError, setHasError] = useState(false)
     const [writeOpen, setWriteOpen] = useState(false)
 
     const fetchPosts = useCallback(async () => {
         setLoading(true)
+        setHasError(false)
         try {
             const params = new URLSearchParams({ page: String(page), category })
             const res = await fetch(`/api/community?${params}`)
@@ -187,9 +189,11 @@ export default function CommunityPage() {
                 setTotal(d.total)
                 setTotalPages(d.totalPages)
             } else {
+                setHasError(true)
                 toast.error('게시글 목록을 불러오지 못했습니다.')
             }
         } catch {
+            setHasError(true)
             toast.error('게시글 목록을 불러오는 중 오류가 발생했습니다.')
         } finally {
             setLoading(false)
@@ -255,6 +259,19 @@ export default function CommunityPage() {
             {loading ? (
                 <div className="flex justify-center py-16">
                     <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
+                </div>
+            ) : hasError ? (
+                <div className="text-center py-16 space-y-3">
+                    <MessageSquare className="w-12 h-12 text-red-800 mx-auto" />
+                    <p className="text-zinc-400">게시글을 불러오지 못했습니다.</p>
+                    <p className="text-zinc-600 text-sm">잠시 후 다시 시도해주세요.</p>
+                    <Button
+                        variant="outline"
+                        className="border-zinc-700 text-zinc-400"
+                        onClick={fetchPosts}
+                    >
+                        <RefreshCw className="w-4 h-4 mr-2" /> 다시 불러오기
+                    </Button>
                 </div>
             ) : posts.length === 0 ? (
                 <div className="text-center py-16 space-y-3">

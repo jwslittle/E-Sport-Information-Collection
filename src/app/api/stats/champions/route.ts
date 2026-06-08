@@ -180,6 +180,13 @@ async function load2026Champions(seasonFilter?: string): Promise<Record<string, 
 
 // ── GET 핸들러 ──────────────────────────────────────────────────────────────
 
+/** year 파라미터 검증: 4자리 정수 2014~2026 또는 null 허용 */
+function isValidYear(y: string | null): boolean {
+    if (!y) return true
+    const n = Number(y)
+    return Number.isInteger(n) && n >= 2014 && n <= 2026 && String(n) === y
+}
+
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const year      = searchParams.get('year')
@@ -189,6 +196,11 @@ export async function GET(req: Request) {
     const playerFilter = searchParams.get('player')?.trim().slice(0, 100)
     const positionFilter = searchParams.get('position')?.toUpperCase()
     const limit = Math.min(30, Math.max(1, parseInt(searchParams.get('limit') || '20', 10) || 20))
+
+    // ─── year 범위 검증 (경로 탐색 방지) ───────────────────────────────────
+    if (!isValidYear(year) || !isValidYear(yearFrom) || !isValidYear(yearTo)) {
+        return NextResponse.json({ error: 'Invalid year parameter' }, { status: 400 })
+    }
 
     try {
         let data: Record<string, any[]> = {}

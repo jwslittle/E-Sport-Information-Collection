@@ -150,7 +150,7 @@ export default function RulesPage() {
                                     <ul className="text-sm space-y-1.5">
                                         <li className="flex justify-between"><span>승부 예측 정답</span><span className="text-yellow-400">+10 GP</span></li>
                                         <li className="flex justify-between"><span>스코어 예측 정답</span><span className="text-yellow-400">+30 GP</span></li>
-                                        <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+10~20 GP</span></li>
+                                        <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+15~25 GP</span></li>
                                         <li className="flex justify-between"><span>퀘스트 완료</span><span className="text-yellow-400">+퀘스트별 상이</span></li>
                                     </ul>
                                 </div>
