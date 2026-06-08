@@ -211,7 +211,7 @@ model UserQuestProgress {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   questId     String
-  quest       Quest    @relation(fields: [questId], references: [id])
+  quest       Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
 
   progress    Int      @default(0)
   isCompleted Boolean  @default(false)
@@ -383,7 +383,7 @@ model UserDailyQuizAnswer {
   userId         String
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   quizId         String
-  quiz           DailyQuiz @relation(fields: [quizId], references: [id])
+  quiz           DailyQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
   dateKey        String    // "2026-05-31" - 하루 1번 제한 키
 
   selectedAnswer String    // "A", "B", "C", or "D"

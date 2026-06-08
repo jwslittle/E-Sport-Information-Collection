@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-    const lastUpdated = '2026년 6월 7일 (5차 개정)'
+    const lastUpdated = '2026년 6월 8일 (6차 개정)'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
                     <h2 className="text-base font-bold text-white mb-3">3. 보존 기간 및 파기</h2>
                     <p>
                         회원 탈퇴 요청 즉시 데이터베이스에서 계정 및 모든 연관 데이터(예측·퀴즈·커뮤니티·GP 기록 등)가 삭제됩니다.
-                        백업 데이터는 탈퇴 후 30일 이내에 파기합니다.
+                        백업 데이터는 탈퇴 후 7일 이내에 파기합니다.
                         관련 법령에 의해 보존이 필요한 경우 해당 기간 동안 별도 보관 후 파기합니다.
                     </p>
                     <p className="mt-2 text-zinc-500">

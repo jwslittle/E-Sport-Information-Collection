@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -69,6 +70,7 @@ function ItemCard({
 }) {
     const rc               = RARITY_COLORS[item.rarity] ?? RARITY_COLORS.COMMON
     const isAchievementOnly = item.gpCost === 0
+    const [imgErr, setImgErr] = useState(false)
 
     return (
         <div className={cn(
@@ -81,10 +83,10 @@ function ItemCard({
         )}>
             {/* 아이콘 */}
             <div className={cn('h-20 rounded-lg flex items-center justify-center border relative', rc)}>
-                {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name}
+                {item.imageUrl && !imgErr ? (
+                    <Image src={item.imageUrl} alt={item.name} width={56} height={56}
                         className="h-14 w-14 object-contain"
-                        onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        onError={() => setImgErr(true)} />
                 ) : (
                     TYPE_ICONS[item.type] ?? <Star className="w-6 h-6" />
                 )}

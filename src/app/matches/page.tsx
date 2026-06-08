@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -854,11 +855,11 @@ function PlayerStatTable({ players, teamCode, isWinner, mvpName }: {
 // ─── 공통 유틸 컴포넌트 ──────────────────────────────────────────────
 
 function TeamLogo({ code, logoUrl, name }: { code: string; logoUrl?: string | null; name?: string | null }) {
-    if (logoUrl) {
+    const [imgErr, setImgErr] = useState(false)
+    if (logoUrl && !imgErr) {
         return (
             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt={name ?? code} className="w-8 h-8 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                <Image src={logoUrl} alt={name ?? code} width={32} height={32} className="w-8 h-8 object-contain" onError={() => setImgErr(true)} />
             </div>
         )
     }
@@ -1367,6 +1368,7 @@ function PlayoffBracket({ matches, stageName }: { matches: LckMatch[]; stageName
 
 /** 고정 높이 브라켓 카드 — TBD 팀은 teamName으로 표시, 승자 accent bar */
 function FixedBracketCard({ match }: { match: LckMatch }) {
+    const [logoErrors, setLogoErrors] = useState<boolean[]>([false, false])
     const isCompleted = match.status === 'COMPLETED'
     const isScheduled = match.status === 'SCHEDULED'
 
@@ -1422,11 +1424,10 @@ function FixedBracketCard({ match }: { match: LckMatch }) {
                                 ? 'border-dashed border-zinc-800 bg-zinc-900'
                                 : 'border-zinc-700/50 bg-zinc-800/70'
                         }`}>
-                            {!side.isTBD && side.logo ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={side.logo} alt={side.display}
+                            {!side.isTBD && side.logo && !logoErrors[i] ? (
+                                <Image src={side.logo} alt={side.display} width={20} height={20}
                                     className="w-5 h-5 object-contain"
-                                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                                    onError={() => setLogoErrors(prev => { const n = [...prev]; n[i] = true; return n })} />
                             ) : (
                                 <span className={`text-[7px] font-black ${
                                     side.isTBD ? 'text-zinc-700' : (LCK_TEAM_COLORS[side.code] ?? 'text-zinc-500')

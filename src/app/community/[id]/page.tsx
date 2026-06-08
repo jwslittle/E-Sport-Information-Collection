@@ -7,10 +7,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
     ThumbsUp, Eye, MessageSquare, ArrowLeft, Trash2,
-    Loader2, Send, Crown, X
+    Loader2, Send, Crown, X, Pencil
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
@@ -55,6 +56,10 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     const [likeLoading, setLikeLoading] = useState(false)
     const [deleting, setDeleting] = useState(false)
     const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null)
+    const [editing, setEditing] = useState(false)
+    const [editTitle, setEditTitle] = useState('')
+    const [editContent, setEditContent] = useState('')
+    const [savingEdit, setSavingEdit] = useState(false)
 
     const myId = (session?.user as any)?.id
     const isAdmin = (session?.user as any)?.role === 'ADMIN'
@@ -125,6 +130,33 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
         } finally { setDeletingCommentId(null) }
     }
 
+    const handleStartEdit = () => {
+        if (!post) return
+        setEditTitle(post.title)
+        setEditContent(post.content)
+        setEditing(true)
+    }
+
+    const handleSaveEdit = async () => {
+        if (!editTitle.trim() || !editContent.trim()) return
+        setSavingEdit(true)
+        try {
+            const res = await fetch(`/api/community/${postId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: editTitle.trim(), content: editContent.trim() }),
+            })
+            const d = await res.json()
+            if (res.ok) {
+                setPost(prev => prev ? { ...prev, title: editTitle.trim(), content: editContent.trim() } : prev)
+                setEditing(false)
+                toast.success('게시글이 수정되었습니다.')
+            } else {
+                toast.error(d.error ?? '수정 실패')
+            }
+        } finally { setSavingEdit(false) }
+    }
+
     const handleDelete = async () => {
         if (!confirm('게시글을 삭제하시겠습니까?')) return
         setDeleting(true)
@@ -167,83 +199,157 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* 게시글 */}
             <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-6 space-y-4">
-                {/* 헤더 */}
-                <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
+                {editing ? (
+                    /* ── 수정 모드 ── */
+                    <>
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-zinc-200 flex items-center gap-1.5">
+                                <Pencil className="w-4 h-4 text-yellow-500" />
+                                게시글 수정
+                            </p>
                             <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded">
                                 {CATEGORY_LABELS[post.category] ?? post.category}
                             </span>
-                            <h1 className="text-xl font-bold text-white leading-tight">{post.title}</h1>
                         </div>
-                        {(myId === post.author.id || isAdmin) && (
+                        <hr className="border-zinc-800" />
+                        <div className="space-y-1.5">
+                            <label className="text-xs text-zinc-400 font-medium">제목 (최대 100자)</label>
+                            <Input
+                                value={editTitle}
+                                onChange={e => setEditTitle(e.target.value)}
+                                maxLength={100}
+                                placeholder="제목을 입력하세요..."
+                                className="bg-zinc-800 border-zinc-700 text-white"
+                            />
+                            <p className="text-[11px] text-zinc-600 text-right">{editTitle.length}/100</p>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs text-zinc-400 font-medium">내용 (최대 5000자)</label>
+                            <Textarea
+                                value={editContent}
+                                onChange={e => setEditContent(e.target.value)}
+                                maxLength={5000}
+                                rows={10}
+                                placeholder="내용을 입력하세요..."
+                                className="bg-zinc-800 border-zinc-700 text-white resize-none"
+                            />
+                            <p className="text-[11px] text-zinc-600 text-right">{editContent.length}/5000</p>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
                             <Button
-                                variant="ghost" size="sm"
-                                aria-label="게시글 삭제"
-                                className="text-red-500 hover:text-red-400 hover:bg-red-500/10 shrink-0"
-                                onClick={handleDelete}
-                                disabled={deleting}
+                                variant="outline" size="sm"
+                                onClick={() => setEditing(false)}
+                                disabled={savingEdit}
+                                className="border-zinc-700 text-zinc-400 hover:text-white"
                             >
-                                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                취소
                             </Button>
-                        )}
-                    </div>
-
-                    {/* 작성자 정보 */}
-                    <div className="flex items-center gap-3 text-sm text-zinc-400">
-                        <div className="flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                                <AvatarImage src={post.author.image ?? ''} />
-                                <AvatarFallback className="text-[10px] bg-zinc-800">
-                                    {post.author.name?.[0] ?? 'U'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <Link href={`/profile/${post.author.id}`} className="hover:opacity-80 transition-opacity">
-                                <UserName name={post.author.name} role={post.author.role} />
-                            </Link>
-                            {post.author.displayTitle && post.author.role !== 'ADMIN' && (
-                                <span className="text-yellow-600 text-xs flex items-center gap-0.5">
-                                    <Crown className="w-3 h-3" />
-                                    {post.author.displayTitle}
-                                </span>
-                            )}
+                            <Button
+                                size="sm"
+                                onClick={handleSaveEdit}
+                                disabled={savingEdit || !editTitle.trim() || !editContent.trim()}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+                            >
+                                {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : '저장'}
+                            </Button>
                         </div>
-                        <span className="text-zinc-600">·</span>
-                        <span className="text-xs">{timeAgo(post.createdAt)}</span>
-                        <span className="flex items-center gap-1 text-xs text-zinc-600 ml-auto">
-                            <Eye className="w-3.5 h-3.5" />{post.viewCount}
-                        </span>
-                    </div>
-                </div>
+                    </>
+                ) : (
+                    /* ── 보기 모드 ── */
+                    <>
+                        {/* 헤더 */}
+                        <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                    <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded">
+                                        {CATEGORY_LABELS[post.category] ?? post.category}
+                                    </span>
+                                    <h1 className="text-xl font-bold text-white leading-tight">{post.title}</h1>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {/* 수정 버튼: 본인만 */}
+                                    {myId === post.author.id && (
+                                        <Button
+                                            variant="ghost" size="sm"
+                                            aria-label="게시글 수정"
+                                            className="text-zinc-500 hover:text-yellow-400 hover:bg-yellow-500/10"
+                                            onClick={handleStartEdit}
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </Button>
+                                    )}
+                                    {/* 삭제 버튼: 본인 또는 관리자 */}
+                                    {(myId === post.author.id || isAdmin) && (
+                                        <Button
+                                            variant="ghost" size="sm"
+                                            aria-label="게시글 삭제"
+                                            className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                            onClick={handleDelete}
+                                            disabled={deleting}
+                                        >
+                                            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
 
-                <hr className="border-zinc-800" />
+                            {/* 작성자 정보 */}
+                            <div className="flex items-center gap-3 text-sm text-zinc-400">
+                                <div className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6">
+                                        <AvatarImage src={post.author.image ?? ''} />
+                                        <AvatarFallback className="text-[10px] bg-zinc-800">
+                                            {post.author.name?.[0] ?? 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <Link href={`/profile/${post.author.id}`} className="hover:opacity-80 transition-opacity">
+                                        <UserName name={post.author.name} role={post.author.role} />
+                                    </Link>
+                                    {post.author.displayTitle && post.author.role !== 'ADMIN' && (
+                                        <span className="text-yellow-600 text-xs flex items-center gap-0.5">
+                                            <Crown className="w-3 h-3" />
+                                            {post.author.displayTitle}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="text-zinc-600">·</span>
+                                <span className="text-xs">{timeAgo(post.createdAt)}</span>
+                                <span className="flex items-center gap-1 text-xs text-zinc-600 ml-auto">
+                                    <Eye className="w-3.5 h-3.5" />{post.viewCount}
+                                </span>
+                            </div>
+                        </div>
 
-                {/* 본문 */}
-                <div className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
-                    {post.content}
-                </div>
+                        <hr className="border-zinc-800" />
 
-                <hr className="border-zinc-800" />
+                        {/* 본문 */}
+                        <div className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap min-h-[100px]">
+                            {post.content}
+                        </div>
 
-                {/* 좋아요 */}
-                <div className="flex justify-center">
-                    <Button
-                        variant="outline"
-                        className={cn(
-                            'gap-2 px-6 border-zinc-700 transition-all',
-                            post.isLiked
-                                ? 'bg-blue-900/30 border-blue-700 text-blue-300'
-                                : 'text-zinc-400 hover:border-blue-700 hover:text-blue-300'
-                        )}
-                        onClick={handleLike}
-                        disabled={likeLoading}
-                    >
-                        {likeLoading
-                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                            : <ThumbsUp className="w-4 h-4" />}
-                        좋아요 {post.likeCount}
-                    </Button>
-                </div>
+                        <hr className="border-zinc-800" />
+
+                        {/* 좋아요 */}
+                        <div className="flex justify-center">
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    'gap-2 px-6 border-zinc-700 transition-all',
+                                    post.isLiked
+                                        ? 'bg-blue-900/30 border-blue-700 text-blue-300'
+                                        : 'text-zinc-400 hover:border-blue-700 hover:text-blue-300'
+                                )}
+                                onClick={handleLike}
+                                disabled={likeLoading}
+                            >
+                                {likeLoading
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <ThumbsUp className="w-4 h-4" />}
+                                좋아요 {post.likeCount}
+                            </Button>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* 댓글 섹션 */}

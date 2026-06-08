@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn, fmtKST } from '@/lib/utils'
@@ -451,8 +452,7 @@ function TeamLogoLarge({ code, logoUrl, name }: { code: string; logoUrl?: string
     if (logoUrl && !err) {
         return (
             <div className="w-20 h-20 rounded-2xl bg-zinc-800/60 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt={name ?? code} className="w-16 h-16 object-contain" onError={() => setErr(true)} />
+                <Image src={logoUrl} alt={name ?? code} width={64} height={64} className="w-16 h-16 object-contain" onError={() => setErr(true)} />
             </div>
         )
     }
@@ -472,8 +472,7 @@ function TeamLogoSmall({ code, logoUrl }: { code: string; logoUrl?: string | nul
     if (logoUrl && !err) {
         return (
             <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={logoUrl} alt={code} className="w-6 h-6 object-contain" onError={() => setErr(true)} />
+                <Image src={logoUrl} alt={code} width={24} height={24} className="w-6 h-6 object-contain" onError={() => setErr(true)} />
             </div>
         )
     }
