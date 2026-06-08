@@ -80,7 +80,8 @@ export default function AnalystPage() {
 
     // ── isAdmin/hasTicket — handleSubmit보다 먼저 선언 (클로저 접근 보장)
     const isAdmin   = (session.user as any)?.role === 'ADMIN'
-    const hasTicket = tickets === null || tickets > 0
+    // ✅ tickets===null(로딩 중)은 유효한 '티켓 있음'으로 간주하지 않음 (서버 검증으로 보호됨)
+    const hasTicket = isAdmin || (tickets !== null && tickets > 0)
 
     // ── 메시지 전송 ───────────────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent) => {
@@ -239,17 +240,17 @@ export default function AnalystPage() {
 
                     <form onSubmit={handleSubmit} className="flex gap-2">
                         <Input
-                            placeholder={hasTicket || isAdmin ? '질문을 입력하세요...' : '질의권이 필요합니다'}
+                            placeholder={hasTicket || ticketsLoading ? '질문을 입력하세요...' : '질의권이 필요합니다'}
                             value={input}
                             onChange={e => setInput(e.target.value)}
-                            disabled={isLoading || (!isAdmin && !hasTicket)}
+                            disabled={isLoading || (!isAdmin && (ticketsLoading || !hasTicket))}
                             aria-label="AI 분석가에게 질문"
                             className="bg-zinc-800 border-zinc-700 text-white focus-visible:ring-purple-500 disabled:opacity-40"
                         />
                         <Button
                             type="submit"
                             aria-label="질문 전송"
-                            disabled={isLoading || !input.trim() || (!isAdmin && !hasTicket)}
+                            disabled={isLoading || !input.trim() || (!isAdmin && (ticketsLoading || !hasTicket))}
                             className="bg-purple-600 hover:bg-purple-500 disabled:opacity-40"
                         >
                             {isLoading

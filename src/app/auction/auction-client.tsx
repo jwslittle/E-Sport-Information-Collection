@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,11 +31,14 @@ interface Auction {
 }
 
 export function AuctionClient() {
+    const { data: session } = useSession()
     const [auctions, setAuctions] = useState<Auction[]>([])
     const [loading, setLoading] = useState(true)
     const [bidAmount, setBidAmount] = useState<Record<string, number>>({})
     // 경매별 개별 로딩 상태 (연타 방지)
     const [submitting, setSubmitting] = useState<string | null>(null)
+    // Pusher 채널 ref (cleanup용)
+    const channelRef = useRef<any>(null)
 
     const fetchAuctions = async () => {
         try {
@@ -52,42 +56,50 @@ export function AuctionClient() {
     useEffect(() => {
         fetchAuctions()
 
-        // Polling fallback (every 5 seconds)
-        const interval = setInterval(fetchAuctions, 5000)
+        // Polling fallback (30초 — Pusher 연결 시 보조 역할)
+        const interval = setInterval(fetchAuctions, 30000)
 
-        // Pusher Subscription
-        let channel: any;
-        try {
-            const { pusherClient } = require('@/lib/pusher-client')
-            channel = pusherClient.subscribe('auction-channel')
+        // Pusher Subscription — 동적 임포트로 빌드 오류 방지
+        import('@/lib/pusher-client')
+            .then(({ pusherClient }) => {
+                const channel = pusherClient.subscribe('auction-channel')
+                channelRef.current = channel
 
-            channel.bind('auction-update', (data: any) => {
-                setAuctions(prev => prev.map(auction => {
-                    if (auction.id === data.auctionId) {
-                        return {
-                            ...auction,
-                            currentPrice: data.currentPrice,
-                            highestBidder: { name: 'New Bidder' }
+                channel.bind('auction-update', (data: any) => {
+                    setAuctions(prev => prev.map(auction => {
+                        if (auction.id === data.auctionId) {
+                            return {
+                                ...auction,
+                                currentPrice: data.currentPrice,
+                                highestBidder: { name: 'New Bidder' }
+                            }
                         }
-                    }
-                    return auction
-                }))
-                fetchAuctions()
+                        return auction
+                    }))
+                    fetchAuctions()
+                })
             })
-        } catch (e) {
-            console.warn('Pusher subscription failed:', e)
-        }
+            .catch(e => console.warn('Pusher 연결 실패 (폴링으로 대체):', e))
 
         return () => {
             clearInterval(interval)
-            if (channel) channel.unbind_all()
-            if (channel) channel.unsubscribe()
+            if (channelRef.current) {
+                channelRef.current.unbind_all()
+                channelRef.current.unsubscribe()
+            }
         }
     }, [])
 
     const handleBid = async (auctionId: string, currentPrice: number) => {
+        // 로그인 확인
+        if (!session?.user) {
+            toast.error('입찰하려면 로그인이 필요합니다.')
+            return
+        }
+
         const amount = bidAmount[auctionId]
-        if (!amount || amount <= currentPrice) {
+        // NaN 및 유효성 검사
+        if (!amount || isNaN(amount) || amount <= currentPrice) {
             toast.error('현재 가격보다 높은 금액을 입력해주세요.')
             return
         }
@@ -125,7 +137,7 @@ export function AuctionClient() {
         return `${hours}h ${minutes}m ${seconds}s`
     }
 
-    if (loading) return <div>Loading...</div>
+    if (loading) return <div className="text-center py-12 text-zinc-500">로딩 중...</div>
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -181,7 +193,16 @@ export function AuctionClient() {
                                     placeholder="입찰가"
                                     className="bg-zinc-950 border-zinc-700"
                                     value={bidAmount[auction.id] || ''}
-                                    onChange={(e) => setBidAmount({ ...bidAmount, [auction.id]: parseInt(e.target.value) })}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10)
+                                        if (e.target.value === '') {
+                                            const updated = { ...bidAmount }
+                                            delete updated[auction.id]
+                                            setBidAmount(updated)
+                                        } else if (!isNaN(val) && val > 0) {
+                                            setBidAmount({ ...bidAmount, [auction.id]: val })
+                                        }
+                                    }}
                                 />
                                 <Button
                                     onClick={() => handleBid(auction.id, auction.currentPrice)}

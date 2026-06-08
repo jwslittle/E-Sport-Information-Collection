@@ -126,7 +126,7 @@ export default function RulesPage() {
                                 <Info className="h-4 w-4" />
                                 <AlertTitle>예측 마감 시간</AlertTitle>
                                 <AlertDescription>
-                                    각 경기 시작 <strong>1시간 전</strong>에 예측이 마감됩니다. 이후에는 예측을 변경할 수 없습니다.
+                                    각 경기 시작 <strong>5분 전</strong>에 예측이 마감됩니다. 이후에는 예측을 변경할 수 없습니다.
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
@@ -150,7 +150,7 @@ export default function RulesPage() {
                                     <ul className="text-sm space-y-1.5">
                                         <li className="flex justify-between"><span>승부 예측 정답</span><span className="text-yellow-400">+10 GP</span></li>
                                         <li className="flex justify-between"><span>스코어 예측 정답</span><span className="text-yellow-400">+30 GP</span></li>
-                                        <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+20 GP</span></li>
+                                        <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+15~25 GP</span></li>
                                         <li className="flex justify-between"><span>퀘스트 완료</span><span className="text-yellow-400">+퀘스트별 상이</span></li>
                                     </ul>
                                 </div>

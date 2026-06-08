@@ -352,7 +352,7 @@ export default function QuizPage() {
                 <ul className="space-y-1.5 text-zinc-500 text-xs">
                     <li>• 매일 자정(KST) 새로운 문제로 교체됩니다</li>
                     <li>• 하루에 한 번만 참여 가능합니다</li>
-                    <li>• 정답 시 <span className="text-yellow-400 font-bold">+{quiz?.gpReward ?? 15}~20 GP</span>를 획득합니다</li>
+                    <li>• 정답 시 <span className="text-yellow-400 font-bold">+{quiz?.gpReward ?? 20} GP</span>를 획득합니다</li>
                     <li>• 문제 난이도에 따라 보상 GP가 다릅니다</li>
                 </ul>
             </div>

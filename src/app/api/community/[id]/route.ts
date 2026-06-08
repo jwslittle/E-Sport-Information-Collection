@@ -106,7 +106,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const userId = session.user.id
     const isAdmin = (session.user as any)?.role === 'ADMIN'
 
-    const post = await prisma.post.findUnique({ where: { id }, select: { authorId: true } })
+    const post = await prisma.post.findUnique({ where: { id, isDeleted: false }, select: { authorId: true } })
     if (!post) return NextResponse.json({ error: '게시글을 찾을 수 없습니다.' }, { status: 404 })
     if (post.authorId !== userId && !isAdmin) {
         return NextResponse.json({ error: '삭제 권한이 없습니다.' }, { status: 403 })

@@ -493,7 +493,7 @@ function LiveMatchCard({ match }: { match: LiveMatch }) {
                 {/* 하단: 업데이트 주기 안내 */}
                 <div className="mt-4 pt-3 border-t border-red-900/30 flex items-center justify-center gap-1.5 text-[10px] text-zinc-600">
                     <span className="w-1 h-1 rounded-full bg-red-500/60 animate-pulse" />
-                    30초마다 자동 업데이트
+                    60초마다 자동 업데이트
                     <Link href="/matches" className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-0.5">
                         경기 상세 <ChevronRight className="w-3 h-3" />
                     </Link>

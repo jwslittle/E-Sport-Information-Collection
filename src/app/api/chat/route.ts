@@ -67,7 +67,13 @@ export async function POST(req: NextRequest) {
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
         // ── Step 1: 요청 파싱 & 기본 형식 검증 (티켓 소모 전) ──────────────
-        const { messages } = await req.json()
+        let messages: unknown[]
+        try {
+            const body = await req.json()
+            messages = body.messages
+        } catch {
+            return NextResponse.json({ error: '잘못된 요청 형식입니다.' }, { status: 400 })
+        }
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 })
@@ -163,14 +169,34 @@ export async function POST(req: NextRequest) {
         })
 
         const parser = new StringOutputParser()
-        const stream = await model.pipe(parser).stream(fullHistory)
+
+        // OpenAI 스트림 생성 — 실패 시 티켓 환불
+        let stream: AsyncIterable<string>
+        try {
+            stream = await model.pipe(parser).stream(fullHistory)
+        } catch (openaiErr) {
+            // OpenAI 호출 자체 실패 → 이미 차감된 티켓 환불
+            if (user.role !== 'ADMIN') {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { aiQueryTickets: { increment: 1 } },
+                }).catch(e => console.error('티켓 환불 실패:', e))
+            }
+            console.error('OpenAI stream error:', openaiErr)
+            return NextResponse.json({ error: 'AI 응답 생성 중 오류가 발생했습니다. 티켓이 환불되었습니다.' }, { status: 503 })
+        }
 
         const readableStream = new ReadableStream({
             async start(controller) {
-                for await (const chunk of stream) {
-                    controller.enqueue(new TextEncoder().encode(chunk))
+                try {
+                    for await (const chunk of stream) {
+                        controller.enqueue(new TextEncoder().encode(chunk))
+                    }
+                } catch {
+                    // 스트리밍 도중 오류 — 이미 헤더를 보냈으므로 스트림만 닫음
+                } finally {
+                    controller.close()
                 }
-                controller.close()
 
                 // 퀘스트 업데이트 (AI 채팅 완료)
                 if (user?.id) {

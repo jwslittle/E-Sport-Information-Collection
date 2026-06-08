@@ -30,11 +30,15 @@ export const authOptions: NextAuthOptions = {
                 if (user.email && isAdminEmail(user.email)) {
                     token.role = 'ADMIN'
                     token.isOnboarded = true // 관리자는 온보딩 불필요
-                    // Update DB asynchronously to ensure persistence
-                    prisma.user.update({
-                        where: { id: user.id },
-                        data: { role: 'ADMIN', isOnboarded: true }
-                    }).catch(err => console.error("Failed to auto-admin user:", err))
+                    // ✅ await로 DB 승격 보장 (서버리스 환경에서 fire-and-forget 유실 방지)
+                    try {
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { role: 'ADMIN', isOnboarded: true }
+                        })
+                    } catch (err) {
+                        console.error("Failed to auto-admin user:", err)
+                    }
                 }
             } else if (token.id) {
                 // ✅ M-4 수정: 1시간마다 DB에서 role 재확인 (ADMIN 제거 반영)

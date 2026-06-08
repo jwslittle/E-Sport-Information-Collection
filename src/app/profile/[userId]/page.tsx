@@ -220,8 +220,8 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userId
                             </Link>
                         ))}
                     </div>
-                    <Link href={`/community?author=${userId}`} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-                        게시글 더보기 →
+                    <Link href="/community" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+                        커뮤니티 바로가기 →
                     </Link>
                 </div>
             )}

@@ -13,12 +13,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 100)
 
-    // 유저별 예측 집계
+    // 유저별 예측 집계 (최대 1000명 — 대규모 데이터 보호)
     const aggregated = await prisma.lckPrediction.groupBy({
         by: ['userId'],
         where: { isProcessed: true },
         _count: { id: true },
         _sum: { gpEarned: true },
+        take: 1000,
     })
 
     // 최소 3경기 예측한 유저만 필터

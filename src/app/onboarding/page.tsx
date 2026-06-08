@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -35,12 +35,15 @@ export default function OnboardingPage() {
     const [ageConfirmed, setAgeConfirmed] = useState(false)
     const [showTermsError, setShowTermsError] = useState(false)
 
-    // ✅ 조건부 반환은 모든 Hook 선언 이후에
-    if (status === 'unauthenticated') {
-        router.replace('/auth/signin')
-        return null
-    }
-    if (status === 'loading') {
+    // ✅ router.replace는 useEffect 안에서 호출 (렌더 중 부작용 방지)
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.replace('/auth/signin')
+        }
+    }, [status, router])
+
+    // 로딩 중 또는 비로그인 리다이렉트 대기 중
+    if (status === 'loading' || status === 'unauthenticated') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-black">
                 <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
@@ -68,7 +71,7 @@ export default function OnboardingPage() {
             const res = await fetch('/api/users/onboard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nickname: nickname.trim(), termsAgreed: true }),
+                body: JSON.stringify({ nickname: nickname.trim(), termsAgreed: true, privacyAgreed: true, ageConfirmed: true }),
             })
             const data = await res.json()
 

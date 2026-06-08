@@ -93,23 +93,34 @@ async function fetchSchedulePage(
 /**
  * LCK 현재 시즌 경기 일정 가져오기
  *
- * @param maxPages 가져올 페이지 수
+ * @param maxPages 가져올 페이지 수 (older + newer 각각 적용)
  *   - 기본(2): 크론잡 4초 예산 내 안전 범위 (~50경기)
  *   - 관리자 수동 동기화(4): 전 시즌 누락 없이 커버 (~100경기)
  *
- * 최신 페이지부터 older 방향으로 순차 조회 → 중복 제거 → 날짜 정렬 반환
+ * 기본 페이지(현재 시점 기준)를 시작점으로 older(과거) + newer(미래) 양방향 조회
+ * → 중복 제거 → 날짜 정렬 반환
  */
 export async function fetchLckCurrentSeason(maxPages = 2): Promise<LoLEsportsEvent[]> {
     const allEvents: LoLEsportsEvent[] = []
-    let pageToken: string | null = null
 
-    for (let i = 0; i < maxPages; i++) {
-        const page = await fetchSchedulePage(LEAGUE_IDS.LCK, pageToken ?? undefined)
-        const lckEvents = page.events.filter(e => e.league?.slug === 'lck')
-        allEvents.push(...lckEvents)
+    // ── 기본 페이지 조회 (현재 시점 중심) ──────────────────────────────────
+    const firstPage = await fetchSchedulePage(LEAGUE_IDS.LCK)
+    allEvents.push(...firstPage.events.filter(e => e.league?.slug === 'lck'))
 
-        if (!page.olderToken) break        // 더 이전 페이지 없으면 종료
-        pageToken = page.olderToken
+    // ── older 방향 (과거 경기 — 완료 결과 갱신) ────────────────────────────
+    let olderToken = firstPage.olderToken
+    for (let i = 1; i < maxPages && olderToken; i++) {
+        const page = await fetchSchedulePage(LEAGUE_IDS.LCK, olderToken)
+        allEvents.push(...page.events.filter(e => e.league?.slug === 'lck'))
+        olderToken = page.olderToken ?? null
+    }
+
+    // ── newer 방향 (미래 경기 — 예정 일정 수집) ────────────────────────────
+    let newerToken = firstPage.newerToken
+    for (let i = 1; i < maxPages && newerToken; i++) {
+        const page = await fetchSchedulePage(LEAGUE_IDS.LCK, newerToken)
+        allEvents.push(...page.events.filter(e => e.league?.slug === 'lck'))
+        newerToken = page.newerToken ?? null
     }
 
     // 중복 제거 + 날짜 오름차순 정렬
@@ -168,20 +179,23 @@ export async function fetchLckSeason(year: number, maxPages = 3): Promise<LoLEsp
 
 /**
  * startTime 기준으로 시즌 키 결정
+ * ⚠️ 경계값 주의: LCK 2026 SPLIT2 시작일은 2026-03-31 (월=3이지만 SPLIT2)
  */
 export function getSeasonKeyFromDate(startTime: string): string {
     const date = new Date(startTime)
     const year = date.getUTCFullYear()
-    const month = date.getUTCMonth() + 1 // 1-12
 
-    // LCK 2026 기준
+    // LCK 2026 기준 — 토너먼트 날짜 범위로 정확히 분류
     if (year === 2026) {
-        if (month <= 3) return '2026-SPLIT1'
-        if (month <= 6) return '2026-SPLIT2'
+        const split1End   = new Date('2026-03-31T00:00:00Z') // SPLIT1: ~ 3/30
+        const split2End   = new Date('2026-06-15T00:00:00Z') // SPLIT2: 3/31 ~ 6/14
+        if (date < split1End)  return '2026-SPLIT1'
+        if (date < split2End)  return '2026-SPLIT2'
         return '2026-SPLIT3'
     }
 
     // 이전 연도는 spring/summer
+    const month = date.getUTCMonth() + 1 // 1-12
     if (month <= 6) return `${year}-SPRING`
     return `${year}-SUMMER`
 }

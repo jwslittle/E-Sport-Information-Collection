@@ -21,7 +21,21 @@ export async function POST(req: Request) {
     const userId = session.user.id
 
     const body = await req.json().catch(() => ({}))
-    const { nickname, termsAgreed } = body as { nickname?: string; termsAgreed?: boolean }
+    const { nickname, termsAgreed, privacyAgreed, ageConfirmed } = body as {
+        nickname?: string
+        termsAgreed?: boolean
+        privacyAgreed?: boolean
+        ageConfirmed?: boolean
+    }
+
+    // ✅ PIPA 제22조의2: 서버사이드 만 14세 미만 차단 (클라이언트 체크박스만으로는 우회 가능)
+    if (!ageConfirmed) {
+        return NextResponse.json({ error: '만 14세 이상 확인이 필요합니다.' }, { status: 400 })
+    }
+    // ✅ PIPA 제22조: 이용약관·개인정보 동의 서버사이드 검증
+    if (!termsAgreed || !privacyAgreed) {
+        return NextResponse.json({ error: '이용약관 및 개인정보 처리방침 동의가 필요합니다.' }, { status: 400 })
+    }
 
     if (!nickname?.trim()) {
         return NextResponse.json({ error: '닉네임을 입력해주세요.' }, { status: 400 })

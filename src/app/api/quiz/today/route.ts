@@ -30,6 +30,7 @@ export async function GET() {
     let quizzes = await prisma.dailyQuiz.findMany({
         where: { isActive: true },
         orderBy: { orderIndex: 'asc' },
+        take: 500,
     })
 
     // DB에 퀴즈가 없거나 부족하면 자동 시딩 (최초 1회 또는 신규 문항 추가 시)
@@ -38,6 +39,7 @@ export async function GET() {
         quizzes = await prisma.dailyQuiz.findMany({
             where: { isActive: true },
             orderBy: { orderIndex: 'asc' },
+            take: 500,
         })
     }
 

@@ -307,7 +307,7 @@ function TicketTab({
                         {buying === ticketItem.id
                             ? <Loader2 className="w-4 h-4 animate-spin" />
                             : <TicketX className="w-4 h-4" />}
-                        {gp < ticketItem.gpCost ? 'GP 부족' : '질의권 1장 구매 (50 GP)'}
+                        {gp < ticketItem.gpCost ? 'GP 부족' : `질의권 1장 구매 (${ticketItem.gpCost} GP)`}
                     </Button>
                     <p className="text-[11px] text-zinc-600 text-center">여러 장 구매하려면 반복 클릭하세요</p>
                 </div>
