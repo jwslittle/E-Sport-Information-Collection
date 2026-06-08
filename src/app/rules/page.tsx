@@ -115,9 +115,9 @@ export default function RulesPage() {
                                         <span>승리 팀 예측 성공 시</span>
                                         <span className="font-bold text-yellow-500">+10 GP</span>
                                     </li>
-                                    <li className="flex justify-between">
-                                        <span>스코어까지 정확히 맞힌 경우</span>
-                                        <span className="font-bold text-yellow-500">+30 GP</span>
+                                    <li className="flex justify-between items-start gap-2">
+                                        <span>스코어까지 정확히 맞힌 경우<br /><span className="text-zinc-500 text-xs">(승리 +10 + 스코어 보너스 +20 합산)</span></span>
+                                        <span className="font-bold text-yellow-500 shrink-0">+30 GP</span>
                                     </li>
                                 </ul>
                             </div>
@@ -150,7 +150,7 @@ export default function RulesPage() {
                                     <ul className="text-sm space-y-1.5">
                                         <li className="flex justify-between"><span>승부 예측 정답</span><span className="text-yellow-400">+10 GP</span></li>
                                         <li className="flex justify-between"><span>스코어 예측 정답</span><span className="text-yellow-400">+30 GP</span></li>
-                                        <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+15~25 GP</span></li>
+                                        <li className="flex justify-between"><span>일일 퀴즈 정답</span><span className="text-yellow-400">+10~20 GP</span></li>
                                         <li className="flex justify-between"><span>퀘스트 완료</span><span className="text-yellow-400">+퀘스트별 상이</span></li>
                                     </ul>
                                 </div>

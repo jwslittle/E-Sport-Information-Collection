@@ -467,7 +467,7 @@ export default function ShopPage() {
                 </div>
                 <div className="bg-amber-500/5 border border-amber-800/30 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-700">
                     <Trophy className="w-4 h-4 shrink-0 mt-0.5" />
-                    <span>칭호는 대부분 <strong>업적 달성 전용</strong>입니다. 구매 가능한 칭호는 팀 팬 칭호 5종뿐입니다.</span>
+                    <span>칭호는 일부 <strong>업적 달성 전용</strong>입니다. 구매 가능한 칭호는 팀 팬 칭호(10종) 및 특별 칭호입니다.</span>
                 </div>
             </div>
 

@@ -25,13 +25,14 @@ const TITLES = [
     { name: 'DNS팀 팬', titleText: 'DNS팀 팬', rarity: 'UNCOMMON', gpCost: 500, description: 'DN Esports를 열정적으로 응원하는 팬' },
     { name: 'BRO팀 팬', titleText: 'BRO팀 팬', rarity: 'UNCOMMON', gpCost: 500, description: 'OKSavingsBank BRION을 열정적으로 응원하는 팬' },
 
+    { name: '대역전!', titleText: '대역전!', rarity: 'RARE', gpCost: 2000, description: 'LCK 역전의 명장면을 사랑하는 팬. 어떤 상황에서도 역전은 가능하다' },
     { name: '전략가', titleText: '전략가', rarity: 'RARE', gpCost: 1500, description: '치밀한 전략으로 팀을 이끄는 감독' },
     { name: '데이터 마스터', titleText: '데이터 마스터', rarity: 'RARE', gpCost: 2000, description: '모든 통계를 꿰뚫어 보는 분석가' },
     { name: '판타지 왕', titleText: '판타지 왕', rarity: 'EPIC', gpCost: 5000, description: '판타지 리그를 지배하는 왕' },
     { name: '에스포츠 황제', titleText: '에스포츠 황제', rarity: 'LEGENDARY', gpCost: 15000, description: '이스포츠 역사에 이름을 새긴 황제' },
 
     // ── 업적/조건 달성 칭호 (gpCost=0) ──
-    { name: '대역전!', titleText: '대역전!', rarity: 'RARE', gpCost: 0, condition: 'POST_10_COMMUNITY', description: '포기하지 않고 10개의 게시글을 달성하여 커뮤니티에서 새로운 역전 스토리를 써낸 감독' },
+    { name: '열정 필자', titleText: '열정 필자', rarity: 'UNCOMMON', gpCost: 0, condition: 'POST_10_COMMUNITY', description: '커뮤니티에 게시글 10개를 작성한 열정적인 멤버' },
     { name: '예언자', titleText: '예언자', rarity: 'RARE', gpCost: 0, condition: 'PREDICT_10_STREAK', description: '10경기 연속 승부예측 성공' },
     { name: '완벽한 예측', titleText: '완벽한 예측', rarity: 'EPIC', gpCost: 0, condition: 'PREDICT_30_CORRECT', description: '총 30회 이상 승부예측 성공' },
     { name: 'LCK 마스터', titleText: 'LCK 마스터', rarity: 'EPIC', gpCost: 0, condition: 'TOP_100_RANK', description: '글로벌 랭킹 100위 이내 달성' },
