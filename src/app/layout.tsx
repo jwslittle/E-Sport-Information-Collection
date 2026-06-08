@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "E-Sport Information Collection",
     description: "LCK 경기 예측, 퀴즈, 팀 정보를 한 곳에서.",
-    images: ["/opengraph-image"],
+    images: ["https://e-sport-information-collection.vercel.app/opengraph-image"],
   },
   robots: {
     index: true,

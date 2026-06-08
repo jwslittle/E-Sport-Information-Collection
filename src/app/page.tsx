@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -555,7 +556,7 @@ function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) 
                     {match.team1Name || match.team1}
                 </span>
                 {match.team1Logo && !t1Err ? (
-                    <img src={match.team1Logo} alt={match.team1Name || match.team1} className="w-8 h-8 object-contain"
+                    <Image src={match.team1Logo} alt={match.team1Name || match.team1} width={32} height={32} className="object-contain"
                         onError={() => setT1Err(true)} />
                 ) : (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
@@ -571,7 +572,7 @@ function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) 
             {/* 팀2 */}
             <div className="flex items-center gap-2 flex-1">
                 {match.team2Logo && !t2Err ? (
-                    <img src={match.team2Logo} alt={match.team2Name || match.team2} className="w-8 h-8 object-contain"
+                    <Image src={match.team2Logo} alt={match.team2Name || match.team2} width={32} height={32} className="object-contain"
                         onError={() => setT2Err(true)} />
                 ) : (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"

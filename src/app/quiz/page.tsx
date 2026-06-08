@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -76,11 +76,7 @@ export default function QuizPage() {
         gpEarned: number
     } | null>(null)
 
-    useEffect(() => {
-        fetchQuiz()
-    }, [status])
-
-    const fetchQuiz = async () => {
+    const fetchQuiz = useCallback(async () => {
         setLoading(true)
         try {
             const res = await fetch('/api/quiz/today')
@@ -98,7 +94,12 @@ export default function QuizPage() {
         } finally {
             setLoading(false)
         }
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])  // 마운트 시 한 번만 정의 — status 변경 시 재호출은 아래 useEffect에서
+
+    useEffect(() => {
+        fetchQuiz()
+    }, [fetchQuiz, status])  // status 변경(로그인/로그아웃)시 재조회
 
     const handleSubmit = async () => {
         if (!selected || !quiz) return

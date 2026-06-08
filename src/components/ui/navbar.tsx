@@ -214,6 +214,7 @@ export function Navbar() {
                             <Link
                                 key={route.href}
                                 href={route.href}
+                                aria-current={active ? 'page' : undefined}
                                 className={cn(
                                     'flex-1 flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors py-2',
                                     active ? 'text-yellow-400' : 'text-zinc-500 active:text-zinc-300'

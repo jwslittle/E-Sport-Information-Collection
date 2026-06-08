@@ -41,8 +41,8 @@ export default function PlayerDetailPage() {
             .catch(() => {})
             .finally(() => setLoading(false))
 
-        // 챔피언 풀 (전 연도)
-        fetch(`/api/stats/champions?player=${encodeURIComponent(playerName)}&yearFrom=2014&yearTo=2025&tournament=all_1`)
+        // 챔피언 풀 (전 연도 + 2026 라이브)
+        fetch(`/api/stats/champions?player=${encodeURIComponent(playerName)}&yearFrom=2014&yearTo=2026&tournament=all_1`)
             .then(r => r.json())
             .then(json => { if (Array.isArray(json)) setChampData(json) })
             .catch(() => {})
