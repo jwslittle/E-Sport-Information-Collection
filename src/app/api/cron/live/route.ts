@@ -1,27 +1,32 @@
 /**
  * GET /api/cron/live
  *
- * Vercel Cron — 1분마다 LCK 실시간 경기 스코어 자동 동기화
+ * cron-job.org — 1분마다 LCK 실시간 경기 스코어 자동 동기화 + 경기 종료 시 즉시 예측 정산
  *
  * ── 동작 흐름 ───────────────────────────────────────────────
  * 1) LoL Esports getLive API 호출 (외부 API)
  * 2a) 라이브 경기 있음 → DB lckRealMatch 스코어 + status=LIVE 갱신
  * 2b) 라이브 없음 + DB에 LIVE가 남아있음 → 경기 종료 감지
  *      → syncCurrentSeason(force) 실행 → LIVE → COMPLETED 전환
+ *      → processLckPredictions() 즉시 실행 → 경기 종료 직후 GP 지급
  * 2c) 라이브 없음 + DB도 비어있음 → no-op
+ *
+ * ── 예측 정산 중복 방지 ──────────────────────────────────────
+ * processLckPredictions()는 isProcessed 플래그를 트랜잭션 내 재확인하므로
+ * 이 크론과 일일 06:00 KST 크론이 동시에 실행되어도 이중 정산 없음.
  *
  * ── 클라이언트 영향 ──────────────────────────────────────────
  * /api/lck/live 는 이 크론이 갱신한 DB를 읽을 뿐,
  * 더 이상 LoL Esports API를 직접 호출하지 않는다.
  *
  * ── 인증 ────────────────────────────────────────────────────
- * Vercel Cron은 Authorization: Bearer <CRON_SECRET> 헤더를 자동 포함
- * vercel.json cron schedule: "* * * * *"  (매 1분, Pro plan 필요)
+ * Authorization: Bearer <CRON_SECRET> 헤더 필수 (cron-job.org 설정)
  */
 
 import { NextResponse } from 'next/server'
 import { fetchLiveLckMatches, transformEventToMatch } from '@/lib/services/lolesports.service'
 import { syncCurrentSeason } from '@/lib/services/lck-sync.service'
+import { processLckPredictions } from '@/lib/services/prediction-process.service'
 import prisma from '@/lib/prisma'
 import { CURRENT_YEAR } from '@/lib/config/season'
 
@@ -57,14 +62,36 @@ export async function GET(req: Request) {
         // ── 케이스 2b: 경기 종료 감지 ───────────────────────────────
         // API에는 더 이상 라이브가 없지만 DB에 LIVE가 남아있음
         // → 경기 종료된 것이므로 풀 동기화로 LIVE → COMPLETED 전환
+        // → 전환 즉시 예측 정산 실행 (일일 크론 06:00 KST 대기 불필요)
         if (liveEvents.length === 0 && liveInDbCount > 0) {
-            console.log(`[Cron/Live] 경기 종료 감지 (DB LIVE: ${liveInDbCount}건) — 풀 동기화 실행`)
+            console.log(`[Cron/Live] 경기 종료 감지 (DB LIVE: ${liveInDbCount}건) — 풀 동기화 + 즉시 예측 정산 실행`)
+
+            // 1) 경기 결과 DB 반영 (LIVE → COMPLETED + winner 확정)
             const syncResult = await syncCurrentSeason(CURRENT_YEAR, true)
+            console.log(`[Cron/Live] 동기화 완료: ${syncResult.matchesUpserted}경기 갱신`)
+
+            // 2) 즉시 예측 정산 — GP 지급
+            let processResult = { processed: 0, gpAwarded: 0, skipped: 0 }
+            try {
+                processResult = await processLckPredictions(true)
+                console.log(
+                    `[Cron/Live] 즉시 예측 정산 완료: ` +
+                    `${processResult.processed}건 정산, ${processResult.gpAwarded} GP 지급, ` +
+                    `${processResult.skipped}건 스킵`
+                )
+            } catch (processErr) {
+                // 정산 실패해도 동기화 성공 결과는 반환 (일일 크론이 재시도)
+                console.error('[Cron/Live] 즉시 정산 오류 (일일 크론에서 재시도됩니다):', processErr)
+            }
+
             return NextResponse.json({
                 ok: true,
                 liveCount: 0,
-                action: 'full-sync-after-match-end',
+                action: 'match-ended-synced-and-processed',
                 matchesUpserted: syncResult.matchesUpserted,
+                predictionsProcessed: processResult.processed,
+                gpAwarded: processResult.gpAwarded,
+                predictionsSkipped: processResult.skipped,
                 elapsedMs: Date.now() - startedAt,
                 timestamp: new Date().toISOString(),
             })
