@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
         // ── Step 1: 요청 파싱 & 기본 형식 검증 (티켓 소모 전) ──────────────
-        let messages: unknown[]
+        let messages: any[]
         try {
             const body = await req.json()
             messages = body.messages
