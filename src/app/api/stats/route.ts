@@ -50,7 +50,7 @@ function parseDurationMins(dur: string | null): number {
     return (parts[0] ?? 0) + (parts[1] ?? 0) / 60
 }
 
-/** DB matches → 팀 통계 배열
+/** DB matches → 팀 통계 배열 (2026 라이브)
  *  게임별 스탯이 없으면(게임 수 = 0) 매치 결과(team1Score/team2Score)로 집계 */
 function buildTeamStats(
     matches: any[],
@@ -66,6 +66,8 @@ function buildTeamStats(
             tournament: tournamentLabel,
             games: 0, wins: 0, losses: 0,
             totalKills: 0, totalDeaths: 0, totalAssists: 0, totalDamage: 0,
+            // NEW 2026 집계용
+            sumGameLengthSec: 0, gameDurCount: 0,
         }
     }
 
@@ -75,8 +77,9 @@ function buildTeamStats(
         const hasGameStats = (m.games?.length ?? 0) > 0
 
         if (hasGameStats) {
-            // 게임별 통계 집계 (detail level)
             for (const game of m.games) {
+                const gameDurSec = parseDurationMins(game.duration) * 60
+
                 for (const tc of [m.team1, m.team2]) {
                     ensureTeam(tc)
                     const s = map[tc]
@@ -91,10 +94,13 @@ function buildTeamStats(
                             s.totalDamage  += ps.damage
                         }
                     }
+                    if (gameDurSec > 0) {
+                        s.sumGameLengthSec += gameDurSec
+                        s.gameDurCount++
+                    }
                 }
             }
         } else if (m.winner) {
-            // 매치 결과만 있는 경우 (score 기반 집계)
             ensureTeam(m.team1); ensureTeam(m.team2)
             const s1 = map[m.team1], s2 = map[m.team2]
             const score1 = m.team1Score ?? 0, score2 = m.team2Score ?? 0
@@ -102,20 +108,41 @@ function buildTeamStats(
             s2.games += score1 + score2; s2.wins += score2; s2.losses += score1
         }
     }
-    return Object.values(map)
+
+    return Object.values(map).map((s: any) => ({
+        ...s,
+        avgGameLengthSeconds: s.gameDurCount > 0 ? Math.round(s.sumGameLengthSec / s.gameDurCount) : 0,
+        // 2026 DB에 blue/red side, objectives 데이터 없음 → null
+        blueSideGames: null, blueSideWins: null, redSideGames: null, redSideWins: null,
+        firstBloodRate: null, firstDragonRate: null, firstBaronRate: null, firstTowerRate: null,
+        avgDragons: null, avgBarons: null, avgTowers: null, avgHeralds: null,
+        avgGoldDiff15: null, avgGoldDiff10: null,
+        avgKillsPerMin: s.gameDurCount > 0 ? +(s.totalKills / (s.sumGameLengthSec / 60)).toFixed(2) : 0,
+    }))
 }
 
-/** DB matches → 선수 통계 배열 */
+/** DB matches → 선수 통계 배열 (2026 라이브, 파생 지표 포함) */
 function buildPlayerStats(
     matches: any[],
     teamNameMap: Record<string, string>,
     tournamentLabel: string,
 ): any[] {
     const map: Record<string, any> = {}
+
     for (const m of matches) {
-        const label = tournamentLabel
         for (const game of m.games ?? []) {
             const dur = parseDurationMins(game.duration)
+
+            // 게임 내 팀별 합계 (비중 계산용)
+            const teamKills:  Record<string, number> = {}
+            const teamDamage: Record<string, number> = {}
+            const teamGold:   Record<string, number> = {}
+            for (const ps of game.playerStats ?? []) {
+                teamKills[ps.team]  = (teamKills[ps.team]  || 0) + ps.kills
+                teamDamage[ps.team] = (teamDamage[ps.team] || 0) + ps.damage
+                teamGold[ps.team]   = (teamGold[ps.team]   || 0) + ps.gold
+            }
+
             for (const ps of game.playerStats ?? []) {
                 const key = `${ps.playerName}__${ps.team}`
                 if (!map[key]) {
@@ -124,10 +151,17 @@ function buildPlayerStats(
                         teamName: teamNameMap[ps.team] ?? ps.team,
                         position: ps.position ?? 'UNKNOWN',
                         year: 2026,
-                        tournament: label,
+                        tournament: tournamentLabel,
                         games: 0, wins: 0, losses: 0,
                         totalKills: 0, totalDeaths: 0, totalAssists: 0,
-                        totalDamage: 0, totalDurMin: 0, totalVisionScore: 0,
+                        totalDamage: 0, totalCS: 0, totalGold: 0,
+                        totalDurMin: 0, totalVisionScore: 0,
+                        sumCSPM: 0, cspmCount: 0,
+                        sumEarnedGPM: 0, gpmCount: 0,
+                        sumDmgShare: 0, dmgShareCount: 0,
+                        sumGoldShare: 0, goldShareCount: 0,
+                        sumKP: 0, kpCount: 0,
+                        doublekills: 0, triplekills: 0, quadrakills: 0, pentakills: 0,
                     }
                 }
                 const p = map[key]
@@ -138,25 +172,51 @@ function buildPlayerStats(
                 p.totalDeaths      += ps.deaths
                 p.totalAssists     += ps.assists
                 p.totalDamage      += ps.damage
+                p.totalCS          += ps.cs
+                p.totalGold        += ps.gold
                 p.totalDurMin      += dur
                 p.totalVisionScore += ps.visionScore
+
+                // 파생 지표 (게임 단위)
+                if (dur > 0) {
+                    p.sumCSPM     += ps.cs     / dur; p.cspmCount++
+                    p.sumEarnedGPM += ps.gold  / dur; p.gpmCount++
+                }
+                const tKills  = teamKills[ps.team]  || 0
+                const tDamage = teamDamage[ps.team] || 0
+                const tGold   = teamGold[ps.team]   || 0
+
+                if (tKills  > 0) { p.sumKP        += (ps.kills + ps.assists) / tKills;  p.kpCount++ }
+                if (tDamage > 0) { p.sumDmgShare   += ps.damage / tDamage; p.dmgShareCount++ }
+                if (tGold   > 0) { p.sumGoldShare  += ps.gold   / tGold;   p.goldShareCount++ }
             }
         }
     }
+
     return Object.values(map).map((p: any) => ({
         playerName: p.playerName,
-        teamName: p.teamName,
-        position: p.position,
-        year: p.year,
+        teamName:   p.teamName,
+        position:   p.position,
+        year:       p.year,
         tournament: p.tournament,
         games: p.games, wins: p.wins, losses: p.losses,
         totalKills: p.totalKills, totalDeaths: p.totalDeaths,
         totalAssists: p.totalAssists, totalDamage: p.totalDamage,
+        totalCS: p.totalCS,
         averageKDA: p.totalDeaths > 0
             ? (p.totalKills + p.totalAssists) / p.totalDeaths
             : (p.totalKills + p.totalAssists),
         averageDPM: p.totalDurMin > 0 ? p.totalDamage / p.totalDurMin : 0,
         averageVisionScore: p.games > 0 ? p.totalVisionScore / p.games : 0,
+        // 파생 지표
+        avgCSPM:            p.cspmCount     > 0 ? +(p.sumCSPM       / p.cspmCount).toFixed(3)     : 0,
+        avgEarnedGPM:       p.gpmCount      > 0 ? +(p.sumEarnedGPM  / p.gpmCount).toFixed(1)      : 0,
+        avgDamageShare:     p.dmgShareCount > 0 ? +(p.sumDmgShare   / p.dmgShareCount).toFixed(4) : 0,
+        avgGoldShare:       p.goldShareCount > 0? +(p.sumGoldShare   / p.goldShareCount).toFixed(4): 0,
+        avgKillParticipation: p.kpCount     > 0 ? +(p.sumKP         / p.kpCount).toFixed(4)       : 0,
+        avgVSPM:            p.games         > 0 ? +(p.totalVisionScore / p.totalDurMin || 0).toFixed(3) : 0,
+        doublekills: 0, triplekills: 0, quadrakills: 0, pentakills: 0,
+        firstBloodRate: null, avgGoldDiff15: null, avgGoldDiff10: null,
     }))
 }
 
@@ -301,6 +361,22 @@ export async function GET(req: Request) {
                     va = a.games > 0 ? a.wins / a.games : 0
                     vb = b.games > 0 ? b.wins / b.games : 0
                     break
+                // 신규 정렬 키
+                case 'cspm':       va = a.avgCSPM ?? 0;              vb = b.avgCSPM ?? 0;              break
+                case 'gpm':        va = a.avgEarnedGPM ?? 0;         vb = b.avgEarnedGPM ?? 0;         break
+                case 'dmgShare':   va = a.avgDamageShare ?? 0;       vb = b.avgDamageShare ?? 0;       break
+                case 'goldShare':  va = a.avgGoldShare ?? 0;         vb = b.avgGoldShare ?? 0;         break
+                case 'kp':         va = a.avgKillParticipation ?? 0; vb = b.avgKillParticipation ?? 0; break
+                case 'vspm':       va = a.avgVSPM ?? 0;              vb = b.avgVSPM ?? 0;              break
+                case 'penta':      va = a.pentakills ?? 0;           vb = b.pentakills ?? 0;           break
+                case 'duration':   va = a.avgGameLengthSeconds ?? 0; vb = b.avgGameLengthSeconds ?? 0; break
+                case 'blueSide':
+                    va = a.blueSideGames > 0 ? a.blueSideWins / a.blueSideGames : 0
+                    vb = b.blueSideGames > 0 ? b.blueSideWins / b.blueSideGames : 0
+                    break
+                case 'firstDragon': va = a.firstDragonRate ?? 0;     vb = b.firstDragonRate ?? 0;     break
+                case 'firstBaron':  va = a.firstBaronRate  ?? 0;     vb = b.firstBaronRate  ?? 0;     break
+                case 'goldDiff15':  va = a.avgGoldDiff15   ?? 0;     vb = b.avgGoldDiff15   ?? 0;     break
                 default: va = a.wins; vb = b.wins
             }
             return va > vb ? dir : va < vb ? -dir : 0

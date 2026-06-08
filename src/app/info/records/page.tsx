@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Trophy, ArrowLeft, Medal, Crown, Zap, Shield, Swords, Eye } from 'lucide-react'
+import { Trophy, ArrowLeft, Medal, Crown, Zap, Shield, Swords, Eye, Clock, Crosshair, Coins, Star, Flame } from 'lucide-react'
 
 const YEAR_PRESETS = [
     { label: '전체 (2014~2025)', from: '2014', to: '2025' },
@@ -16,41 +16,45 @@ const YEAR_PRESETS = [
     { label: '2023 시즌',       from: '2023', to: '2023' },
 ]
 
-// 기준점(scope) 설정
 const SCOPE_OPTIONS = [
-    { value: 'lck',   label: 'LCK 국내만',        tournament: 'all_korea', note: 'LCK 리그 경기만' },
-    { value: 'intl',  label: 'LCK + 국제대회',     tournament: 'all_intl',  note: 'MSI · Worlds 포함' },
-    { value: 'all',   label: '전체 통합 (글로벌)', tournament: 'all',       note: 'LPL·LEC·LCS 등 포함' },
+    { value: 'lck',  label: 'LCK 국내만',        tournament: 'all_korea', note: 'LCK 리그 경기만' },
+    { value: 'intl', label: 'LCK + 국제대회',     tournament: 'all_intl',  note: 'MSI · Worlds 포함' },
+    { value: 'all',  label: '전체 통합 (글로벌)', tournament: 'all',       note: 'LPL·LEC·LCS 등 포함' },
 ] as const
 type ScopeValue = typeof SCOPE_OPTIONS[number]['value']
 
-interface TeamEntry  { teamName: string; year: number; tournament: string; games: number; wins: number; losses: number; totalKills: number; totalDeaths: number; totalDamage: number }
-interface PlayerEntry { playerName: string; teamName: string; position: string; year: number; tournament: string; games: number; wins: number; losses: number; totalKills: number; totalDeaths: number; totalAssists: number; totalDamage: number; averageKDA: number; averageDPM: number; averageVisionScore: number }
+interface TeamEntry {
+    teamName: string; year: number; tournament: string
+    games: number; wins: number; losses: number
+    totalKills: number; totalDeaths: number; totalAssists: number; totalDamage: number
+    avgGameLengthSeconds?: number
+    blueSideGames?: number; blueSideWins?: number
+    redSideGames?: number;  redSideWins?: number
+    firstBloodRate?: number; firstDragonRate?: number; firstBaronRate?: number
+    avgDragons?: number; avgBarons?: number; avgTowers?: number
+    avgGoldDiff15?: number | null; avgGoldDiff10?: number | null
+    avgKillsPerMin?: number
+}
+interface PlayerEntry {
+    playerName: string; teamName: string; position: string; year: number; tournament: string
+    games: number; wins: number; losses: number
+    totalKills: number; totalDeaths: number; totalAssists: number; totalDamage: number
+    averageKDA: number; averageDPM: number; averageVisionScore: number
+    avgCSPM?: number; avgEarnedGPM?: number; avgDamageShare?: number; avgGoldShare?: number
+    avgKillParticipation?: number; avgVSPM?: number; totalCS?: number
+    doublekills?: number; triplekills?: number; quadrakills?: number; pentakills?: number
+    firstBloodRate?: number; avgGoldDiff15?: number | null
+}
 
 interface RecordItem {
-    rank: number
-    label: string
-    sub: string
-    value: string
-    year: number | string
-    tournament: string
+    rank: number; label: string; sub: string; value: string; year: number | string; tournament: string
 }
-
 const RANK_ICONS = ['🥇', '🥈', '🥉']
-
-function rankColor(rank: number) {
-    if (rank === 1) return 'text-yellow-400'
-    if (rank === 2) return 'text-zinc-300'
-    if (rank === 3) return 'text-orange-400'
-    return 'text-zinc-500'
-}
+const rankColor = (r: number) =>
+    r === 1 ? 'text-yellow-400' : r === 2 ? 'text-zinc-300' : r === 3 ? 'text-orange-400' : 'text-zinc-500'
 
 function RecordTable({ title, icon: Icon, iconColor, records, loading }: {
-    title: string
-    icon: any
-    iconColor: string
-    records: RecordItem[]
-    loading: boolean
+    title: string; icon: any; iconColor: string; records: RecordItem[]; loading: boolean
 }) {
     return (
         <Card className="bg-zinc-900 border-zinc-800">
@@ -91,10 +95,10 @@ function RecordTable({ title, icon: Icon, iconColor, records, loading }: {
 
 export default function RecordsPage() {
     const [preset, setPreset] = useState('0')
-    const [scope,   setScope]  = useState<ScopeValue>('lck')
-    const [teams,   setTeams]   = useState<TeamEntry[]>([])
+    const [scope, setScope] = useState<ScopeValue>('lck')
+    const [teams, setTeams] = useState<TeamEntry[]>([])
     const [players, setPlayers] = useState<PlayerEntry[]>([])
-    const [intlTeams,   setIntlTeams]   = useState<TeamEntry[]>([])
+    const [intlTeams, setIntlTeams] = useState<TeamEntry[]>([])
     const [intlPlayers, setIntlPlayers] = useState<PlayerEntry[]>([])
     const [loading, setLoading] = useState(false)
 
@@ -106,7 +110,6 @@ export default function RecordsPage() {
         const base = `yearFrom=${from}&yearTo=${to}&division=1`
 
         if (scope === 'intl') {
-            // LCK + International = 두 데이터셋 병합
             Promise.all([
                 fetch(`/api/stats?type=team&${base}&tournament=all_korea`).then(r => r.json()),
                 fetch(`/api/stats?type=player&${base}&tournament=all_korea`).then(r => r.json()),
@@ -121,10 +124,9 @@ export default function RecordsPage() {
                 setTeams([]); setPlayers([]); setIntlTeams([]); setIntlPlayers([])
             }).finally(() => setLoading(false))
         } else {
-            const tournament = scopeOpt.tournament
             Promise.all([
-                fetch(`/api/stats?type=team&${base}&tournament=${tournament}`).then(r => r.json()),
-                fetch(`/api/stats?type=player&${base}&tournament=${tournament}`).then(r => r.json()),
+                fetch(`/api/stats?type=team&${base}&tournament=${scopeOpt.tournament}`).then(r => r.json()),
+                fetch(`/api/stats?type=player&${base}&tournament=${scopeOpt.tournament}`).then(r => r.json()),
             ]).then(([t, p]) => {
                 setTeams(Array.isArray(t) ? t : [])
                 setPlayers(Array.isArray(p) ? p : [])
@@ -135,89 +137,132 @@ export default function RecordsPage() {
         }
     }, [from, to, scope])
 
-    // scope=intl이면 LCK + International 합산
     const allTeams   = scope === 'intl' ? [...teams,   ...intlTeams]   : teams
     const allPlayers = scope === 'intl' ? [...players, ...intlPlayers] : players
 
-    // ── 팀 기록 ──────────────────────────────────────────────────────────
-    const topTeamWins: RecordItem[] = [...allTeams]
-        .filter(t => t.games >= 5)
-        .sort((a, b) => b.wins - a.wins)
-        .slice(0, 10)
-        .map((t, i) => ({
-            rank: i + 1, label: t.teamName,
-            sub: `${t.games}경기`,
-            value: `${t.wins}승`, year: t.year, tournament: t.tournament
-        }))
+    // ── 팀 기록 (기존) ────────────────────────────────────────────────────
+    const topTeamWins: RecordItem[] = [...allTeams].filter(t => t.games >= 5)
+        .sort((a, b) => b.wins - a.wins).slice(0, 10)
+        .map((t, i) => ({ rank: i+1, label: t.teamName, sub: `${t.games}경기`, value: `${t.wins}승`, year: t.year, tournament: t.tournament }))
 
-    const topTeamWinRate: RecordItem[] = [...allTeams]
-        .filter(t => t.games >= 20)
-        .sort((a, b) => (b.wins / b.games) - (a.wins / a.games))
-        .slice(0, 10)
-        .map((t, i) => ({
-            rank: i + 1, label: t.teamName,
-            sub: `${t.games}경기 ${t.wins}승`,
-            value: `${((t.wins / t.games) * 100).toFixed(1)}%`,
-            year: t.year, tournament: t.tournament
-        }))
+    const topTeamWinRate: RecordItem[] = [...allTeams].filter(t => t.games >= 20)
+        .sort((a, b) => (b.wins/b.games) - (a.wins/a.games)).slice(0, 10)
+        .map((t, i) => ({ rank: i+1, label: t.teamName, sub: `${t.games}게임 ${t.wins}승`, value: `${((t.wins/t.games)*100).toFixed(1)}%`, year: t.year, tournament: t.tournament }))
 
-    const topTeamKillsPerGame: RecordItem[] = [...allTeams]
-        .filter(t => t.games >= 10)
-        .sort((a, b) => (b.totalKills / b.games) - (a.totalKills / a.games))
-        .slice(0, 10)
-        .map((t, i) => ({
-            rank: i + 1, label: t.teamName,
-            sub: `${t.games}경기`,
-            value: `${(t.totalKills / t.games).toFixed(1)} 킬/게임`,
-            year: t.year, tournament: t.tournament
-        }))
+    const topTeamKDA: RecordItem[] = [...allTeams].filter(t => t.games >= 10)
+        .sort((a, b) => {
+            const kdaA = a.totalDeaths > 0 ? (a.totalKills + a.totalAssists) / a.totalDeaths : a.totalKills + a.totalAssists
+            const kdaB = b.totalDeaths > 0 ? (b.totalKills + b.totalAssists) / b.totalDeaths : b.totalKills + b.totalAssists
+            return kdaB - kdaA
+        }).slice(0, 10)
+        .map((t, i) => {
+            const kda = t.totalDeaths > 0 ? ((t.totalKills + t.totalAssists) / t.totalDeaths).toFixed(2) : String(t.totalKills + t.totalAssists)
+            return { rank: i+1, label: t.teamName, sub: `${t.games}게임`, value: `KDA ${kda}`, year: t.year, tournament: t.tournament }
+        })
 
-    // ── 선수 기록 ─────────────────────────────────────────────────────────
-    const topKDA: RecordItem[] = [...allPlayers]
-        .filter(p => p.games >= 20)
-        .sort((a, b) => b.averageKDA - a.averageKDA)
-        .slice(0, 10)
-        .map((p, i) => ({
-            rank: i + 1, label: p.playerName,
-            sub: `${p.teamName} · ${p.position}`,
-            value: p.averageKDA.toFixed(2),
-            year: p.year, tournament: p.tournament
-        }))
+    const topTeamKillsPerGame: RecordItem[] = [...allTeams].filter(t => t.games >= 10)
+        .sort((a, b) => (b.totalKills/b.games) - (a.totalKills/a.games)).slice(0, 10)
+        .map((t, i) => ({ rank: i+1, label: t.teamName, sub: `${t.games}게임`, value: `${(t.totalKills/t.games).toFixed(1)}킬/게임`, year: t.year, tournament: t.tournament }))
 
-    const topDPM: RecordItem[] = [...allPlayers]
-        .filter(p => p.games >= 20)
-        .sort((a, b) => b.averageDPM - a.averageDPM)
-        .slice(0, 10)
-        .map((p, i) => ({
-            rank: i + 1, label: p.playerName,
-            sub: `${p.teamName} · ${p.position}`,
-            value: `${Math.round(p.averageDPM).toLocaleString()} DPM`,
-            year: p.year, tournament: p.tournament
-        }))
+    // ── 팀 기록 (신규) ────────────────────────────────────────────────────
+    const topTeamDragon: RecordItem[] = [...allTeams].filter(t => t.games >= 10 && t.firstDragonRate != null)
+        .sort((a, b) => (b.firstDragonRate ?? 0) - (a.firstDragonRate ?? 0)).slice(0, 10)
+        .map((t, i) => ({ rank: i+1, label: t.teamName, sub: `${t.games}게임`, value: `${((t.firstDragonRate ?? 0)*100).toFixed(1)}%`, year: t.year, tournament: t.tournament }))
+
+    const topTeamBaron: RecordItem[] = [...allTeams].filter(t => t.games >= 10 && t.firstBaronRate != null)
+        .sort((a, b) => (b.firstBaronRate ?? 0) - (a.firstBaronRate ?? 0)).slice(0, 10)
+        .map((t, i) => ({ rank: i+1, label: t.teamName, sub: `${t.games}게임`, value: `${((t.firstBaronRate ?? 0)*100).toFixed(1)}%`, year: t.year, tournament: t.tournament }))
+
+    const topTeamBlueSide: RecordItem[] = [...allTeams]
+        .filter(t => (t.blueSideGames ?? 0) >= 10 && t.blueSideWins != null)
+        .sort((a, b) => {
+            const wa = (a.blueSideGames ?? 0) > 0 ? (a.blueSideWins ?? 0) / (a.blueSideGames ?? 1) : 0
+            const wb = (b.blueSideGames ?? 0) > 0 ? (b.blueSideWins ?? 0) / (b.blueSideGames ?? 1) : 0
+            return wb - wa
+        }).slice(0, 10)
+        .map((t, i) => {
+            const g = t.blueSideGames ?? 0, w = t.blueSideWins ?? 0
+            return { rank: i+1, label: t.teamName, sub: `블루 ${g}게임 ${w}승`, value: `${g > 0 ? ((w/g)*100).toFixed(1) : 0}%`, year: t.year, tournament: t.tournament }
+        })
+
+    const topTeamShortGame: RecordItem[] = [...allTeams]
+        .filter(t => t.games >= 10 && (t.avgGameLengthSeconds ?? 0) > 0)
+        .sort((a, b) => (a.avgGameLengthSeconds ?? 9999) - (b.avgGameLengthSeconds ?? 9999)).slice(0, 10)
+        .map((t, i) => {
+            const s = t.avgGameLengthSeconds ?? 0
+            return { rank: i+1, label: t.teamName, sub: `${t.games}게임`, value: `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`, year: t.year, tournament: t.tournament }
+        })
+
+    const topTeamGoldLead: RecordItem[] = [...allTeams]
+        .filter(t => t.games >= 10 && t.avgGoldDiff15 != null)
+        .sort((a, b) => (b.avgGoldDiff15 ?? 0) - (a.avgGoldDiff15 ?? 0)).slice(0, 10)
+        .map((t, i) => {
+            const g = t.avgGoldDiff15 ?? 0
+            return { rank: i+1, label: t.teamName, sub: `${t.games}게임 평균`, value: `${g >= 0 ? '+' : ''}${g.toLocaleString()}G@15`, year: t.year, tournament: t.tournament }
+        })
+
+    // ── 선수 기록 (기존) ──────────────────────────────────────────────────
+    const topKDA: RecordItem[] = [...allPlayers].filter(p => p.games >= 20)
+        .sort((a, b) => b.averageKDA - a.averageKDA).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: p.averageKDA.toFixed(2), year: p.year, tournament: p.tournament }))
+
+    const topDPM: RecordItem[] = [...allPlayers].filter(p => p.games >= 20)
+        .sort((a, b) => b.averageDPM - a.averageDPM).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${Math.round(p.averageDPM).toLocaleString()} DPM`, year: p.year, tournament: p.tournament }))
 
     const topGames: RecordItem[] = [...allPlayers]
-        .sort((a, b) => b.games - a.games)
-        .slice(0, 10)
-        .map((p, i) => ({
-            rank: i + 1, label: p.playerName,
-            sub: `${p.teamName} · ${p.position}`,
-            value: `${p.games}게임`,
-            year: p.year, tournament: p.tournament
-        }))
+        .sort((a, b) => b.games - a.games).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${p.games}게임`, year: p.year, tournament: p.tournament }))
 
     const topVision: RecordItem[] = [...allPlayers]
         .filter(p => p.games >= 20 && (p.position === 'SUPPORT' || p.position === 'JUNGLE'))
-        .sort((a, b) => b.averageVisionScore - a.averageVisionScore)
-        .slice(0, 10)
+        .sort((a, b) => b.averageVisionScore - a.averageVisionScore).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: p.averageVisionScore.toFixed(1), year: p.year, tournament: p.tournament }))
+
+    // ── 선수 기록 (신규) ──────────────────────────────────────────────────
+    const topCSPM: RecordItem[] = [...allPlayers]
+        .filter(p => p.games >= 20 && (p.avgCSPM ?? 0) > 0)
+        .sort((a, b) => (b.avgCSPM ?? 0) - (a.avgCSPM ?? 0)).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${(p.avgCSPM ?? 0).toFixed(2)} CSPM`, year: p.year, tournament: p.tournament }))
+
+    const topGPM: RecordItem[] = [...allPlayers]
+        .filter(p => p.games >= 20 && (p.avgEarnedGPM ?? 0) > 0)
+        .sort((a, b) => (b.avgEarnedGPM ?? 0) - (a.avgEarnedGPM ?? 0)).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${Math.round(p.avgEarnedGPM ?? 0)} GPM`, year: p.year, tournament: p.tournament }))
+
+    const topKP: RecordItem[] = [...allPlayers]
+        .filter(p => p.games >= 20 && (p.avgKillParticipation ?? 0) > 0)
+        .sort((a, b) => (b.avgKillParticipation ?? 0) - (a.avgKillParticipation ?? 0)).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${((p.avgKillParticipation ?? 0)*100).toFixed(1)}% KP`, year: p.year, tournament: p.tournament }))
+
+    const topDmgShare: RecordItem[] = [...allPlayers]
+        .filter(p => p.games >= 20 && (p.avgDamageShare ?? 0) > 0)
+        .sort((a, b) => (b.avgDamageShare ?? 0) - (a.avgDamageShare ?? 0)).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${((p.avgDamageShare ?? 0)*100).toFixed(1)}% DMG`, year: p.year, tournament: p.tournament }))
+
+    const topMultiKill: RecordItem[] = [...allPlayers]
+        .filter(p => (p.pentakills ?? 0) + (p.quadrakills ?? 0) > 0)
+        .sort((a, b) => {
+            const scoreA = (a.pentakills ?? 0) * 5 + (a.quadrakills ?? 0) * 4 + (a.triplekills ?? 0) * 3
+            const scoreB = (b.pentakills ?? 0) * 5 + (b.quadrakills ?? 0) * 4 + (b.triplekills ?? 0) * 3
+            return scoreB - scoreA
+        }).slice(0, 10)
         .map((p, i) => ({
-            rank: i + 1, label: p.playerName,
-            sub: `${p.teamName} · ${p.position}`,
-            value: p.averageVisionScore.toFixed(1),
+            rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`,
+            value: `펜타${p.pentakills ?? 0} 쿼드라${p.quadrakills ?? 0} 트리플${p.triplekills ?? 0}`,
             year: p.year, tournament: p.tournament
         }))
 
+    const topWins: RecordItem[] = [...allPlayers].filter(p => p.games >= 20)
+        .sort((a, b) => b.wins - a.wins).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position}`, value: `${p.wins}승 (${p.games}게임)`, year: p.year, tournament: p.tournament }))
+
+    const topWinRate: RecordItem[] = [...allPlayers].filter(p => p.games >= 30)
+        .sort((a, b) => (b.wins/b.games) - (a.wins/a.games)).slice(0, 10)
+        .map((p, i) => ({ rank: i+1, label: p.playerName, sub: `${p.teamName} · ${p.position} ${p.games}게임`, value: `${((p.wins/p.games)*100).toFixed(1)}%`, year: p.year, tournament: p.tournament }))
+
     return (
-        <div className="max-w-5xl mx-auto p-4 space-y-6 pb-20">
+        <div className="max-w-6xl mx-auto p-4 space-y-6 pb-20">
             {/* 헤더 */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3">
@@ -226,61 +271,53 @@ export default function RecordsPage() {
                     </Link>
                     <div>
                         <h1 className="text-2xl font-bold text-white">역대 기록</h1>
-                        <p className="text-sm text-zinc-400">1부 리그 통합 역대 기록 (디비전 1 기준)</p>
+                        <p className="text-sm text-zinc-400">1부 리그 통합 역대 기록 — Oracle&apos;s Elixir 데이터 기반</p>
                     </div>
                 </div>
                 <Select value={preset} onValueChange={setPreset}>
-                    <SelectTrigger className="w-44 bg-zinc-900 border-zinc-700">
-                        <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-44 bg-zinc-900 border-zinc-700"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        {YEAR_PRESETS.map((p, i) => (
-                            <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>
-                        ))}
+                        {YEAR_PRESETS.map((p, i) => <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
 
-            {/* 기준점(scope) 선택 */}
+            {/* 기준 */}
             <div className="flex gap-2 flex-wrap">
                 {SCOPE_OPTIONS.map(opt => (
-                    <button
-                        key={opt.value}
-                        onClick={() => setScope(opt.value)}
+                    <button key={opt.value} onClick={() => setScope(opt.value)}
                         className={`flex flex-col items-start px-4 py-2.5 rounded-xl border text-sm transition-all ${
                             scope === opt.value
                                 ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-400'
                                 : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white'
-                        }`}
-                    >
+                        }`}>
                         <span className="font-semibold">{opt.label}</span>
                         <span className="text-[10px] opacity-60 mt-0.5">{opt.note}</span>
                     </button>
                 ))}
             </div>
 
-            {/* 상태 배지 */}
             <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
-                    {YEAR_PRESETS[parseInt(preset)]?.label}
-                </Badge>
-                <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                    {scopeOpt.label}
-                </Badge>
-                <span className="text-xs text-zinc-500">
-                    팀 {allTeams.length}개 · 선수 {allPlayers.length}개 시즌 기록
-                </span>
+                <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">{YEAR_PRESETS[parseInt(preset)]?.label}</Badge>
+                <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/30">{scopeOpt.label}</Badge>
+                <span className="text-xs text-zinc-500">팀 {allTeams.length}개 · 선수 {allPlayers.length}개 시즌 기록</span>
             </div>
 
-            {/* ── 팀 기록 ───────────────────────── */}
+            {/* ── 팀 기록 ─────────────────────────── */}
             <div>
                 <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-blue-400" /> 팀 기록
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <RecordTable title="최다 승리 (시즌)"          icon={Trophy}  iconColor="text-yellow-400" records={topTeamWins}        loading={loading} />
-                    <RecordTable title="최고 승률 (20경기 이상)"    icon={Crown}   iconColor="text-purple-400" records={topTeamWinRate}     loading={loading} />
-                    <RecordTable title="게임당 최다 킬 (10경기 이상)" icon={Swords} iconColor="text-red-400"    records={topTeamKillsPerGame} loading={loading} />
+                    <RecordTable title="최다 승리 (시즌)"             icon={Trophy}    iconColor="text-yellow-400" records={topTeamWins}        loading={loading} />
+                    <RecordTable title="최고 승률 (20경기 이상)"       icon={Crown}     iconColor="text-purple-400" records={topTeamWinRate}     loading={loading} />
+                    <RecordTable title="최고 팀 KDA"                  icon={Zap}       iconColor="text-yellow-400" records={topTeamKDA}         loading={loading} />
+                    <RecordTable title="게임당 최다 킬"                icon={Swords}    iconColor="text-red-400"    records={topTeamKillsPerGame} loading={loading} />
+                    <RecordTable title="가장 빠른 게임 (평균 시간)"    icon={Clock}     iconColor="text-blue-400"   records={topTeamShortGame}   loading={loading} />
+                    <RecordTable title="15분 평균 골드 리드"           icon={Coins}     iconColor="text-yellow-500" records={topTeamGoldLead}    loading={loading} />
+                    <RecordTable title="선 드래곤 획득률"              icon={Flame}     iconColor="text-purple-400" records={topTeamDragon}      loading={loading} />
+                    <RecordTable title="선 바론 획득률"               icon={Crown}     iconColor="text-orange-400" records={topTeamBaron}       loading={loading} />
+                    <RecordTable title="블루 사이드 승률"              icon={Shield}    iconColor="text-emerald-400" records={topTeamBlueSide}   loading={loading} />
                 </div>
             </div>
 
@@ -289,16 +326,23 @@ export default function RecordsPage() {
                 <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                     <Medal className="w-5 h-5 text-orange-400" /> 선수 기록
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                    <RecordTable title="최고 KDA (20경기 이상)"     icon={Zap}    iconColor="text-yellow-400" records={topKDA}    loading={loading} />
-                    <RecordTable title="최고 DPM (20경기 이상)"     icon={Swords} iconColor="text-red-400"    records={topDPM}    loading={loading} />
-                    <RecordTable title="최다 출전 경기"              icon={Trophy} iconColor="text-blue-400"   records={topGames}  loading={loading} />
-                    <RecordTable title="최고 시야 점수 (서포터·정글)" icon={Eye}   iconColor="text-green-400"  records={topVision} loading={loading} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <RecordTable title="최고 KDA (20경기 이상)"        icon={Zap}       iconColor="text-yellow-400"  records={topKDA}         loading={loading} />
+                    <RecordTable title="최고 DPM (20경기 이상)"        icon={Swords}    iconColor="text-red-400"     records={topDPM}         loading={loading} />
+                    <RecordTable title="최고 CSPM (20경기 이상)"       icon={Star}      iconColor="text-cyan-400"    records={topCSPM}        loading={loading} />
+                    <RecordTable title="최고 골드/분 GPM (20경기 이상)" icon={Coins}     iconColor="text-yellow-300"  records={topGPM}         loading={loading} />
+                    <RecordTable title="최고 킬 관여율 KP% (20경기)"   icon={Crosshair} iconColor="text-orange-400"  records={topKP}          loading={loading} />
+                    <RecordTable title="최고 피해 비중 DMG%"           icon={Flame}     iconColor="text-red-400"     records={topDmgShare}    loading={loading} />
+                    <RecordTable title="최다 승리 (시즌)"              icon={Trophy}    iconColor="text-blue-400"    records={topWins}        loading={loading} />
+                    <RecordTable title="최고 승률 (30경기 이상)"       icon={Crown}     iconColor="text-green-400"   records={topWinRate}     loading={loading} />
+                    <RecordTable title="최다 출전 경기"                icon={Medal}     iconColor="text-zinc-400"    records={topGames}       loading={loading} />
+                    <RecordTable title="최고 시야 점수 (서포터·정글)"  icon={Eye}       iconColor="text-green-400"   records={topVision}      loading={loading} />
+                    <RecordTable title="멀티킬 기록 (펜타/쿼드라/트리플)" icon={Flame}  iconColor="text-yellow-400"  records={topMultiKill}   loading={loading} />
                 </div>
             </div>
 
             <p className="text-xs text-zinc-600 text-center">
-                * 1부 리그(디비전 1) 기준 · 서브 대회(챌린저스/아카데미 등) 제외 · MSI/Worlds 포함
+                * Oracle&apos;s Elixir 오픈 데이터 기반 · 1부 리그(디비전 1) · 일부 연도 데이터 누락 가능
             </p>
         </div>
     )
