@@ -7,6 +7,7 @@ import {
     Trophy, Calendar, Target, Brain, TrendingUp,
     ShoppingBag, User, Users, LogOut, Zap, Coins,
     Home, BarChart2, Bot, Database, MessageSquare,
+    Globe, Youtube, Tv,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -122,8 +123,70 @@ export function Navbar() {
                         )}
                     </nav>
 
-                    {/* 우측: GP + 유저 메뉴 */}
+                    {/* 우측: 라이엇공식 + GP + 유저 메뉴 */}
                     <div className="flex items-center gap-2 ml-auto">
+
+                        {/* 라이엇공식 드롭다운 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-all border border-zinc-800 hover:border-zinc-700 outline-none">
+                                    <Globe className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="hidden sm:inline">라이엇공식</span>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-56 bg-zinc-900 border-zinc-800 text-white"
+                                align="end"
+                            >
+                                <DropdownMenuLabel className="text-[11px] text-zinc-500 font-normal pb-1">
+                                    공식 채널 &amp; 사이트
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuItem asChild>
+                                    <a
+                                        href="https://lck.kr"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2.5 cursor-pointer py-2"
+                                    >
+                                        <Globe className="w-4 h-4 text-yellow-400 shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-medium leading-tight">LCK 공식 홈페이지</p>
+                                            <p className="text-[10px] text-zinc-500 mt-0.5">lck.kr</p>
+                                        </div>
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a
+                                        href="https://www.youtube.com/@LCK"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2.5 cursor-pointer py-2"
+                                    >
+                                        <Youtube className="w-4 h-4 text-red-400 shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-medium leading-tight">YouTube 공식 채널</p>
+                                            <p className="text-[10px] text-zinc-500 mt-0.5">youtube.com/@LCK</p>
+                                        </div>
+                                    </a>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <a
+                                        href="https://www.sooplive.co.kr/lck"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2.5 cursor-pointer py-2"
+                                    >
+                                        <Tv className="w-4 h-4 text-violet-400 shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-medium leading-tight">숲 공식 채널</p>
+                                            <p className="text-[10px] text-zinc-500 mt-0.5">sooplive.co.kr/lck</p>
+                                        </div>
+                                    </a>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
                         {/* GP 배지 */}
                         {session && gp !== null && (
                             <Link href="/shop" className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-1.5 hover:bg-yellow-500/20 transition-colors">
