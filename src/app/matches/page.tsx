@@ -749,6 +749,29 @@ function RealMatchCard({ match }: { match: LckMatch }) {
                     )}
                 </AccordionItem>
             </Accordion>
+
+            {/* 공식 중계 링크 — LIVE 경기일 때만 표시 (Accordion 밖, Card 안) */}
+            {isLive && (
+                <div className="px-4 pb-2.5 pt-2 flex items-center gap-2 border-t border-red-900/30 bg-red-500/[0.03]">
+                    <span className="text-[10px] text-zinc-600 shrink-0">📺 지금 시청</span>
+                    <a
+                        href="https://www.youtube.com/@LCK/live"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-red-700 hover:bg-red-600 transition-colors"
+                    >
+                        ▶ YouTube
+                    </a>
+                    <a
+                        href="https://www.sooplive.co.kr/lck"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-violet-800 hover:bg-violet-700 transition-colors"
+                    >
+                        ▶ 숲
+                    </a>
+                </div>
+            )}
         </Card>
     )
 }

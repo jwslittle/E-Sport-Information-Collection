@@ -491,13 +491,35 @@ function LiveMatchCard({ match }: { match: LiveMatch }) {
                     </div>
                 </div>
 
-                {/* 하단: 업데이트 주기 안내 */}
-                <div className="mt-4 pt-3 border-t border-red-900/30 flex items-center justify-center gap-1.5 text-[10px] text-zinc-600">
-                    <span className="w-1 h-1 rounded-full bg-red-500/60 animate-pulse" />
-                    60초마다 자동 업데이트
-                    <Link href="/matches" className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-0.5">
-                        경기 상세 <ChevronRight className="w-3 h-3" />
-                    </Link>
+                {/* 하단: 시청 링크 + 업데이트 주기 안내 */}
+                <div className="mt-4 pt-3 border-t border-red-900/30 space-y-2.5">
+                    {/* 공식 중계 링크 */}
+                    <div className="flex gap-2 justify-center">
+                        <a
+                            href="https://www.youtube.com/@LCK/live"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-red-700 hover:bg-red-600 transition-colors"
+                        >
+                            ▶ YouTube 시청
+                        </a>
+                        <a
+                            href="https://www.sooplive.co.kr/lck"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-violet-800 hover:bg-violet-700 transition-colors"
+                        >
+                            ▶ 숲 시청
+                        </a>
+                    </div>
+                    {/* 업데이트 주기 */}
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-600">
+                        <span className="w-1 h-1 rounded-full bg-red-500/60 animate-pulse" />
+                        60초마다 자동 업데이트
+                        <Link href="/matches" className="ml-2 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center gap-0.5">
+                            경기 상세 <ChevronRight className="w-3 h-3" />
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
