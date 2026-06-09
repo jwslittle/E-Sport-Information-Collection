@@ -504,7 +504,7 @@ function LiveMatchCard({ match }: { match: LiveMatch }) {
                             ▶ YouTube 시청
                         </a>
                         <a
-                            href="https://www.sooplive.co.kr/lck"
+                            href="https://www.sooplive.co.kr/station/aflol"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-violet-800 hover:bg-violet-700 transition-colors"

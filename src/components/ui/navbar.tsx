@@ -144,7 +144,7 @@ export function Navbar() {
                                 <DropdownMenuSeparator className="bg-zinc-800" />
                                 <DropdownMenuItem asChild>
                                     <a
-                                        href="https://lck.kr"
+                                        href="https://lolesports.com/ko-KR/leagues/lck"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-2.5 cursor-pointer py-2"
@@ -152,7 +152,7 @@ export function Navbar() {
                                         <Globe className="w-4 h-4 text-yellow-400 shrink-0" />
                                         <div>
                                             <p className="text-sm font-medium leading-tight">LCK 공식 홈페이지</p>
-                                            <p className="text-[10px] text-zinc-500 mt-0.5">lck.kr</p>
+                                            <p className="text-[10px] text-zinc-500 mt-0.5">lolesports.com/lck</p>
                                         </div>
                                     </a>
                                 </DropdownMenuItem>
@@ -172,7 +172,7 @@ export function Navbar() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                     <a
-                                        href="https://www.sooplive.co.kr/lck"
+                                        href="https://www.sooplive.co.kr/station/aflol"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-2.5 cursor-pointer py-2"
@@ -180,7 +180,7 @@ export function Navbar() {
                                         <Tv className="w-4 h-4 text-violet-400 shrink-0" />
                                         <div>
                                             <p className="text-sm font-medium leading-tight">숲 공식 채널</p>
-                                            <p className="text-[10px] text-zinc-500 mt-0.5">sooplive.co.kr/lck</p>
+                                            <p className="text-[10px] text-zinc-500 mt-0.5">sooplive.co.kr/station/aflol</p>
                                         </div>
                                     </a>
                                 </DropdownMenuItem>

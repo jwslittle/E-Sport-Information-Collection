@@ -763,7 +763,7 @@ function RealMatchCard({ match }: { match: LckMatch }) {
                         ▶ YouTube
                     </a>
                     <a
-                        href="https://www.sooplive.co.kr/lck"
+                        href="https://www.sooplive.co.kr/station/aflol"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-violet-800 hover:bg-violet-700 transition-colors"
