@@ -18,7 +18,11 @@ export async function GET(
     }
 
     const { searchParams } = new URL(req.url)
-    const season = searchParams.get('season') ?? '2026-SPLIT2'
+    const seasonRaw = searchParams.get('season') ?? '2026-SPLIT2'
+
+    // season 파라미터 whitelist 검증 (임의 문자열 DB 쿼리 방지)
+    const VALID_SEASONS = ['ALL', '2026-SPLIT3', '2026-SPLIT2', '2026-SPLIT1', '2025-SUMMER', '2025-SPRING', '2024-SUMMER', '2024-SPRING']
+    const season = VALID_SEASONS.includes(seasonRaw) ? seasonRaw : '2026-SPLIT2'
 
     // 해당 팀의 모든 경기 조회
     const matches = await prisma.lckRealMatch.findMany({

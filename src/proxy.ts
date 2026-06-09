@@ -121,7 +121,10 @@ export async function proxy(req: NextRequest) {
         // 미로그인 → 로그인 페이지로
         if (!token) {
             const signInUrl = new URL("/auth/signin", req.url)
-            signInUrl.searchParams.set("callbackUrl", req.url)
+            // ⚠️ Open Redirect 방지: 절대 URL 대신 pathname+search만 전달
+            // req.url(전체 URL)을 callbackUrl로 넘기면 외부 URL로 리다이렉트 가능
+            const callbackPath = req.nextUrl.pathname + (req.nextUrl.search || '')
+            signInUrl.searchParams.set("callbackUrl", callbackPath)
             return NextResponse.redirect(signInUrl)
         }
         // Admin 전용 경로 → 비관리자는 홈으로

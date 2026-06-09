@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-    const lastUpdated = '2026년 6월 8일 (6차 개정)'
+    const lastUpdated = '2026년 6월 9일 (7차 개정)'
 
     return (
         <div className="max-w-2xl mx-auto py-12 px-4">
@@ -37,7 +37,8 @@ export default function PrivacyPage() {
                         <li>퀘스트 달성 기록</li>
                         <li>팔로우·팔로잉 관계</li>
                         <li>서비스 이용 일시</li>
-                        <li>접속 IP 주소 (서비스 오류 로그 및 API 남용 방지 목적)</li>
+                        <li>접속 IP 주소 및 기기 정보(User-Agent) (서비스 오류 로그 및 API 남용 방지 목적)</li>
+                        <li>AI 분석가 채팅 입력 내용 (사용자가 직접 입력한 경우에 한하며, OpenAI에 전송됨)</li>
                     </ul>
 
                     <p className="font-medium text-zinc-300 mt-3 mb-1">■ 쿠키 및 세션 정보 (서비스 이용 중 자동 생성)</p>
@@ -67,6 +68,10 @@ export default function PrivacyPage() {
                         회원 탈퇴 요청 즉시 데이터베이스에서 계정 및 모든 연관 데이터(예측·퀴즈·커뮤니티·GP 기록 등)가 삭제됩니다.
                         백업 데이터는 탈퇴 후 7일 이내에 파기합니다.
                         관련 법령에 의해 보존이 필요한 경우 해당 기간 동안 별도 보관 후 파기합니다.
+                    </p>
+                    <p className="mt-2">
+                        시스템 로그(IP 주소, User-Agent)는 수집 후 90일 경과 시 자동 삭제되며,
+                        계정 탈퇴 시에는 즉시 삭제됩니다.
                     </p>
                     <p className="mt-2 text-zinc-500">
                         파기 방법: 전자적 파일 형태의 경우 복원이 불가능한 방법으로 영구 삭제합니다.
@@ -175,6 +180,17 @@ export default function PrivacyPage() {
                         이용자는 언제든지 개인정보 열람, 정정, 삭제, 처리 정지를 요청할 수 있습니다.
                         서비스 내 계정 탈퇴 기능을 통해 직접 삭제하시거나, 아래 개인정보 보호책임자에게
                         이메일로 요청하실 수 있습니다.
+                        요청 접수 후 <strong>10일 이내</strong>에 처리하겠습니다 (개인정보보호법 제36조).
+                    </p>
+                </section>
+
+                <section>
+                    <h2 className="text-base font-bold text-white mb-3">6-1. 만 14세 미만 아동 개인정보</h2>
+                    <p>
+                        본 서비스는 만 14세 이상을 대상으로 하며, 만 14세 미만 아동의 가입을 허용하지 않습니다.
+                        가입 시 자기 선언(체크박스) 방식을 사용하나, 기술적 나이 확인 수단의 한계로
+                        만 14세 미만 가입이 발생할 경우 신고 접수 즉시 계정을 삭제합니다.
+                        만 14세 미만 아동의 가입이 확인된 경우, 해당 계정의 모든 개인정보를 지체 없이 파기합니다.
                     </p>
                 </section>
 
@@ -187,7 +203,7 @@ export default function PrivacyPage() {
                         <p className="mt-1"><span className="text-zinc-300 font-medium">이메일:</span> jworks6365@gmail.com</p>
                         <p className="mt-1 text-xs text-zinc-600">
                             개인정보 관련 문의, 열람·정정·삭제 요청은 위 이메일로 연락 주세요.
-                            확인 후 30일 이내에 처리하겠습니다.
+                            확인 후 10일 이내에 처리하겠습니다 (법정 기간 준수).
                         </p>
                     </div>
                 </section>

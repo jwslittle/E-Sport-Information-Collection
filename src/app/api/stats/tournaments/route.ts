@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     // ✅ 수정: 문자열 비교 대신 정수 변환 후 비교 (문자열 "999" >= "2026" 오작동 방지)
     const yearNum = parseInt(year, 10)
-    if (isNaN(yearNum) || yearNum < 2000 || yearNum > 2100) {
+    if (isNaN(yearNum) || yearNum < 2014 || yearNum > 2026) {
         return NextResponse.json({ error: 'Invalid year' }, { status: 400 })
     }
 

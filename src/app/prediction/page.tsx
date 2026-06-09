@@ -390,6 +390,7 @@ function MatchCard({
 
     const scheduledStr = match.scheduledAt
         ? new Date(match.scheduledAt).toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
             month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit'
         })
         : '일정 미정'
@@ -590,7 +591,7 @@ function MatchCard({
 function CompletedMatchCard({ match, prediction }: { match: LckMatch; prediction: LckPrediction | undefined }) {
     const winner = match.winner
     const scheduledStr = match.scheduledAt
-        ? new Date(match.scheduledAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
+        ? new Date(match.scheduledAt).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' })
         : ''
     const stageLabel = (() => {
         const dn = match.displayName
@@ -683,7 +684,7 @@ function MyPredictionCard({ pred }: { pred: LckPrediction }) {
     const match = pred.match
     const isCompleted = match.status === 'COMPLETED'
     const scheduledStr = match.scheduledAt
-        ? new Date(match.scheduledAt).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
+        ? new Date(match.scheduledAt).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' })
         : '일정 미정'
 
     return (
@@ -782,7 +783,7 @@ function PredictionRules() {
                         <li>예측은 경기 시작 5분 전까지 가능합니다</li>
                         <li>1경기당 1회만 예측할 수 있습니다</li>
                         <li>경기 완료 후 자동으로 GP가 정산됩니다</li>
-                        <li>스코어 예측은 BO3 경기만 가능합니다</li>
+                        <li>스코어 예측은 BO3/BO5 경기 모두 가능합니다</li>
                     </ul>
                 </div>
             )}

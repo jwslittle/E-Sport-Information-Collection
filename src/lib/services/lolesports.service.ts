@@ -28,6 +28,9 @@ export const LEAGUE_IDS = {
 export const LCK_2026_TOURNAMENTS = {
     SPLIT1: { id: '115548106590082745', slug: 'lck_split_1_2026', start: '2026-01-13', end: '2026-03-01', season: '2026-SPLIT1' },
     SPLIT2: { id: '115548128960088078', slug: 'lck_split_2_2026', start: '2026-03-31', end: '2026-06-14', season: '2026-SPLIT2' },
+    // ⚠️ 2026-06-14 이후 시작 — season.ts CURRENT_SEASON 전환 시 함께 사용
+    // TODO: id/slug는 LoL Esports API에서 실제 값 확인 후 업데이트
+    SPLIT3: { id: 'TBD', slug: 'lck_split_3_2026', start: '2026-06-14', end: '2026-09-07', season: '2026-SPLIT3' },
 }
 
 export interface LoLEsportsTeam {
@@ -203,10 +206,15 @@ export function getSeasonKeyFromDate(startTime: string): string {
 /**
  * 현재 진행 중인 LCK 경기 조회 (실시간 세트 스코어 포함)
  *
- * getLive 엔드포인트는 라이브 이벤트가 없으면 404를 반환할 수 있음 → 빈 배열 반환
+ * 반환값 구분:
+ *   - null              → 네트워크/API 오류 (경기 종료 감지 로직 스킵해야 함)
+ *   - []                → 정상 응답, 라이브 경기 없음
+ *   - LoLEsportsEvent[] → 라이브 경기 목록
+ *
+ * getLive 엔드포인트는 라이브 이벤트가 없으면 404를 반환할 수 있음
  */
-export async function fetchLiveLckMatches(): Promise<LoLEsportsEvent[]> {
-    if (!API_KEY) return []
+export async function fetchLiveLckMatches(): Promise<LoLEsportsEvent[] | null> {
+    if (!API_KEY) return null
 
     let res: Response
     try {
@@ -216,13 +224,13 @@ export async function fetchLiveLckMatches(): Promise<LoLEsportsEvent[]> {
             signal: AbortSignal.timeout(6000),
         })
     } catch {
-        // 타임아웃 또는 네트워크 오류 → 라이브 섹션 비표시
-        return []
+        // 타임아웃 또는 네트워크 오류 → null 반환 (경기 종료로 오판하면 안 됨)
+        return null
     }
 
-    // 라이브 경기 없으면 404 반환하는 API 스펙
+    // 라이브 경기 없으면 404/204 반환하는 API 스펙 → 정상적 빈 배열
     if (res.status === 404 || res.status === 204) return []
-    if (!res.ok) return []
+    if (!res.ok) return null  // 서버 오류 → null (오판 방지)
 
     const json = await res.json()
     const events: LoLEsportsEvent[] = json?.data?.schedule?.events ?? []

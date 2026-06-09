@@ -29,6 +29,7 @@ import { syncCurrentSeason } from '@/lib/services/lck-sync.service'
 import { processLckPredictions } from '@/lib/services/prediction-process.service'
 import prisma from '@/lib/prisma'
 import { CURRENT_YEAR } from '@/lib/config/season'
+import * as Sentry from '@sentry/nextjs'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30  // Vercel 설정상 최댓값 (Hobby 플랜 실제 한도: 10초)
@@ -64,6 +65,15 @@ export async function GET(req: Request) {
     try {
         // 1. LoL Esports getLive API 호출 (외부 API 호출 발생 지점 — 크론만 여기 진입)
         const liveEvents = await fetchLiveLckMatches()
+
+        // ⚠️ API 오류 시 null 반환 — 경기 종료 오판 방지 (null ≠ 빈 배열)
+        // 빈 배열([])은 정상적으로 라이브 경기 없음, null은 API/네트워크 오류
+        if (liveEvents === null) {
+            const msg = '[Cron/Live] LoL Esports API 오류 — 경기 종료 감지 로직 스킵'
+            console.error(msg)
+            Sentry.captureMessage(msg, 'warning')
+            return NextResponse.json({ ok: false, error: 'API error', action: 'skipped' }, { status: 200 })
+        }
 
         // 2. DB에 현재 LIVE 상태로 남아있는 경기 수 확인
         const liveInDbCount = await prisma.lckRealMatch.count({
@@ -162,6 +172,7 @@ export async function GET(req: Request) {
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[Cron/Live] 오류:', msg)
+        Sentry.captureException(err)
         return NextResponse.json(
             { ok: false, error: '라이브 동기화 중 오류가 발생했습니다.' },
             { status: 500 }

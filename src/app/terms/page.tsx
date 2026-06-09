@@ -20,7 +20,8 @@ export default function TermsPage() {
                     <h2 className="text-base font-bold text-white mb-3">1. 서비스 소개</h2>
                     <p>
                         E-Sport Information Collection(이하 "서비스")은 LCK(League Champions Korea) 팬을 위한
-                        비상업적 팬 프로젝트입니다. 경기 예측, 퀴즈, 팀 정보, 커뮤니티 기능을 제공합니다.
+                        비상업적 팬 프로젝트입니다. 경기 예측, 퀴즈, 팀/선수 정보, 커뮤니티, GP 코스메틱 상점,
+                        퀘스트, AI 분석가, 글로벌 랭킹 기능을 제공합니다.
                     </p>
                 </section>
 
@@ -84,8 +85,10 @@ export default function TermsPage() {
                 <section>
                     <h2 className="text-base font-bold text-white mb-3">5. 서비스 변경 및 종료</h2>
                     <p>
-                        비상업적 팬 프로젝트 특성상 사전 공지 없이 서비스가 변경되거나 종료될 수 있습니다.
-                        서비스 제공자는 이에 대해 어떠한 책임도 부담하지 않습니다.
+                        비상업적 팬 프로젝트 특성상 서비스가 변경되거나 종료될 수 있습니다.
+                        서비스 종료 시에는 부득이한 경우를 제외하고 <strong>최소 7일 전</strong>에 서비스 내 공지 또는
+                        이메일로 사전 통보하겠습니다. 단, 긴급한 법적 이유나 불가항력적 상황에서는
+                        즉시 종료될 수 있으며, 이 경우 GP는 소멸되고 별도 보상이 제공되지 않습니다.
                     </p>
                 </section>
 

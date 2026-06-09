@@ -19,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${BASE}/quests`,        lastModified: now, changeFrequency: 'daily',   priority: 0.6 },
         { url: `${BASE}/info`,          lastModified: now, changeFrequency: 'weekly',  priority: 0.5 },
         { url: `${BASE}/info/records`,  lastModified: now, changeFrequency: 'weekly',  priority: 0.5 },
+        { url: `${BASE}/analyst`,       lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
         { url: `${BASE}/privacy`,       lastModified: new Date('2026-06-08'), changeFrequency: 'monthly', priority: 0.2 },
         { url: `${BASE}/terms`,         lastModified: new Date('2026-06-08'), changeFrequency: 'monthly', priority: 0.2 },
     ]
