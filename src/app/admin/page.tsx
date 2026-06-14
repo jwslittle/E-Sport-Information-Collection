@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -9,7 +10,7 @@ import {
     Loader2, RefreshCw, Trophy, Database, Zap,
     CheckCircle2, XCircle, ShoppingBag, Clock,
     Bot, Activity, BookOpen, MessageSquare, Trash2,
-    BarChart2, TrendingUp,
+    BarChart2, TrendingUp, Users, ChevronRight,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
@@ -460,6 +461,28 @@ export default function AdminPage() {
                             <AlertDescription className="text-xs ml-2">{quizResult.text}</AlertDescription>
                         </Alert>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* ── 회원 관리 ────────────────────────────────────────── */}
+            <Card className="bg-zinc-900 border-zinc-800">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white text-base">
+                        <Users className="w-4 h-4 text-blue-400" />
+                        회원 관리
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-xs text-zinc-400">
+                        전체 회원 목록 조회, 닉네임·이메일 검색, GP 수정, 역할(ADMIN) 변경, 회원 삭제를 할 수 있습니다.
+                    </p>
+                    <Link href="/admin/users">
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm">
+                            <Users className="mr-2 h-4 w-4" />
+                            회원 관리 페이지로 이동
+                            <ChevronRight className="ml-auto h-4 w-4" />
+                        </Button>
+                    </Link>
                 </CardContent>
             </Card>
 
