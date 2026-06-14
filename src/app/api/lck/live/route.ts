@@ -42,7 +42,10 @@ export async function GET() {
             orderBy: { scheduledAt: 'asc' },
         })
 
-        return NextResponse.json({ matches, liveCount: matches.length })
+        // ✅ 10초 CDN 캐시 — 클라이언트가 60초마다 폴링하므로 충분
+        return NextResponse.json({ matches, liveCount: matches.length }, {
+            headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=50' },
+        })
     } catch (err) {
         console.error('[/api/lck/live]', err)
         return NextResponse.json({ matches: [], liveCount: 0 })

@@ -1,17 +1,9 @@
-
-'use client'
-
-import { motion } from 'framer-motion'
-
+// framer-motion 제거 → tw-animate-css CSS 애니메이션으로 교체 (번들 ~90KB gzip 절감)
+// 'use client' 불필요 — 서버 컴포넌트로 격상 (추가 절감)
 export function PageTransition({ children }: { children: React.ReactNode }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-        >
+        <div className="animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out">
             {children}
-        </motion.div>
+        </div>
     )
 }

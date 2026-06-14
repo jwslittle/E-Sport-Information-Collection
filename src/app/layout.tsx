@@ -11,9 +11,9 @@ import { QuestTracker } from "@/components/quest-tracker";
 // 영문 폰트 (숫자·영어 전용)
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 
-// 한국어 폰트 — Next.js Google Fonts (CJK 폰트는 subset 대신 display 설정)
+// 한국어 폰트 — weight 3개로 최적화 (500 제거: 브라우저가 400↔700 보간)
 const notoSansKR = Noto_Sans_KR({
-    weight: ['400', '500', '700', '900'],
+    weight: ['400', '700', '900'],
     variable: '--font-noto-kr',
     display: 'swap',
     preload: false, // CJK 폰트는 용량이 커서 preload 비활성화 권장

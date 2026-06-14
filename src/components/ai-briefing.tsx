@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Bot, Sparkles } from 'lucide-react'
 
 export function AIBriefing({ className }: { className?: string }) {
@@ -42,11 +41,7 @@ export function AIBriefing({ className }: { className?: string }) {
     if (loading) return null
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`relative p-4 rounded-xl bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 backdrop-blur-sm ${className}`}
-        >
+        <div className={`animate-in fade-in slide-in-from-bottom-2 duration-300 relative p-4 rounded-xl bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 backdrop-blur-sm ${className}`}>
             <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-300 mt-1">
                     <Bot className="w-5 h-5" />
@@ -62,6 +57,6 @@ export function AIBriefing({ className }: { className?: string }) {
                     </p>
                 </div>
             </div>
-        </motion.div>
+        </div>
     )
 }

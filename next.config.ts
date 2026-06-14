@@ -48,15 +48,28 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+    // ✅ gzip/brotli 압축 (Vercel에서도 추가 레이어 적용)
+    compress: true,
+
     async headers() {
         return [
             {
                 source: '/(.*)',
                 headers: securityHeaders,
             },
+            // 정적 에셋 장기 캐시 (Next.js _next/static은 content-hash 포함)
+            {
+                source: '/_next/static/(.*)',
+                headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+            },
         ]
     },
+
     images: {
+        // ✅ AVIF 우선 → WebP 폴백 (용량 30~50% 절감)
+        formats: ['image/avif', 'image/webp'],
+        // 이미지 캐시 1일 (Vercel 기본: 60초)
+        minimumCacheTTL: 86400,
         remotePatterns: [
             // Google OAuth 프로필 사진
             { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
@@ -70,6 +83,9 @@ const nextConfig: NextConfig = {
             { protocol: 'https', hostname: 'res.cloudinary.com' },
         ],
     },
+
+    // ✅ 서버 전용 패키지를 클라이언트 번들에서 완전 제외
+    serverExternalPackages: ['@prisma/client', 'prisma'],
 }
 
 export default withSentryConfig(nextConfig, {

@@ -73,7 +73,7 @@ interface QuizAnswer {
 
 // ─── 메인 홈 ─────────────────────────────────────────────────────────────
 export default function Home() {
-    const { data: session } = useSession()
+    const { data: session, status } = useSession()
     const [upcomingMatches, setUpcomingMatches] = useState<UpcomingMatch[]>([])
     const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([])
     const [myStats, setMyStats] = useState<PredictionStats | null>(null)
@@ -110,8 +110,9 @@ export default function Home() {
         return () => clearInterval(t)
     }, [])
 
+    // ✅ 공개 데이터 — 세션 기다리지 않고 마운트 즉시 fetch (워터폴 제거)
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchPublic = async () => {
             try {
                 const [matchRes, quizRes] = await Promise.all([
                     fetch(`/api/lck/matches?season=${CURRENT_SEASON}&status=SCHEDULED&limit=5`),
@@ -122,28 +123,35 @@ export default function Home() {
 
                 const quizData = await quizRes.json()
                 setTodayQuiz(quizData.quiz)
-                setQuizAnswered(quizData.answered)
-                setQuizAnswer(quizData.myAnswer)
-                setQuizDateKey(quizData.dateKey)
-
-                if (session) {
-                    const [predRes, gpRes] = await Promise.all([
-                        fetch('/api/lck/predictions/my'),
-                        fetch('/api/users/me'),
-                    ])
-                    const predData = await predRes.json()
-                    const gpData = await gpRes.json()
-                    setMyStats(predData.stats ?? null)
-                    if (gpData.gp !== undefined) setUserGp(gpData.gp)
-                }
+                setQuizAnswered(quizData.answered ?? false)
+                setQuizAnswer(quizData.myAnswer ?? null)
+                setQuizDateKey(quizData.dateKey ?? '')
             } catch (e) {
                 console.error(e)
             } finally {
                 setLoading(false)
             }
         }
-        fetchData()
-    }, [session])
+        fetchPublic()
+    }, []) // 마운트 1회만 — session 의존성 제거
+
+    // ✅ 인증 전용 데이터 — authenticated 상태가 될 때 1회 fetch
+    useEffect(() => {
+        if (status !== 'authenticated' || !session?.user) return
+        const fetchAuth = async () => {
+            try {
+                const [predRes, gpRes] = await Promise.all([
+                    fetch('/api/lck/predictions/my'),
+                    fetch('/api/users/me'),
+                ])
+                const predData = await predRes.json()
+                const gpData   = await gpRes.json()
+                setMyStats(predData.stats ?? null)
+                if (gpData.gp !== undefined) setUserGp(gpData.gp)
+            } catch { /* 조용히 무시 */ }
+        }
+        fetchAuth()
+    }, [status]) // status가 'authenticated'가 될 때 1회 실행
 
     return (
         <div className="max-w-5xl mx-auto py-6 px-4 space-y-8">

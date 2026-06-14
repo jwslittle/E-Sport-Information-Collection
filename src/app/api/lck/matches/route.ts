@@ -85,12 +85,14 @@ export async function GET(req: Request) {
         // 동기화 상태도 함께 반환
         const syncStatus = await getSyncStatus()
 
-        return NextResponse.json({
-            matches,
-            season,
-            total: matches.length,
-            syncStatus,
-        })
+        const body = { matches, season, total: matches.length, syncStatus }
+        // ✅ 공개 경기 목록은 60초 캐시 (sync/reset 파라미터 없을 때만)
+        if (!forceSync && !resetSync) {
+            return NextResponse.json(body, {
+                headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+            })
+        }
+        return NextResponse.json(body)
     } catch (err: unknown) {
         console.error('[API /lck/matches]', err)
         // ✅ 내부 에러 메시지 노출 금지
