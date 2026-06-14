@@ -55,6 +55,11 @@ function isAuthorized(req: Request): boolean {
     return req.headers.get('authorization') === `Bearer ${CRON_SECRET}`
 }
 
+// ✅ POST도 지원: cron-job.org 설정이 GET/POST 어느 쪽이든 처리 가능
+export async function POST(req: Request) {
+    return GET(req)
+}
+
 export async function GET(req: Request) {
     if (!isAuthorized(req)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
