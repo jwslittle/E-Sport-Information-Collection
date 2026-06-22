@@ -20,10 +20,13 @@ export const SEASON_OPTIONS = [
     { value: '2026-SPLIT3',       label: 'LCK 2026 Split 3 (현재)' },
     { value: '2026-SPLIT2',       label: 'LCK 2026 Split 2' },
     { value: '2026-SPLIT1',       label: 'LCK 2026 Split 1' },
-    // 국제 대회
+    // 국제 대회 (API 자동)
     { value: '2026-MSI',          label: 'MSI 2026' },
     { value: '2026-WORLDS',       label: '롤드컵 2026' },
     { value: '2026-FIRST-STAND',  label: 'First Stand 2026' },
+    // 국제 대회 (수동 등록)
+    { value: '2026-EWC',          label: 'EWC 2026' },
+    { value: '2026-ASIAN-GAMES',  label: '2026 아시안게임' },
     // 이전 시즌
     { value: '2025-SUMMER',       label: 'LCK 2025 Summer' },
 ] as const

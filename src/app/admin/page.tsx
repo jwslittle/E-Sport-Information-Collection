@@ -10,7 +10,7 @@ import {
     Loader2, RefreshCw, Trophy, Database, Zap,
     CheckCircle2, XCircle, ShoppingBag, Clock,
     Bot, Activity, BookOpen, MessageSquare, Trash2,
-    BarChart2, TrendingUp, Users, ChevronRight,
+    BarChart2, TrendingUp, Users, ChevronRight, Calendar,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
@@ -461,6 +461,29 @@ export default function AdminPage() {
                             <AlertDescription className="text-xs ml-2">{quizResult.text}</AlertDescription>
                         </Alert>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* ── 수동 경기 등록 ────────────────────────────────── */}
+            <Card className="bg-zinc-900 border-zinc-800">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-white text-base">
+                        <Calendar className="w-4 h-4 text-amber-400" />
+                        수동 경기 등록
+                        <Badge variant="outline" className="border-amber-700 text-amber-400 text-xs ml-1">EWC · 아시안게임</Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <p className="text-xs text-zinc-400">
+                        LoL Esports API에서 제공되지 않는 EWC, 아시안게임 경기를 수동으로 등록·수정·삭제합니다.
+                    </p>
+                    <Link href="/admin/matches">
+                        <Button className="w-full bg-amber-600 hover:bg-amber-700 text-black font-bold text-sm">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            수동 경기 등록 페이지로 이동
+                            <ChevronRight className="ml-auto h-4 w-4" />
+                        </Button>
+                    </Link>
                 </CardContent>
             </Card>
 

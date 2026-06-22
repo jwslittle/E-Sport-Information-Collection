@@ -12,7 +12,7 @@ import {
     Shield, Zap, Brain, MessageSquare
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CURRENT_SEASON } from '@/lib/config/season'
+import { SEASON_OPTIONS } from '@/lib/config/season'
 import { TEAM_COLORS } from '@/lib/config/teams'
 
 // ─── 타입 ────────────────────────────────────────────────────────────────
@@ -27,6 +27,8 @@ interface UpcomingMatch {
     scheduledAt: string | null
     status: string
     bestOf: number
+    season: string | null
+    tournament: string | null
 }
 
 interface LiveMatch {
@@ -115,7 +117,7 @@ export default function Home() {
         const fetchPublic = async () => {
             try {
                 const [matchRes, quizRes] = await Promise.all([
-                    fetch(`/api/lck/matches?season=${CURRENT_SEASON}&status=SCHEDULED&limit=5`),
+                    fetch(`/api/lck/matches?season=ALL&status=SCHEDULED&limit=5`),
                     fetch('/api/quiz/today'),
                 ])
                 const matchData = await matchRes.json()
@@ -536,6 +538,20 @@ function LiveMatchCard({ match }: { match: LiveMatch }) {
 
 // ─── 다가오는 경기 카드 ─────────────────────────────────────────────────
 
+// 시즌 키 → 대회 배지 레이블
+function getLeagueBadge(season: string | null): { label: string; color: string } | null {
+    if (!season) return null
+    const found = SEASON_OPTIONS.find(s => s.value === season)
+    if (found) {
+        if (season.includes('MSI'))         return { label: 'MSI',         color: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30' }
+        if (season.includes('WORLDS'))      return { label: '롤드컵',       color: 'text-violet-400 bg-violet-400/10 border-violet-400/30' }
+        if (season.includes('FIRST-STAND')) return { label: 'First Stand', color: 'text-sky-400 bg-sky-400/10 border-sky-400/30' }
+        if (season.includes('EWC'))         return { label: 'EWC',         color: 'text-amber-400 bg-amber-400/10 border-amber-400/30' }
+        if (season.includes('ASIAN'))       return { label: '아시안게임',   color: 'text-green-400 bg-green-400/10 border-green-400/30' }
+    }
+    return null
+}
+
 function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) {
     const [t1Err, setT1Err] = useState(false)
     const [t2Err, setT2Err] = useState(false)
@@ -558,6 +574,7 @@ function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) 
 
     const t1Color = TEAM_COLORS[match.team1]
     const t2Color = TEAM_COLORS[match.team2]
+    const badge = getLeagueBadge(match.season)
 
     return (
         <div className={cn(
@@ -577,6 +594,11 @@ function UpcomingMatchCard({ match, now }: { match: UpcomingMatch; now: Date }) 
                     <span className="text-zinc-500 text-xs">{timeStr}</span>
                 )}
                 <p className="text-zinc-600 text-[10px] mt-0.5">BO{match.bestOf}</p>
+                {badge && (
+                    <span className={`text-[9px] font-bold border rounded px-1 py-0.5 ${badge.color}`}>
+                        {badge.label}
+                    </span>
+                )}
             </div>
 
             {/* 팀1 */}
