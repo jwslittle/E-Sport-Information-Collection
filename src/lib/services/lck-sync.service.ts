@@ -8,7 +8,7 @@
  */
 
 import prisma from '@/lib/prisma'
-import { fetchLckCurrentSeason, transformEventToMatch, getSeasonKeyFromDate } from './lolesports.service'
+import { fetchLckCurrentSeason, fetchMsiCurrentSeason, transformEventToMatch, getSeasonKeyFromDate } from './lolesports.service'
 import { CURRENT_SEASON } from '@/lib/config/season'
 
 const STALE_HOURS = 0.5          // 30분 (크론 주기와 일치)
@@ -168,6 +168,109 @@ export async function syncCurrentSeason(
             matchesUpserted: 0,
             error: errMsg,
         }
+    }
+}
+
+/**
+ * MSI 현재 연도 데이터 동기화 (LoL Esports API 사용)
+ */
+export async function syncMsiSeason(
+    year = 2026,
+    forceRefresh = false,
+): Promise<SyncResult> {
+    const seasonKey = `${year}-MSI`
+    const dataType = `LCK_${seasonKey}` // LCK_ prefix 유지 — getSyncStatus startsWith 쿼리 일치
+
+    if (!forceRefresh) {
+        const shouldSync = await needsSync(seasonKey)
+        if (!shouldSync) {
+            return { synced: false, fromCache: true, matchesUpserted: 0 }
+        }
+    }
+
+    console.log(`[LckSync] Syncing MSI ${year} via LoL Esports API`)
+
+    try {
+        const events = await fetchMsiCurrentSeason()
+
+        if (events.length === 0) {
+            await prisma.dataSyncLog.upsert({
+                where: { dataType },
+                create: { dataType, lastSyncAt: new Date(), status: 'ERROR', details: 'No MSI events returned from LoL Esports API' },
+                update: { lastSyncAt: new Date(), status: 'ERROR', details: 'No MSI events returned from LoL Esports API' },
+            })
+            return { synced: false, fromCache: false, matchesUpserted: 0, error: 'No MSI events returned' }
+        }
+
+        console.log(`[LckSync] Got ${events.length} MSI events from LoL Esports API`)
+
+        let matchesUpserted = 0
+
+        for (const event of events) {
+            const matchData = transformEventToMatch(event)
+
+            await prisma.lckRealMatch.upsert({
+                where: { externalId: matchData.externalId },
+                create: {
+                    externalId: matchData.externalId,
+                    tournament: matchData.tournament,
+                    displayName: matchData.displayName,
+                    season: matchData.season,
+                    patch: null,
+                    team1: matchData.team1,
+                    team2: matchData.team2,
+                    team1Name: matchData.team1Name,
+                    team2Name: matchData.team2Name,
+                    team1Logo: matchData.team1Logo,
+                    team2Logo: matchData.team2Logo,
+                    team1Score: matchData.team1Score,
+                    team2Score: matchData.team2Score,
+                    winner: matchData.winner,
+                    bestOf: matchData.bestOf,
+                    scheduledAt: matchData.scheduledAt,
+                    completedAt: matchData.completedAt,
+                    status: matchData.status,
+                    syncedAt: new Date(),
+                },
+                update: {
+                    team1: matchData.team1,
+                    team2: matchData.team2,
+                    team1Name: matchData.team1Name,
+                    team2Name: matchData.team2Name,
+                    team1Logo: matchData.team1Logo,
+                    team2Logo: matchData.team2Logo,
+                    team1Score: matchData.team1Score,
+                    team2Score: matchData.team2Score,
+                    winner: matchData.winner,
+                    bestOf: matchData.bestOf,
+                    scheduledAt: matchData.scheduledAt,
+                    status: matchData.status,
+                    completedAt: matchData.completedAt,
+                    syncedAt: new Date(),
+                },
+            })
+            matchesUpserted++
+        }
+
+        await prisma.dataSyncLog.upsert({
+            where: { dataType },
+            create: { dataType, lastSyncAt: new Date(), status: 'OK', details: `${matchesUpserted} MSI matches synced` },
+            update: { lastSyncAt: new Date(), status: 'OK', details: `${matchesUpserted} MSI matches synced` },
+        })
+
+        console.log(`[LckSync] MSI Done: ${matchesUpserted} matches upserted`)
+
+        return { synced: true, fromCache: false, matchesUpserted, dataSource: 'LoL Esports API' }
+    } catch (err: any) {
+        const errMsg = String(err)
+        await prisma.dataSyncLog.upsert({
+            where: { dataType },
+            create: { dataType, lastSyncAt: new Date(), status: 'ERROR', details: errMsg },
+            update: { lastSyncAt: new Date(), status: 'ERROR', details: errMsg },
+        }).catch(() => {})
+
+        console.error('[LckSync] MSI Error:', err)
+        return { synced: false, fromCache: false, matchesUpserted: 0, error: errMsg }
     }
 }
 

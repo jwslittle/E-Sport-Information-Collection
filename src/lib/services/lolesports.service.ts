@@ -15,9 +15,10 @@ if (!API_KEY) {
     console.error('[LoLEsports] LOL_ESPORTS_API_KEY 환경변수가 설정되지 않았습니다. 동기화가 실패합니다.')
 }
 
-// LCK league IDs
+// League IDs
 export const LEAGUE_IDS = {
     LCK: '98767991310872058',
+    MSI: '98767991325878492',
     LCK_CHALLENGERS: '98767991335774713',
     LPL: '98767991314006698',
     LEC: '98767991302996019',
@@ -235,12 +236,53 @@ export async function fetchLiveLckMatches(): Promise<LoLEsportsEvent[] | null> {
     const json = await res.json()
     const events: LoLEsportsEvent[] = json?.data?.schedule?.events ?? []
 
-    // LCK 리그 & inProgress 상태만 필터
-    return events.filter(e => e.league?.slug === 'lck' && e.state === 'inProgress')
+    // LCK + MSI 리그 & inProgress 상태만 필터 (MSI 기간 중 국제전 라이브 포함)
+    return events.filter(e => (e.league?.slug === 'lck' || e.league?.slug === 'msi') && e.state === 'inProgress')
+}
+
+/**
+ * MSI 현재 연도 경기 일정 가져오기
+ */
+export async function fetchMsiCurrentSeason(): Promise<LoLEsportsEvent[]> {
+    const currentYear = new Date().getUTCFullYear().toString()
+    const allEvents: LoLEsportsEvent[] = []
+
+    const firstPage = await fetchSchedulePage(LEAGUE_IDS.MSI)
+    allEvents.push(...firstPage.events.filter(e => e.league?.slug === 'msi'))
+
+    // newer 방향 (미래 경기)
+    let newerToken = firstPage.newerToken
+    for (let i = 0; i < 2 && newerToken; i++) {
+        const page = await fetchSchedulePage(LEAGUE_IDS.MSI, newerToken)
+        allEvents.push(...page.events.filter(e => e.league?.slug === 'msi'))
+        newerToken = page.newerToken ?? null
+    }
+
+    // older 방향 — 이전 연도 데이터가 섞이지 않도록 현재 연도만 포함
+    let olderToken = firstPage.olderToken
+    for (let i = 0; i < 1 && olderToken; i++) {
+        const page = await fetchSchedulePage(LEAGUE_IDS.MSI, olderToken)
+        const currentYearEvents = page.events.filter(e => e.league?.slug === 'msi' && e.startTime?.startsWith(currentYear))
+        allEvents.push(...currentYearEvents)
+        if (currentYearEvents.length < page.events.filter(e => e.league?.slug === 'msi').length) break
+        olderToken = page.olderToken ?? null
+    }
+
+    // 현재 연도 필터 + 중복 제거 + 날짜 정렬
+    const seen = new Set<string>()
+    return allEvents
+        .filter(e => e.startTime?.startsWith(currentYear))
+        .filter(e => {
+            if (seen.has(e.match.id)) return false
+            seen.add(e.match.id)
+            return true
+        })
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
 }
 
 /**
  * LoL Esports 이벤트를 DB 저장용 포맷으로 변환
+ * league.slug === 'msi' 인 경우 MSI 전용 tournament/season 값 설정
  */
 export function transformEventToMatch(event: LoLEsportsEvent) {
     const team1 = event.match.teams[0]
@@ -255,11 +297,14 @@ export function transformEventToMatch(event: LoLEsportsEvent) {
         else if (team2.result?.outcome === 'win') winner = team2.code
     }
 
+    const isMsi = event.league?.slug === 'msi'
+    const year = new Date(event.startTime).getUTCFullYear()
+
     return {
         externalId: event.match.id,
-        tournament: `LCK/${new Date(event.startTime).getUTCFullYear()} Season`,
-        displayName: `LCK ${new Date(event.startTime).getUTCFullYear()} - ${event.blockName}`,
-        season: getSeasonKeyFromDate(event.startTime),
+        tournament: isMsi ? `MSI/${year}` : `LCK/${year} Season`,
+        displayName: isMsi ? `MSI ${year} - ${event.blockName}` : `LCK ${year} - ${event.blockName}`,
+        season: isMsi ? `${year}-MSI` : getSeasonKeyFromDate(event.startTime),
         team1: team1.code,
         team2: team2.code,
         team1Score,
@@ -268,7 +313,6 @@ export function transformEventToMatch(event: LoLEsportsEvent) {
         bestOf: event.match.strategy.count,
         scheduledAt: new Date(event.startTime),
         // ✅ completedAt: API가 완료시각을 별도 제공하지 않으므로 동기화 시점(현재시각) 사용
-        // (이전: startTime을 잘못 사용 → scheduledAt과 동일한 값이 저장되는 버그)
         completedAt: event.state === 'completed' ? new Date() : null,
         status: event.state === 'completed' ? 'COMPLETED'
             : event.state === 'inProgress' ? 'LIVE'

@@ -115,7 +115,7 @@ function extractStageLabel(displayName: string | null): string | null {
 type StageType = 'regular' | 'playoff' | 'playin' | 'roadtomsi' | 'other'
 function getStageType(label: string): StageType {
     if (/플레이오프|playoff|토너먼트\s*스테이지|결승|준결승|semi|final/i.test(label)) return 'playoff'
-    if (/플레이인|play.?in/i.test(label)) return 'playin'
+    if (/플레이.?인|play.?in/i.test(label)) return 'playin'
     if (/로드.*MSI|road.*msi|msi로\s*가는/i.test(label)) return 'roadtomsi'
     if (/\d+주\s*차|week\s*\d+|리그/i.test(label)) return 'regular'
     return 'other'
@@ -125,9 +125,10 @@ function getStageType(label: string): StageType {
 function detectStageGroup(displayName: string | null): string {
     const label = extractStageLabel(displayName)
     if (!label) return '기타'
+    if (/플레이.?인.*토너먼트|play.?in.*tournament/i.test(label)) return '플레이인'
     if (/토너먼트\s*스테이지/i.test(label)) return '토너먼트 스테이지'
     if (/플레이오프|playoff/i.test(label)) return '플레이오프'
-    if (/플레이인|play.?in/i.test(label)) return '플레이인'
+    if (/플레이.?인|play.?in/i.test(label)) return '플레이인'
     if (/로드.*MSI|road.*msi|msi로\s*가는/i.test(label)) return '로드 투 MSI'
     if (/\d+주\s*차|week\s*\d+|리그/i.test(label)) return '정규 시즌'
     return label
@@ -1042,7 +1043,7 @@ function StandingsTab({ matches }: { matches: LckMatch[] }) {
         return result.sort((a, b) => {
             const order: Record<string, number> = {
                 '정규 시즌': 0, '플레이인': 1, '플레이오프': 2,
-                '토너먼트 스테이지': 3, '로드 투 MSI': 4,
+                '토너먼트 스테이지': 3, '결승': 4, '로드 투 MSI': 5,
             }
             return (order[a] ?? 9) - (order[b] ?? 9)
         })
@@ -1065,8 +1066,9 @@ function StandingsTab({ matches }: { matches: LckMatch[] }) {
     const STAGE_META: Record<string, { icon: React.ReactNode; color: string; desc: string }> = {
         '정규 시즌':        { icon: <TrendingUp className="w-4 h-4" />, color: 'text-blue-400',   desc: '리그 순위표' },
         '플레이오프':       { icon: <Trophy className="w-4 h-4" />,     color: 'text-yellow-400', desc: '토너먼트 브라켓' },
-        '토너먼트 스테이지': { icon: <Trophy className="w-4 h-4" />,    color: 'text-yellow-400', desc: 'Road to MSI 브라켓' },
-        '플레이인':         { icon: <Zap className="w-4 h-4" />,        color: 'text-orange-400', desc: '플레이인 브라켓' },
+        '토너먼트 스테이지': { icon: <Trophy className="w-4 h-4" />,    color: 'text-yellow-400', desc: 'MSI 본선 브라켓' },
+        '플레이인':         { icon: <Zap className="w-4 h-4" />,        color: 'text-orange-400', desc: 'MSI 플레이인' },
+        '결승':             { icon: <Trophy className="w-4 h-4" />,     color: 'text-amber-400',  desc: 'MSI 결승' },
         '로드 투 MSI':      { icon: <Zap className="w-4 h-4" />,        color: 'text-green-400',  desc: 'MSI 진출 결정전' },
     }
 
