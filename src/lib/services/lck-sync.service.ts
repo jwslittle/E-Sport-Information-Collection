@@ -8,7 +8,13 @@
  */
 
 import prisma from '@/lib/prisma'
-import { fetchLckCurrentSeason, fetchMsiCurrentSeason, transformEventToMatch, getSeasonKeyFromDate } from './lolesports.service'
+import {
+    fetchLckCurrentSeason,
+    fetchInternationalLeagueSeason,
+    transformEventToMatch,
+    INTERNATIONAL_LEAGUE_LIST,
+    type InternationalLeague,
+} from './lolesports.service'
 import { CURRENT_SEASON } from '@/lib/config/season'
 
 const STALE_HOURS = 0.5          // 30분 (크론 주기와 일치)
@@ -172,43 +178,53 @@ export async function syncCurrentSeason(
 }
 
 /**
- * MSI 현재 연도 데이터 동기화 (LoL Esports API 사용)
+ * 국제 대회 리그 데이터 동기화 (범용)
+ * INTERNATIONAL_LEAGUE_LIST에 등록된 리그 하나를 sync
+ *
+ * events.length === 0 처리:
+ *   - 'NO_DATA' 상태 + 24시간 스테일 (Worlds 2026처럼 아직 일정 없는 경우)
+ *   - ERROR가 아닌 정상적 "대기" 상태 — 불필요한 재시도 방지
  */
-export async function syncMsiSeason(
+export async function syncInternationalLeague(
+    league: InternationalLeague,
     year = 2026,
     forceRefresh = false,
 ): Promise<SyncResult> {
-    const seasonKey = `${year}-MSI`
+    const seasonKey = `${year}-${league.seasonSuffix}`
     const dataType = `LCK_${seasonKey}` // LCK_ prefix 유지 — getSyncStatus startsWith 쿼리 일치
 
     if (!forceRefresh) {
-        const shouldSync = await needsSync(seasonKey)
-        if (!shouldSync) {
-            return { synced: false, fromCache: true, matchesUpserted: 0 }
+        // 'NO_DATA' 상태는 24시간 후 재시도 (일반 STALE_HOURS=0.5보다 느리게)
+        const log = await prisma.dataSyncLog.findUnique({ where: { dataType } })
+        if (log?.status === 'NO_DATA') {
+            const ageHours = (Date.now() - log.lastSyncAt.getTime()) / (1000 * 60 * 60)
+            if (ageHours < 24) return { synced: false, fromCache: true, matchesUpserted: 0 }
+        } else {
+            const shouldSync = await needsSync(seasonKey)
+            if (!shouldSync) return { synced: false, fromCache: true, matchesUpserted: 0 }
         }
     }
 
-    console.log(`[LckSync] Syncing MSI ${year} via LoL Esports API`)
+    console.log(`[LckSync] Syncing ${league.displayName} ${year} via LoL Esports API`)
 
     try {
-        const events = await fetchMsiCurrentSeason()
+        const events = await fetchInternationalLeagueSeason(league.id, league.slug, year)
 
         if (events.length === 0) {
+            // 아직 일정 없음 (Worlds 2026 등) — NO_DATA로 저장, 24h 후 재시도
             await prisma.dataSyncLog.upsert({
                 where: { dataType },
-                create: { dataType, lastSyncAt: new Date(), status: 'ERROR', details: 'No MSI events returned from LoL Esports API' },
-                update: { lastSyncAt: new Date(), status: 'ERROR', details: 'No MSI events returned from LoL Esports API' },
+                create: { dataType, lastSyncAt: new Date(), status: 'NO_DATA', details: `No ${league.displayName} ${year} events in API yet` },
+                update: { lastSyncAt: new Date(), status: 'NO_DATA', details: `No ${league.displayName} ${year} events in API yet` },
             })
-            return { synced: false, fromCache: false, matchesUpserted: 0, error: 'No MSI events returned' }
+            return { synced: false, fromCache: false, matchesUpserted: 0 }
         }
 
-        console.log(`[LckSync] Got ${events.length} MSI events from LoL Esports API`)
+        console.log(`[LckSync] Got ${events.length} ${league.displayName} events from LoL Esports API`)
 
         let matchesUpserted = 0
-
         for (const event of events) {
             const matchData = transformEventToMatch(event)
-
             await prisma.lckRealMatch.upsert({
                 where: { externalId: matchData.externalId },
                 create: {
@@ -254,11 +270,10 @@ export async function syncMsiSeason(
 
         await prisma.dataSyncLog.upsert({
             where: { dataType },
-            create: { dataType, lastSyncAt: new Date(), status: 'OK', details: `${matchesUpserted} MSI matches synced` },
-            update: { lastSyncAt: new Date(), status: 'OK', details: `${matchesUpserted} MSI matches synced` },
+            create: { dataType, lastSyncAt: new Date(), status: 'OK', details: `${matchesUpserted} ${league.displayName} matches synced` },
+            update: { lastSyncAt: new Date(), status: 'OK', details: `${matchesUpserted} ${league.displayName} matches synced` },
         })
-
-        console.log(`[LckSync] MSI Done: ${matchesUpserted} matches upserted`)
+        console.log(`[LckSync] ${league.displayName} Done: ${matchesUpserted} matches upserted`)
 
         return { synced: true, fromCache: false, matchesUpserted, dataSource: 'LoL Esports API' }
     } catch (err: any) {
@@ -268,9 +283,19 @@ export async function syncMsiSeason(
             create: { dataType, lastSyncAt: new Date(), status: 'ERROR', details: errMsg },
             update: { lastSyncAt: new Date(), status: 'ERROR', details: errMsg },
         }).catch(() => {})
-
-        console.error('[LckSync] MSI Error:', err)
+        console.error(`[LckSync] ${league.displayName} Error:`, err)
         return { synced: false, fromCache: false, matchesUpserted: 0, error: errMsg }
+    }
+}
+
+/**
+ * 모든 국제 대회 동기화 (INTERNATIONAL_LEAGUE_LIST 루프)
+ * /api/lck/matches cron 트리거에서 LCK sync와 함께 호출
+ */
+export async function syncAllInternational(year = 2026, forceRefresh = false): Promise<void> {
+    for (const league of INTERNATIONAL_LEAGUE_LIST) {
+        await syncInternationalLeague(league, year, forceRefresh)
+            .catch(e => console.error(`[LckSync] ${league.slug} sync failed:`, e))
     }
 }
 

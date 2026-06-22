@@ -16,7 +16,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import {
     syncCurrentSeason,
-    syncMsiSeason,
+    syncAllInternational,
     getMatchesFromDb,
     needsSync,
     resetSyncLog,
@@ -71,8 +71,8 @@ export async function GET(req: Request) {
                     await syncCurrentSeason(CURRENT_YEAR, false).catch(console.error)
                 }
             }
-            // MSI 동기화 — LCK sync 트리거 시 함께 실행 (30분 cron 주기 활용)
-            await syncMsiSeason(CURRENT_YEAR, forceSync).catch(console.error)
+            // 모든 국제 대회 동기화 — LCK sync 트리거 시 함께 실행 (30분 cron 주기 활용)
+            await syncAllInternational(CURRENT_YEAR, forceSync).catch(console.error)
         }
 
         // DB에서 경기 목록 조회
