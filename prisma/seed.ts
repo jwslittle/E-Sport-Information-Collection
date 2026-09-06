@@ -1,8 +1,10 @@
 /**
- * E-Sport SuperTeam — 가상 판타지 리그 시드 데이터
+ * [Legacy] E-Sport Information Collection — 가상 판타지 리그 시드 데이터
  *
- * 판타지 게임은 완전히 가상의 팀/선수를 사용합니다.
- * 실제 선수/팀명과 무관하며 저작권 문제가 없습니다.
+ * ⚠️ 이 시드 데이터는 초기 버전의 "가상 팀/선수 기반 샐러리캡 판타지" 모드용입니다.
+ * 해당 모드는 현재 서비스에서 제거되었고(chat/route.ts의 FANTASY_PATTERNS 참고),
+ * 실제 LCK 경기 승부 예측(GP) 방식으로 대체되었습니다. 하위 호환을 위해 남겨둔
+ * 레거시 스크립트이며, 완전히 가상의 팀/선수명을 사용해 실제 선수/팀명과는 무관합니다.
  */
 
 const { PrismaClient } = require('@prisma/client')
